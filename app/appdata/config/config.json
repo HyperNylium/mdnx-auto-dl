@@ -5,12 +5,6 @@
         "TEMP_DIR": "appdata/temp",
         "BIN_DIR": "appdata/bin"
     },
-    "dependency_urls": {
-        "Bento4-SDK": "https://www.hypernylium.com/projects/mdnx-auto-dl/Bento4-SDK.zip",
-        "ffmpeg": "https://www.hypernylium.com/projects/mdnx-auto-dl/ffmpeg.zip",
-        "mdnx": "https://www.hypernylium.com/projects/mdnx-auto-dl/mdnx.zip",
-        "mkvtoolnix": "https://www.hypernylium.com/projects/mdnx-auto-dl/mkvtoolnix.zip"
-    },
     "mdnx": {
         "bin-path": {
             "ffmpeg": "ffmpeg.exe",
@@ -39,5 +33,11 @@
         "gui": {
             "port": 3000
         }
+    },
+    "dependency_urls": {
+        "Bento4-SDK": "https://www.hypernylium.com/projects/mdnx-auto-dl/Bento4-SDK.zip",
+        "ffmpeg": "https://www.hypernylium.com/projects/mdnx-auto-dl/ffmpeg.zip",
+        "mdnx": "https://www.hypernylium.com/projects/mdnx-auto-dl/mdnx.zip",
+        "mkvtoolnix": "https://www.hypernylium.com/projects/mdnx-auto-dl/mkvtoolnix.zip"
     }
 }
