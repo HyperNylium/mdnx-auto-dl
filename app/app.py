@@ -62,14 +62,11 @@ def download_file(url, *, tmp_dir=TEMP_DIR, dest_dir=BIN_DIR):
     # move the file from the temp directory to the destination
     shutil.move(tmp_path, dest_path)
     print(f"Download complete. File moved to: {dest_path}")
-
 def extract_archive(archive_path, dest_dir=BIN_DIR):
     with ZipFile(archive_path, "r") as zip_ref:
         zip_ref.extractall(dest_dir)
     os.remove(archive_path)
     logging.info(f"Extracted archive to: {dest_dir}")
-
-
 def check_dependencies():
     logging.info("Checking dependencies...")
 
@@ -86,8 +83,46 @@ def check_dependencies():
 
     logging.info("Dependencies check complete.")
 
+def format_value(val):
+    """
+    Format the value based on its type:
+    - Integers and floats are returned as-is.
+    - Booleans are returned as 'true' or 'false' (YAML style).
+    - Lists are formatted as ["elem1", "elem2", ...] with double quotes around strings.
+    - Strings are wrapped in double quotes.
+    """
+    if isinstance(val, bool):
+        return "true" if val else "false"
+    elif isinstance(val, (int, float)):
+        return str(val)
+    elif isinstance(val, list):
+        # Format each element in the list. If an element is a string, wrap it in quotes.
+        formatted_elements = ', '.join([f'"{x}"' if isinstance(x, str) else str(x) for x in val])
+        return f'[{formatted_elements}]'
+    else:
+        return f'"{val}"'
+def update_mdnx_config():
+    logging.info("Updating MDNX config files with new settings from config.json...")
+
+    for mdnx_config_file, mdnx_config_settings in MDNX_CONFIG.items():
+        file_path = os.path.join(BIN_DIR, "mdnx", "config", f"{mdnx_config_file}.yml")
+
+        lines = []
+        for setting_key, setting_value in mdnx_config_settings.items():
+            formatted_value = format_value(setting_value)
+            line = f"{setting_key}: {formatted_value}\n"
+            lines.append(line)
+
+        with open(file_path, "w") as file:
+            file.writelines(lines)
+
+        logging.info(f"Updated {file_path} with new settings.")
+
+    logging.info("MDNX config updated.")
+
 
 
 if __name__ == "__main__":
     logging.info("App started.")
     check_dependencies()
+    update_mdnx_config()
