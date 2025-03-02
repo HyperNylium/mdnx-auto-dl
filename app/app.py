@@ -33,6 +33,7 @@ logging.basicConfig(
 )
 
 def download_file(url, *, tmp_dir=TEMP_DIR, dest_dir=BIN_DIR):
+    logging.info(f"Downloading file from: {url}")
     # extract the file name from the URL
     filename = os.path.basename(url)
     tmp_path = os.path.join(tmp_dir, filename)
@@ -66,7 +67,7 @@ def extract_archive(archive_path, dest_dir=BIN_DIR):
     with ZipFile(archive_path, "r") as zip_ref:
         zip_ref.extractall(dest_dir)
     os.remove(archive_path)
-    print(f"Extracted archive to: {dest_dir}")
+    logging.info(f"Extracted archive to: {dest_dir}")
 
 
 def check_dependencies():
@@ -76,25 +77,12 @@ def check_dependencies():
         logging.info(f"{BIN_DIR} not found. Creating...")
         os.makedirs(BIN_DIR)
 
-    if not os.path.exists(os.path.join(BIN_DIR, "Bento4-SDK")):
-        logging.info("Bento4-SDK not found. Downloading...")
-        download_file(DEPENDENCY_URLS["Bento4-SDK"])
-        extract_archive(os.path.join(BIN_DIR, "Bento4-SDK.zip"))
-
-    if not os.path.exists(os.path.join(BIN_DIR, "ffmpeg")):
-        logging.info("ffmpeg not found. Downloading...")
-        download_file(DEPENDENCY_URLS["ffmpeg"])
-        extract_archive(os.path.join(BIN_DIR, "ffmpeg.zip"))
-
-    if not os.path.exists(os.path.join(BIN_DIR, "mdnx")):
-        logging.info("mdnx not found. Downloading...")
-        download_file(DEPENDENCY_URLS["mdnx"])
-        extract_archive(os.path.join(BIN_DIR, "mdnx.zip"))
-    
-    if not os.path.exists(os.path.join(BIN_DIR, "mkvtoolnix")):
-        logging.info("mkvtoolnix not found. Downloading...")
-        download_file(DEPENDENCY_URLS["mkvtoolnix"])
-        extract_archive(os.path.join(BIN_DIR, "mkvtoolnix.zip"))
+    for dependency_name, dependency_dl_url in DEPENDENCY_URLS.items():
+        if not os.path.exists(os.path.join(BIN_DIR, dependency_name)):
+            logging.info(f"{dependency_name} not found. Downloading...")
+            download_file(dependency_dl_url)
+            logging.info(f"Extracting {dependency_name}...")
+            extract_archive(os.path.join(BIN_DIR, f"{dependency_name}.zip"))
 
     logging.info("Dependencies check complete.")
 
