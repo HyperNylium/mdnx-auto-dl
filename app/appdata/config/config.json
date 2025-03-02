@@ -1,0 +1,43 @@
+{
+    "app": {
+        "LOG_FILE": "appdata/logs/app.log",
+        "SYSTEM": "windows",
+        "TEMP_DIR": "appdata/temp",
+        "BIN_DIR": "appdata/bin"
+    },
+    "dependency_urls": {
+        "Bento4-SDK": "https://www.hypernylium.com/projects/mdnx-auto-dl/Bento4-SDK.zip",
+        "ffmpeg": "https://www.hypernylium.com/projects/mdnx-auto-dl/ffmpeg.zip",
+        "mdnx": "https://www.hypernylium.com/projects/mdnx-auto-dl/mdnx.zip",
+        "mkvtoolnix": "https://www.hypernylium.com/projects/mdnx-auto-dl/mkvtoolnix.zip"
+    },
+    "mdnx": {
+        "bin-path": {
+            "ffmpeg": "ffmpeg.exe",
+            "ffprobe": "ffprobe.exe",
+            "mkvmerge": "mkvmerge.exe",
+            "mp4decrypt": "mp4decrypt.exe"
+        },
+        "cli-defaults": {
+            "q": 0,
+            "kstream": 1,
+            "server": 1,
+            "partsize": 10,
+            "mp4": false,
+            "nocleanup": false,
+            "dlVideoOnce": false,
+            "keepAllVideos": false,
+            "fileName": "[${service}] ${showTitle} - S${season}E${episode} [${height}p]",
+            "dubLang": ["jpn"],
+            "dlsubs": ["all"],
+            "defaultAudio": "jpn"
+        },
+        "dir-path": {
+            "content": "./videos/",
+            "fonts": "./fonts/"
+        },
+        "gui": {
+            "port": 3000
+        }
+    }
+}
