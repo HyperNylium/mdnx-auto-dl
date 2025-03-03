@@ -3,9 +3,11 @@ import os
 import logging
 import requests
 import shutil
-from zipfile import ZipFile
 from tqdm import tqdm
+from zipfile import ZipFile
+from threading import Thread
 from json import load as JSload
+import subprocess
 
 with open("appdata/config/config.json", 'r') as config_file:
     config = JSload(config_file)
@@ -31,6 +33,21 @@ logging.basicConfig(
         logging.FileHandler(config["app"]["LOG_FILE"])  # Logs to a file
     ]
 )
+
+class MDNX_API:
+    def __init__(self, mdnx_path):
+        logging.info(f"MDNX API initialized with path: {mdnx_path}")
+        self.mdnx_path = mdnx_path
+
+    def run(self, *args):
+        command = [self.mdnx_path] + list(args)
+        logging.info(f"Running MDNX (aniDL) with command: {command}")
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, check=True)
+            return result.stdout
+        except subprocess.CalledProcessError as e:
+            return e.output
+
 
 def download_file(url, *, tmp_dir=TEMP_DIR, dest_dir=BIN_DIR):
     logging.info(f"Downloading file from: {url}")
@@ -120,9 +137,21 @@ def update_mdnx_config():
 
     logging.info("MDNX config updated.")
 
+def app():
+    mdnx_api = MDNX_API(mdnx_path=os.path.join(BIN_DIR, "mdnx", "aniDL.exe"))
 
+    if not os.path.exists(os.path.join(BIN_DIR, "mdnx", "config", "cr_token.yml")):
+        logging.info("No CR token found. Start the authentication process.")
+        cr_username = input("Enter your Crunchyroll username: ")
+        cr_password = input("Enter your Crunchyroll password: ")
+        cr_auth_output = mdnx_api.run("--service", "crunchy", "--username", cr_username, "--password", cr_password)
+        print(cr_auth_output)
+        logging.info("CR authentication complete.")
+    else:
+        logging.info("CR token found. Skipping authentication process.")
 
 if __name__ == "__main__":
     logging.info("App started.")
     check_dependencies()
     update_mdnx_config()
+    app()
