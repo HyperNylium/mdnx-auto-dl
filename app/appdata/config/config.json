@@ -16,15 +16,18 @@
             "q": 0,
             "kstream": 1,
             "server": 1,
-            "partsize": 10,
+            "partsize": 3,
             "mp4": false,
             "nocleanup": false,
             "dlVideoOnce": false,
             "keepAllVideos": false,
-            "fileName": "[${service}] ${showTitle} - S${season}E${episode} [${height}p]",
-            "dubLang": ["jpn"],
-            "dlsubs": ["all"],
-            "defaultAudio": "jpn"
+            "fileName": "${seriesTitle} - S${season}E${episode}",
+            "dubLang": ["eng", "jpn"],
+            "dlsubs": ["en"],
+            "defaultAudio": "jpn",
+            "silentAuth": true,
+            "timeout": 30000,
+            "waittime": 3000
         },
         "dir-path": {
             "content": "./videos/",
