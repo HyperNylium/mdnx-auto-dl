@@ -7,27 +7,29 @@
     },
     "mdnx": {
         "bin-path": {
-            "ffmpeg": "ffmpeg.exe",
-            "ffprobe": "ffprobe.exe",
-            "mkvmerge": "mkvmerge.exe",
-            "mp4decrypt": "mp4decrypt.exe"
+            "ffmpeg": "../ffmpeg/bin/ffmpeg.exe",
+            "ffprobe": "../ffmpeg/bin/ffprobe.exe",
+            "mkvmerge": "../mkvtoolnix/mkvmerge.exe",
+            "mp4decrypt": "../Bento4-SDK/bin/mp4decrypt.exe"
         },
         "cli-defaults": {
             "q": 0,
             "kstream": 1,
             "server": 1,
             "partsize": 3,
-            "mp4": false,
-            "nocleanup": false,
-            "dlVideoOnce": false,
-            "keepAllVideos": false,
             "fileName": "${seriesTitle} - S${season}E${episode}",
             "dubLang": ["eng", "jpn"],
             "dlsubs": ["en"],
             "defaultAudio": "jpn",
+            "username": "",
+            "password": "",
             "silentAuth": true,
             "timeout": 30000,
-            "waittime": 3000
+            "waittime": 3000,
+            "mp4": false,
+            "nocleanup": false,
+            "dlVideoOnce": false,
+            "keepAllVideos": false
         },
         "dir-path": {
             "content": "./videos/",
