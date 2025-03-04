@@ -34,10 +34,10 @@ logging.basicConfig(
 )
 
 class MDNX_API:
-    def __init__(self, mdnx_path):
+    def __init__(self, mdnx_path, mdnx_service="crunchy"):
         logging.info(f"MDNX API initialized with path: {mdnx_path}")
         self.mdnx_path = mdnx_path
-        self.mdnx_service = "crunchy"
+        self.mdnx_service = mdnx_service
 
     def search(self, query):
         logging.info(f"Searching for: {query}")
