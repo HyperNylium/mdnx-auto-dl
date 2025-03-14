@@ -1,9 +1,12 @@
 {
+    "monitor-series-id": [],
     "app": {
         "LOG_FILE": "appdata/logs/app.log",
         "SYSTEM": "windows",
         "TEMP_DIR": "appdata/temp",
-        "BIN_DIR": "appdata/bin"
+        "BIN_DIR": "appdata/bin",
+        "MDNX_SERVICE_USERNAME": "",
+        "MDNX_SERVICE_PASSWORD": ""
     },
     "mdnx": {
         "bin-path": {
@@ -21,9 +24,6 @@
             "dubLang": ["eng", "jpn"],
             "dlsubs": ["en"],
             "defaultAudio": "jpn",
-            "username": "",
-            "password": "",
-            "silentAuth": true,
             "timeout": 30000,
             "waittime": 3000,
             "mp4": false,
