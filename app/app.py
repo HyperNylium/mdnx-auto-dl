@@ -79,7 +79,7 @@ class QueueManager:
             logging.warning(f"Series '{series_id}' not found in the queue.")
 
     def output(self):
-        return self.queue_data if self.queue_data else "Queue is empty."
+        return self.queue_data if self.queue_data else None
 
 class MDNX_API:
     def __init__(self, mdnx_path, mdnx_service="crunchy"):
