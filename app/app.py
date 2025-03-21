@@ -1,6 +1,6 @@
 import os
 
-# Import custom modules from appdata
+# Custom imports
 from appdata.modules.MDNX_API import MDNX_API
 from appdata.modules.Vars import logger, config
 from appdata.modules.Vars import MDNX_SERVICE_BIN_PATH, MDNX_SERVICE_CR_TOKEN_PATH

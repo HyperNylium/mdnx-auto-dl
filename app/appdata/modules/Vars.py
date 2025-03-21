@@ -17,7 +17,6 @@ with open(CONFIG_PATH, 'r') as config_file:
 
 # App settings
 LOG_FILE = config["app"]["LOG_FILE"]
-SYSTEM = config["app"]["SYSTEM"]
 TEMP_DIR = config["app"]["TEMP_DIR"]
 BIN_DIR = config["app"]["BIN_DIR"]
 
