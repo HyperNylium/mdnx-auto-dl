@@ -1,10 +1,12 @@
 {
     "monitor-series-id": [],
     "app": {
-        "LOG_FILE": "appdata/logs/app.log",
         "SYSTEM": "windows",
         "TEMP_DIR": "appdata/temp",
         "BIN_DIR": "appdata/bin",
+        "LOG_FILE": "appdata/logs/app.log",
+        "MDNX_API_FORCE_REAUTH": false,
+        "MDNX_API_SKIP_TEST": false,
         "MDNX_SERVICE_USERNAME": "",
         "MDNX_SERVICE_PASSWORD": ""
     },
@@ -21,8 +23,13 @@
             "server": 1,
             "partsize": 3,
             "fileName": "${seriesTitle} - S${season}E${episode}",
-            "dubLang": ["eng", "jpn"],
-            "dlsubs": ["en"],
+            "dubLang": [
+                "eng",
+                "jpn"
+            ],
+            "dlsubs": [
+                "en"
+            ],
             "defaultAudio": "jpn",
             "timeout": 30000,
             "waittime": 3000,
