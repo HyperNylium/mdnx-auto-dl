@@ -1,7 +1,6 @@
 {
     "monitor-series-id": [],
     "app": {
-        "SYSTEM": "windows",
         "TEMP_DIR": "appdata/temp",
         "BIN_DIR": "appdata/bin",
         "LOG_FILE": "appdata/logs/app.log",
