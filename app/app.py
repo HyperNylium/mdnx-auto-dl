@@ -25,7 +25,7 @@ def app():
         else:
             logger.info("[app] User does not want to force re-auth with MDNX service.")
     else:
-        logger.info("[app] User is already authenticated with MDNX service, and cr_token.yml exists.")
+        logger.info("[app] cr_token.yml exists. Assuming user is already authenticated with MDNX service.")
 
     # Get the current queue IDs
     queue_output = mdnx_api.queue_manager.output()
