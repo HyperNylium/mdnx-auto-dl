@@ -161,3 +161,9 @@ cython_debug/
 
 # Custom test file
 app/test.py
+
+# Dont upload downloadable binaries
+app/appdata/bin/Bento4-SDK
+app/appdata/bin/ffmpeg
+app/appdata/bin/mdnx
+app/appdata/bin/mkvtoolnix

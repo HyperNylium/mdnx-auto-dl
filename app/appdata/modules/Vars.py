@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 
 def download_file(url, *, tmp_dir=TEMP_DIR, dest_dir=BIN_DIR):
-    logger.info(f"Downloading file from: {url}")
+    logger.info(f"[Vars] Downloading file from: {url}")
     # extract the file name from the URL
     filename = os.path.basename(url)
     tmp_path = os.path.join(tmp_dir, filename)
@@ -76,29 +76,30 @@ def download_file(url, *, tmp_dir=TEMP_DIR, dest_dir=BIN_DIR):
 
     # move the file from the temp directory to the destination
     shutil.move(tmp_path, dest_path)
-    print(f"Download complete. File moved to: {dest_path}")
+    logger.info(f"[Vars] Download complete. File moved to: {dest_path}")
 
 def extract_archive(archive_path, dest_dir=BIN_DIR):
+    logger.info(f"[Vars] Extracting archive: {archive_path}")
     with ZipFile(archive_path, "r") as zip_ref:
         zip_ref.extractall(dest_dir)
     os.remove(archive_path)
-    logger.info(f"Extracted archive to: {dest_dir}")
+    logger.info(f"[Vars] Extracted archive to: {dest_dir}")
 
 def check_dependencies():
-    logger.info("Checking dependencies...")
+    logger.info("[Vars] Checking dependencies...")
 
     if not os.path.exists(BIN_DIR):
-        logger.info(f"{BIN_DIR} not found. Creating...")
+        logger.info(f"[Vars] {BIN_DIR} not found. Creating directory...")
         os.makedirs(BIN_DIR)
 
     for dependency_name, dependency_dl_url in DEPENDENCY_URLS.items():
         if not os.path.exists(os.path.join(BIN_DIR, dependency_name)):
-            logger.info(f"{dependency_name} not found. Downloading...")
+            logger.info(f"[Vars] {dependency_name} not found. Downloading...")
             download_file(dependency_dl_url)
-            logger.info(f"Extracting {dependency_name}...")
+            logger.info(f"[Vars] Extracting {dependency_name}...")
             extract_archive(os.path.join(BIN_DIR, f"{dependency_name}.zip"))
 
-    logger.info("Dependencies check complete.")
+    logger.info("[Vars] Dependencies check complete.")
 
 def format_value(val):
     """
@@ -120,7 +121,7 @@ def format_value(val):
         return f'"{val}"'
 
 def update_mdnx_config():
-    logger.info("Updating MDNX config files with new settings from config.json...")
+    logger.info("[Vars] Updating MDNX config files with new settings from config.json...")
 
     for mdnx_config_file, mdnx_config_settings in MDNX_CONFIG.items():
         file_path = os.path.join(BIN_DIR, "mdnx", "config", f"{mdnx_config_file}.yml")
@@ -134,9 +135,9 @@ def update_mdnx_config():
         with open(file_path, "w") as file:
             file.writelines(lines)
 
-        logger.info(f"Updated {file_path} with new settings.")
+        logger.info(f"[Vars] Updated {file_path} with new settings.")
 
-    logger.info("MDNX config updated.")
+    logger.info("[Vars] MDNX config updated.")
 
 def update_app_config(key: str, value):
     global config
@@ -146,7 +147,7 @@ def update_app_config(key: str, value):
             config[Property][key] = value
             break
     else:
-        logger.error(f"Error while writing to the config file\nProperty: {Property}\nKey: {key}\nValue: {value}")
+        logger.error(f"[Vars] Error while writing to the config file\nProperty: {Property}\nKey: {key}\nValue: {value}")
         return
 
     with open(CONFIG_PATH, 'w') as config_file:

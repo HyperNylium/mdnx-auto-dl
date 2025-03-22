@@ -9,12 +9,12 @@ from .Vars import logger, config
 
 
 class MDNX_API:
-    def __init__(self, mdnx_path, config=config, mdnx_service="crunchy"):
-        logger.info(f"MDNX API initialized with path: {mdnx_path}")
+    def __init__(self, mdnx_path, config=config, mdnx_service="crunchy") -> None:
+        logger.info(f"[MDNX_API] MDNX API initialized with\nPath: {mdnx_path}\nService: {mdnx_service}")
         self.mdnx_path = mdnx_path
         self.mdnx_service = mdnx_service
-        self.username = config["app"]["MDNX_SERVICE_USERNAME"]
-        self.password = config["app"]["MDNX_SERVICE_PASSWORD"]
+        self.username = str(config["app"]["MDNX_SERVICE_USERNAME"])
+        self.password = str(config["app"]["MDNX_SERVICE_PASSWORD"])
         self.queue_manager = QueueManager()
 
         self.series_pattern = re.compile(
@@ -28,12 +28,14 @@ class MDNX_API:
             r'^\[(?P<ep_type>E|S)(?P<episode_number>\d+)\]\s+(?P<full_episode_name>.+?)\s+\['
         )
 
+        # Skip MDNX API test if user wants to
         if config["app"]["MDNX_API_SKIP_TEST"] == False:
             self.test()
         else:
-            logger.info("MDNX API test skipped by user.")
+            logger.info("[MDNX_API] MDNX API test skipped by user.")
 
-    def process_console_output(self, output: str):
+    def process_console_output(self, output: str) -> dict:
+        logger.info("[MDNX_API] Processing console output...")
         tmp_dict = {}
 
         # Process each line of the console output.
@@ -82,53 +84,69 @@ class MDNX_API:
                 continue
 
         self.queue_manager.add(tmp_dict)
+
+        logger.info("[MDNX_API] Console output processed.")
         return tmp_dict
 
-    def test(self):
-        logger.info("Testing MDNX API...")
+    def test(self) -> None:
+        logger.info("[MDNX_API] Testing MDNX API...")
 
         tmp_cmd = f"{self.mdnx_path} --service {self.mdnx_service} --srz GMEHME81V"
         result = subprocess.run(tmp_cmd, capture_output=True, text=True).stdout
-        logger.info(f"MDNX API test resault:\n{result}")
+        logger.info(f"[MDNX_API] MDNX API test resault:\n{result}")
 
         # Check if the output contains authentication errors
-        error_triggers = ["invalid_grant", "Token Refresh Failed", "Authentication required"]
+        error_triggers = ["invalid_grant", "Token Refresh Failed", "Authentication required", "Anonymous"]
         if any(trigger in result for trigger in error_triggers):
-            logger.info("Authentication error detected. Forcing re-authentication...")
+            logger.info("[MDNX_API] Authentication error detected. Forcing re-authentication...")
             self.auth()
         else:
-            logger.info("MDNX API test successful.")
+            logger.info("[MDNX_API] MDNX API test successful.")
 
         return
 
-
-    def auth(self):
-        logger.info(f"Authenticating with {self.mdnx_service}...")
+    def auth(self) -> str:
+        logger.info(f"[MDNX_API] Authenticating with {self.mdnx_service}...")
 
         if not self.username or not self.password:
-            logger.error("MDNX service username or password not found.\nPlease check the config file and enter your credentials in the following keys:\nMDNX_SERVICE_USERNAME\nMDNX_SERVICE_PASSWORD")
+            logger.error("[MDNX_API] MDNX service username or password not found.\nPlease check the config.json file and enter your credentials in the following keys:\nMDNX_SERVICE_USERNAME\nMDNX_SERVICE_PASSWORD.\nExiting...")
             sys.exit(1)
 
         tmp_cmd = f"{self.mdnx_path} --service {self.mdnx_service} --auth --username {self.username} --password {self.password} --silentAuth"
         result = subprocess.run(tmp_cmd, capture_output=True, text=True)
+        logger.info(f"[MDNX_API] Console output for auth process:\n{result.stdout}")
 
-        logger.info(result.stdout)
+        logger.info(f"[MDNX_API] Authentication with {self.mdnx_service} complete.")
         return result.stdout
 
-    def start_monitor(self, series_id: str):
-        logger.info(f"Monitoring series with ID: {series_id}")
+    def start_monitor(self, series_id: str) -> str:
+        logger.info(f"[MDNX_API] Monitoring series with ID: {series_id}")
 
         tmp_cmd = f"{self.mdnx_path} --service {self.mdnx_service} --srz {series_id}"
         result = subprocess.run(tmp_cmd, capture_output=True, text=True)
-        logger.info(result.stdout)
+        logger.info(f"[MDNX_API] Console output for start_monitor process:\n{result.stdout}")
 
         self.process_console_output(result.stdout)
 
+        logger.info(f"[MDNX_API] Monitoring for series with ID: {series_id} complete.")
         return result.stdout
 
-    def stop_monitor(self, series_id: str):
-        logger.info(f"Stopping monitor for series with ID: {series_id}")
+    def stop_monitor(self, series_id: str) -> None:
+        logger.info(f"[MDNX_API] Stopping monitor for series with ID: {series_id}")
 
         self.queue_manager.remove(series_id)
 
+        logger.info(f"[MDNX_API] Stopping monitor for series with ID: {series_id} complete.")
         return
+
+    def update_monitor(self, series_id: str) -> str:
+        logger.info(f"[MDNX_API] Updating monitor for series with ID: {series_id}")
+
+        tmp_cmd = f"{self.mdnx_path} --service {self.mdnx_service} --srz {series_id}"
+        result = subprocess.run(tmp_cmd, capture_output=True, text=True)
+        logger.info(f"[MDNX_API] Console output for update_monitor process:\n{result.stdout}")
+
+        self.process_console_output(result.stdout)
+
+        logger.info(f"[MDNX_API] Updating monitor for series with ID: {series_id} complete.")
+        return result.stdout
