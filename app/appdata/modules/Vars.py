@@ -1,10 +1,14 @@
 import os
+import sys
 import json
 import shutil
 import logging
 import requests
 from tqdm import tqdm
 from zipfile import ZipFile
+from string import Template
+from io import TextIOWrapper
+
 
 
 CONFIG_PATH = "appdata/config/config.json"
@@ -37,8 +41,8 @@ logging.basicConfig(
     format='[%(asctime)s] %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
     handlers=[
-        logging.StreamHandler(),                        # Logs to console
-        logging.FileHandler(config["app"]["LOG_FILE"])  # Logs to a file
+        logging.StreamHandler(TextIOWrapper(sys.stdout.buffer, encoding="utf-8")),
+        logging.FileHandler(LOG_FILE, encoding="utf-8")
     ]
 )
 
@@ -152,3 +156,72 @@ def update_app_config(key: str, value):
 
     with open(CONFIG_PATH, 'w') as config_file:
         json.dump(config, config_file, indent=4)
+
+def get_episode_file_path(queue, series_id, season_key, episode_key, base_dir, extension=".mkv"):
+    """
+    Constructs the full file path for an episode using the dynamic file naming.
+    
+    The folder structure is:
+      {base_dir}/{series_name}/S{season}/{file_name}
+
+    Where file_name is generated based on the template from "mdnx > cli-defaults > fileName" config.
+    """
+    # Get data from the queue.
+    series_name = queue[series_id]["series"]["series_name"]
+    season = queue[series_id]["seasons"][season_key]["season_number"]
+    episode = queue[series_id]["episodes"][episode_key]["episode_number"]
+    episode_name = queue[series_id]["episodes"][episode_key]["episode_name"]
+
+    # Generate the file name using the template.
+    file_name = get_episode_naming_template(series_name, season, episode, episode_name, extension)
+
+    # Build the season folder name (for folder organization, e.g., "S1")
+    season_folder = f"S{int(season)}"
+
+    # Combine to form the full file path.
+    file_path = os.path.join(base_dir, series_name, season_folder, file_name)
+    return file_path
+
+def get_episode_naming_template(series_title, season, episode, episode_name, extension):
+    """
+    Generates a file name based on the template provided in config.json.
+    
+    The template can include the following tokens:
+      - ${seriesTitle}   : The series name.
+      - ${season}        : The season number (we’ll pad this to two digits).
+      - ${episode}       : The episode number (padded to two digits).
+      - ${episodeName}   : The episode title.
+      
+    For example, with the default template:
+      "${seriesTitle} - S${season}E${episode}"
+    and given:
+      series_title = "Solo Leveling"
+      season = 1
+      episode = 1
+      episode_name = "I'm Used to It"
+      
+    The output will be:
+      "Solo Leveling - S01E01.mkv"
+    """
+    # Read the fileName template from your config
+    file_template = str(config["mdnx"]["cli-defaults"]["fileName"])
+
+    # Create a Template object
+    template_obj = Template(file_template)
+
+    # Prepare the substitution dictionary.
+    substitutions = {
+        "seriesTitle": series_title,
+        "season": str(int(season)).zfill(2),
+        "episode": str(int(episode)).zfill(2),
+        "episodeName": episode_name
+    }
+
+    # Perform the substitution.
+    file_name = template_obj.safe_substitute(substitutions)
+
+    # Append the extension if not already present.
+    if not file_name.endswith(extension):
+        file_name = f"{file_name}{extension}"
+
+    return file_name

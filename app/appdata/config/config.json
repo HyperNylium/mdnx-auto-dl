@@ -7,7 +7,8 @@
         "MDNX_API_FORCE_REAUTH": false,
         "MDNX_API_SKIP_TEST": false,
         "MDNX_SERVICE_USERNAME": "",
-        "MDNX_SERVICE_PASSWORD": ""
+        "MDNX_SERVICE_PASSWORD": "",
+        "MAIN_LOOP_UPDATE_INTERVAL": 3600
     },
     "mdnx": {
         "bin-path": {

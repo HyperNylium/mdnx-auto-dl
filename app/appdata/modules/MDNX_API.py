@@ -37,8 +37,9 @@ class MDNX_API:
     def process_console_output(self, output: str) -> dict:
         logger.info("[MDNX_API] Processing console output...")
         tmp_dict = {}
+        episode_counters = {}  # maps season key ("S1", "S2", etc) to episode counter
+        current_series_id = None
 
-        # Process each line of the console output.
         for line in output.splitlines():
             line = line.strip()
             if not line:
@@ -49,11 +50,9 @@ class MDNX_API:
             if series:
                 series_info = series.groupdict()
                 current_series_id = series_info["series_id"]
-                # Create a new entry in tmp_dict for this series.
                 tmp_dict[current_series_id] = {
                     "series": series_info,
-                    "seasons": {},
-                    "episodes": {}
+                    "seasons": {}
                 }
                 continue
 
@@ -61,30 +60,55 @@ class MDNX_API:
             season = self.season_pattern.match(line)
             if season and current_series_id is not None:
                 season_info = season.groupdict()
-                tmp_dict[current_series_id]["seasons"][season_info["season_id"]] = season_info
+                # Assume the season info includes a key "season_number" (or similar)
+                season_num = season_info.get("season_number") or season_info.get("season")
+                season_key = f"S{season_num}"
+                tmp_dict[current_series_id]["seasons"][season_key] = {
+                    **season_info,
+                    "episodes": {}
+                }
+                # Initialize the episode counter for this season.
+                episode_counters[season_key] = 1
                 continue
 
             # Check for episode information.
             episode = self.episode_pattern.match(line)
             if episode and current_series_id is not None:
                 episode_info = episode.groupdict()
-                # Clean up the episode name by splitting on the last occurrence of " - "
-                parts = episode_info["full_episode_name"].rsplit(" - ", 1)
-                if len(parts) > 1:
-                    cleaned_name = parts[-1]
+                # Extract the season number from the episode line.
+                season_number_match = re.search(r'- Season (\d+) -', line)
+                if season_number_match:
+                    season_num = season_number_match.group(1)
+                    season_key = f"S{season_num}"
                 else:
-                    cleaned_name = episode_info["full_episode_name"]
-                # Use ep_type+episode_number as key. Example, "E1".
-                ep_key = f'{episode_info["ep_type"]}{episode_info["episode_number"]}'
-                tmp_dict[current_series_id]["episodes"][ep_key] = {
-                    "episode_number": episode_info["episode_number"],
+                    logger.warning(f"Season not found in episode line: {line}")
+                    continue
+
+                # If the season hasn't been registered (episode comes before its season header), create a minimal season entry.
+                if season_key not in tmp_dict[current_series_id]["seasons"]:
+                    tmp_dict[current_series_id]["seasons"][season_key] = {
+                        "season_id": None,
+                        "season_name": None,
+                        "season_number": season_num,
+                        "episodes": {}
+                    }
+                    episode_counters[season_key] = 1
+
+                # Use the per‑season episode counter.
+                current_counter = episode_counters[season_key]
+                # Clean up the episode name by splitting on the last " - "
+                parts = episode_info["full_episode_name"].rsplit(" - ", 1)
+                cleaned_name = parts[-1] if len(parts) > 1 else episode_info["full_episode_name"]
+                ep_key = f"E{current_counter}"
+                tmp_dict[current_series_id]["seasons"][season_key]["episodes"][ep_key] = {
+                    "episode_number": str(current_counter),
                     "episode_name": cleaned_name,
                     "episode_downloaded": False
                 }
+                episode_counters[season_key] += 1
                 continue
 
         self.queue_manager.add(tmp_dict)
-
         logger.info("[MDNX_API] Console output processed.")
         return tmp_dict
 
@@ -92,7 +116,7 @@ class MDNX_API:
         logger.info("[MDNX_API] Testing MDNX API...")
 
         tmp_cmd = f"{self.mdnx_path} --service {self.mdnx_service} --srz GMEHME81V"
-        result = subprocess.run(tmp_cmd, capture_output=True, text=True).stdout
+        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8").stdout
         logger.info(f"[MDNX_API] MDNX API test resault:\n{result}")
 
         # Check if the output contains authentication errors
@@ -113,7 +137,7 @@ class MDNX_API:
             sys.exit(1)
 
         tmp_cmd = f"{self.mdnx_path} --service {self.mdnx_service} --auth --username {self.username} --password {self.password} --silentAuth"
-        result = subprocess.run(tmp_cmd, capture_output=True, text=True)
+        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
         logger.info(f"[MDNX_API] Console output for auth process:\n{result.stdout}")
 
         logger.info(f"[MDNX_API] Authentication with {self.mdnx_service} complete.")
@@ -123,7 +147,7 @@ class MDNX_API:
         logger.info(f"[MDNX_API] Monitoring series with ID: {series_id}")
 
         tmp_cmd = f"{self.mdnx_path} --service {self.mdnx_service} --srz {series_id}"
-        result = subprocess.run(tmp_cmd, capture_output=True, text=True)
+        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
         logger.info(f"[MDNX_API] Console output for start_monitor process:\n{result.stdout}")
 
         self.process_console_output(result.stdout)
@@ -143,10 +167,14 @@ class MDNX_API:
         logger.info(f"[MDNX_API] Updating monitor for series with ID: {series_id}")
 
         tmp_cmd = f"{self.mdnx_path} --service {self.mdnx_service} --srz {series_id}"
-        result = subprocess.run(tmp_cmd, capture_output=True, text=True)
+        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
         logger.info(f"[MDNX_API] Console output for update_monitor process:\n{result.stdout}")
 
         self.process_console_output(result.stdout)
 
         logger.info(f"[MDNX_API] Updating monitor for series with ID: {series_id} complete.")
         return result.stdout
+
+    def download_episode(self, series_id: str, episode_id: str) -> bool:
+        logger.info(f"[MDNX_API] Downloading episode {episode_id} for series {series_id}")
+        return True

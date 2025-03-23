@@ -26,7 +26,7 @@ class QueueManager:
         else:
             logger.info(f"[QueueManager] Queue file not found at {self.queue_path}. Starting with an empty queue.")
 
-        # Create an empty queue file if it doesn't exist
+        # Create an empty queue file if it doesn't exist.
         with open(self.queue_path, "a", encoding="utf-8") as empty_queue_file:
             empty_queue_file.write("{}")
 
@@ -42,13 +42,24 @@ class QueueManager:
         logger.info("[QueueManager] Adding series to the queue.")
         for series_id, series_info in new_data.items():
             if series_id in self.queue_data:
-                # Update existing entry with new data
+                # Update the series metadata.
                 self.queue_data[series_id]["series"] = series_info["series"]
-                self.queue_data[series_id]["seasons"].update(series_info["seasons"])
-                self.queue_data[series_id]["episodes"].update(series_info["episodes"])
+                # Iterate over each season and update or add it.
+                for season_key, season_info in series_info.get("seasons", {}).items():
+                    if season_key in self.queue_data[series_id]["seasons"]:
+                        # Update season info (except episodes) and merge episode data.
+                        self.queue_data[series_id]["seasons"][season_key].update(
+                            {k: v for k, v in season_info.items() if k != "episodes"}
+                        )
+                        self.queue_data[series_id]["seasons"][season_key]["episodes"].update(
+                            season_info.get("episodes", {})
+                        )
+                    else:
+                        # Add new season entry.
+                        self.queue_data[series_id]["seasons"][season_key] = season_info
                 logger.info(f"[QueueManager] Updated series '{series_id}' in the queue.")
             else:
-                # Add a new entry to the queue
+                # Add a new series entry.
                 self.queue_data[series_id] = series_info
                 logger.info(f"[QueueManager] Added series '{series_id}' to the queue.")
         self.save_queue()
@@ -62,19 +73,23 @@ class QueueManager:
         else:
             logger.warning(f"[QueueManager] Series '{series_id}' not found in the queue.")
 
-    def update_episode_status(self, series_id: str, episode_id: str, status: bool) -> None:
+    def update_episode_status(self, series_id: str, season_id: str, episode_id: str, status: bool) -> None:
         if series_id not in self.queue_data:
             logger.warning(f"[QueueManager] Series '{series_id}' not found in the queue.")
             return
 
-        episodes = self.queue_data[series_id].get("episodes", {})
+        if season_id not in self.queue_data[series_id]["seasons"]:
+            logger.warning(f"[QueueManager] Season '{season_id}' not found in series '{series_id}'.")
+            return
+
+        episodes = self.queue_data[series_id]["seasons"][season_id].get("episodes", {})
         if episode_id not in episodes:
-            logger.warning(f"[QueueManager] Episode '{episode_id}' not found in series '{series_id}'.")
+            logger.warning(f"[QueueManager] Episode '{episode_id}' not found in season '{season_id}' for series '{series_id}'.")
             return
 
         episodes[episode_id]["episode_downloaded"] = status
         self.save_queue()
-        logger.info(f"[QueueManager] Updated episode '{episode_id}' in series '{series_id}' to downloaded={status}.")
+        logger.info(f"[QueueManager] Updated episode '{episode_id}' in series '{series_id}', season '{season_id}' to downloaded={status}.")
 
     def output(self) -> dict | None:
         return self.queue_data if self.queue_data else None
