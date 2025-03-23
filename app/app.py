@@ -7,7 +7,8 @@ from appdata.modules.MDNX_API import MDNX_API
 from appdata.modules.MainLoop import MainLoop
 from appdata.modules.Vars import logger, config
 from appdata.modules.Vars import MDNX_SERVICE_BIN_PATH, MDNX_SERVICE_CR_TOKEN_PATH
-from appdata.modules.Vars import check_dependencies, update_mdnx_config, update_app_config
+from appdata.modules.Vars import check_dependencies, update_mdnx_config, update_app_config, handle_exception
+
 
 
 def app():
@@ -20,7 +21,7 @@ def app():
     if not os.path.exists(MDNX_SERVICE_CR_TOKEN_PATH) or config["app"]["MDNX_API_FORCE_REAUTH"] == True:
         mdnx_api.auth()
 
-        # update the "MDNX_API_FORCE_REAUTH" config to False
+        # Update the "MDNX_API_FORCE_REAUTH" config to False if needed
         logger.info("[app] Checking to see if user wants to force re-auth with MDNX service...")
         if config["app"]["MDNX_API_FORCE_REAUTH"] == True:
             update_app_config("MDNX_API_FORCE_REAUTH", False)
@@ -70,20 +71,23 @@ def app():
     logger.info("[app] MDNX-auto-dl has finished with housekeeping. Proceeding to main loop.")
 
     # Start the main loop
-    # logger.info("[app] Starting main loop...")
-    # mainloop = MainLoop(mdnx_api=mdnx_api)
-    # mainloop.start()
+    logger.info("[app] Starting main loop...")
+    mainloop = MainLoop(mdnx_api=mdnx_api)
+    mainloop.start()
 
-    # # this will terminate on SIGINT in the future
-    # # for now, it will terminate on KeyboardInterrupt
-    # try:
-    #     while True:
-    #         time.sleep(1)
-    # except KeyboardInterrupt:
-    #     logger.info("[app] Keyboard interrupt received. Stopping the main loop.")
-    #     mainloop.stop()
+    # this will terminate on SIGINT in the future for Docker
+    # for now, it will terminate on KeyboardInterrupt
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        logger.info("[app] Keyboard interrupt received. Stopping the main loop.")
+        mainloop.stop()
 
 if __name__ == "__main__":
+    logger.info("[app] Overriding sys.excepthook to log uncaught exceptions...")
+    sys.excepthook = handle_exception
+
     logger.info("[app] MDNX-auto-dl has started.")
     check_dependencies()
     update_mdnx_config()

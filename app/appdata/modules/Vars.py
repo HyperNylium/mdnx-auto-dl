@@ -4,11 +4,9 @@ import json
 import shutil
 import logging
 import requests
-from tqdm import tqdm
 from zipfile import ZipFile
 from string import Template
 from io import TextIOWrapper
-
 
 
 CONFIG_PATH = "appdata/config/config.json"
@@ -50,6 +48,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def handle_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        # Call the default excepthook to handle the exception if it's a KeyboardInterrupt
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
 
 def download_file(url, *, tmp_dir=TEMP_DIR, dest_dir=BIN_DIR):
     logger.info(f"[Vars] Downloading file from: {url}")
@@ -66,17 +71,11 @@ def download_file(url, *, tmp_dir=TEMP_DIR, dest_dir=BIN_DIR):
     response = requests.get(url, stream=True)
     response.raise_for_status()  # raise an error for bad responses
 
-    # get total file size from headers
-    total_size = int(response.headers.get("content-length", 0))
-
-    # write the file in chunks with a progress bar
-    with open(tmp_path, "wb") as f, tqdm(
-        total=total_size, unit="B", unit_scale=True, desc=filename, ncols=80
-    ) as pbar:
+    # write the file in chunks without a progress bar
+    with open(tmp_path, "wb") as f:
         for chunk in response.iter_content(chunk_size=1024):
             if chunk:  # filter out keep-alive chunks
                 f.write(chunk)
-                pbar.update(len(chunk))
 
     # move the file from the temp directory to the destination
     shutil.move(tmp_path, dest_path)
@@ -157,6 +156,23 @@ def update_app_config(key: str, value):
     with open(CONFIG_PATH, 'w') as config_file:
         json.dump(config, config_file, indent=4)
 
+def log_manager(log_file_path=LOG_FILE, max_lines: int = 50000, keep_lines: int = 5000) -> None:
+    try:
+        with open(log_file_path, 'r', encoding='utf-8') as file:
+            lines = file.readlines()
+        
+        total_lines = len(lines)
+        if total_lines > max_lines:
+            # Keep only the last 'keep_lines' lines.
+            new_lines = lines[-keep_lines:]
+            with open(log_file_path, 'w', encoding='utf-8') as file:
+                file.writelines(new_lines)
+            logger.info(f"Log file truncated: was {total_lines} lines, now {keep_lines} lines kept.")
+        else:
+            logger.info("Log file is within the allowed size; no truncation performed.")
+    except Exception as e:
+        logger.error(f"Error managing log file: {e}")
+
 def get_episode_file_path(queue, series_id, season_key, episode_key, base_dir, extension=".mkv"):
     """
     Constructs the full file path for an episode using the dynamic file naming.
@@ -169,8 +185,8 @@ def get_episode_file_path(queue, series_id, season_key, episode_key, base_dir, e
     # Get data from the queue.
     series_name = queue[series_id]["series"]["series_name"]
     season = queue[series_id]["seasons"][season_key]["season_number"]
-    episode = queue[series_id]["episodes"][episode_key]["episode_number"]
-    episode_name = queue[series_id]["episodes"][episode_key]["episode_name"]
+    episode = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_number"]
+    episode_name = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_name"]
 
     # Generate the file name using the template.
     file_name = get_episode_naming_template(series_name, season, episode, episode_name, extension)
@@ -225,3 +241,9 @@ def get_episode_naming_template(series_title, season, episode, episode_name, ext
         file_name = f"{file_name}{extension}"
 
     return file_name
+
+def iter_episodes(queue_data: dict):
+    for series_id, series_info in queue_data.items():
+        for season_key, season_info in series_info["seasons"].items():
+            for episode_key, episode_info in season_info["episodes"].items():
+                yield series_id, season_key, episode_key, episode_info
