@@ -47,9 +47,9 @@
         }
     },
     "dependency_urls": {
-        "Bento4-SDK": "https://www.hypernylium.com/projects/mdnx-auto-dl/Bento4-SDK.zip",
-        "ffmpeg": "https://www.hypernylium.com/projects/mdnx-auto-dl/ffmpeg.zip",
-        "mdnx": "https://www.hypernylium.com/projects/mdnx-auto-dl/mdnx.zip",
-        "mkvtoolnix": "https://www.hypernylium.com/projects/mdnx-auto-dl/mkvtoolnix.zip"
+        "Bento4-SDK": "https://cdn.hypernylium.com/mdnx-auto-dl/Bento4-SDK.zip",
+        "ffmpeg": "https://cdn.hypernylium.com/mdnx-auto-dl/ffmpeg.zip",
+        "mdnx": "https://cdn.hypernylium.com/mdnx-auto-dl/mdnx.zip",
+        "mkvtoolnix": "https://cdn.hypernylium.com/mdnx-auto-dl/mkvtoolnix.zip"
     }
 }
