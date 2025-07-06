@@ -8,7 +8,7 @@ from string import Template
 from io import TextIOWrapper
 
 
-CONFIG_PATH = os.getenv("CONFIG_FILE", "appdata/config/config.json")
+CONFIG_PATH = os.getenv("CONFIG_FILE", "appdata/default/config.json")
 QUEUE_PATH = os.getenv("QUEUE_FILE", "appdata/config/queue.json")
 
 
@@ -42,6 +42,10 @@ logging.basicConfig(
 
 # Create a logger for all modules to use
 logger = logging.getLogger(__name__)
+
+
+if CONFIG_PATH == "appdata/default/config.json":
+    logger.warning("[Vars] Using default config file. Please create a custom config file at 'appdata/config/config.json' to congfigure the application to your needs.")
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
