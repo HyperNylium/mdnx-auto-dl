@@ -1,13 +1,15 @@
 import os
 import sys
+import pwd
+import grp
 import json
 import logging
 from string import Template
 from io import TextIOWrapper
 
 
-CONFIG_PATH = "appdata/config/config.json"
-QUEUE_PATH = "appdata/config/queue.json"
+CONFIG_PATH = os.getenv("CONFIG_FILE", "appdata/config/config.json")
+QUEUE_PATH = os.getenv("QUEUE_FILE", "appdata/config/queue.json")
 
 
 # Load the config file
@@ -49,6 +51,20 @@ def handle_exception(exc_type, exc_value, exc_traceback):
         return
 
     logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+def get_running_user():
+    uid  = os.getuid()   # real UID
+    gid  = os.getgid()   # real GID
+    euid = os.geteuid()  # effective UID (after set-uid, if any)
+    egid = os.getegid()  # effective GID
+
+    user  = pwd.getpwuid(uid).pw_name
+    group = grp.getgrgid(gid).gr_name
+
+    logger.info(f"[Vars] Running as UID={uid} ({user}), GID={gid} ({group})")
+    logger.info(f"[Vars] Effective UID={euid}, effective GID={egid}")
+
+    return (uid, user, gid, group, euid, egid)
 
 def format_value(val):
     """
