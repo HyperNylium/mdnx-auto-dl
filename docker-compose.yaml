@@ -1,8 +1,6 @@
 services:
   mdnx:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/hypernylium/mdnx-auto-dl:latest
     container_name: mdnx-auto-dl
     restart: unless-stopped
     volumes:
