@@ -1,5 +1,5 @@
 services:
-  mdnx:
+  mdnx-auto-dl:
     image: ghcr.io/hypernylium/mdnx-auto-dl:latest
     container_name: mdnx-auto-dl
     restart: unless-stopped
@@ -10,5 +10,3 @@ services:
       - UID=1000
       - GID=1000
       - TZ=America/New_York
-      - CONFIG_FILE=/app/appdata/config/config.json
-      - QUEUE_FILE=/app/appdata/config/queue.json

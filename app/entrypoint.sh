@@ -5,11 +5,22 @@ set -euo pipefail
 USER_ID=${UID:-1000}
 GROUP_ID=${GID:-1000}
 USERNAME=mdnx-auto-dl
-CONFIG_FILE="${CONFIG_FILE:-/app/appdata/default/config.json}"
+CONFIG_FILE="${CONFIG_FILE:-/app/appdata/config/config.json}"
 
-# Warn if the config file is the default one
-if [[ "$CONFIG_FILE" == "appdata/default/config.json" ]]; then
-  echo "[entrypoint] Using default config file. Please create a custom config file at 'appdata/config/config.json' to configure the application to your needs."
+# If config.json doesn't exist, fetch a default copy
+if [[ ! -f "$CONFIG_FILE" ]]; then
+  echo "[entrypoint] $CONFIG_FILE not found. Downloading default config.json..."
+
+  # Make sure the parent directory exists
+  mkdir -p "$(dirname "$CONFIG_FILE")"
+
+  # Download the default file
+  curl -fsSL https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/main/appdata/config/config.json -o "$CONFIG_FILE" || {
+      echo "[entrypoint] Download failed – aborting."
+      exit 1
+    }
+
+  echo "[entrypoint] Default config written to $CONFIG_FILE. At some point, modify the file to your liking."
 fi
 
 # Extract BIN_DIR (falls back to /app/appdata/bin if the JSON key is null/absent)
@@ -51,6 +62,8 @@ if [ "$IS_LINUX" = true ]; then
     # Run as non-root user
     # exec gosu "$USER_ID:$GROUP_ID" bash -c "python /app/app.py"
 
+    echo "[entrypoint] Starting app.py as $USER_ID:$GROUP_ID"
+
     gosu "$USER_ID:$GROUP_ID" bash -c "python /app/app.py" || {
         echo "app.py crashed – keeping container alive" >&2
         tail -f /dev/null
@@ -58,6 +71,8 @@ if [ "$IS_LINUX" = true ]; then
 else
     # Run as non-root user
     # exec gosu "$USER_ID:$GROUP_ID" bash -c "python /app/app.py"
+
+    echo "[entrypoint] Starting app.py as $USER_ID:$GROUP_ID"
 
     gosu "$USER_ID:$GROUP_ID" bash -c "python /app/app.py" || {
         echo "app.py crashed – keeping container alive" >&2
