@@ -8,7 +8,7 @@ USERNAME=mdnx-auto-dl
 CONFIG_FILE="${CONFIG_FILE:-/app/appdata/default/config.json}"
 
 # Warn if the config file is the default one
-if [[ "$CONFIG_PATH" == "appdata/default/config.json" ]]; then
+if [[ "$CONFIG_FILE" == "appdata/default/config.json" ]]; then
   echo "[entrypoint] Using default config file. Please create a custom config file at 'appdata/config/config.json' to configure the application to your needs."
 fi
 
