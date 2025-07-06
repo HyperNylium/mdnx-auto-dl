@@ -1,4 +1,4 @@
-FROM python:3.11-slim AS runtime
+FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -11,12 +11,20 @@ RUN apt-get update && \
         iputils-ping \
         ffmpeg \
         mkvtoolnix \
+        jq \
+        gosu \
         unzip && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY . .
+COPY app/ .
+
+# We will make a non-root user in entrypoint.sh
+USER root
+
+# Convert Windows line-endings (CRLF) to LF
+RUN sed -i 's/\r$//' /app/entrypoint.sh
 
 RUN chmod +x /app/entrypoint.sh
 

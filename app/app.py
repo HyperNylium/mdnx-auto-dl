@@ -7,8 +7,7 @@ from appdata.modules.MDNX_API import MDNX_API
 from appdata.modules.MainLoop import MainLoop
 from appdata.modules.Vars import logger, config
 from appdata.modules.Vars import MDNX_SERVICE_BIN_PATH, MDNX_SERVICE_CR_TOKEN_PATH
-from appdata.modules.Vars import update_mdnx_config, update_app_config, handle_exception
-
+from appdata.modules.Vars import update_mdnx_config, update_app_config, handle_exception, get_running_user
 
 
 def app():
@@ -89,5 +88,6 @@ if __name__ == "__main__":
     sys.excepthook = handle_exception
 
     logger.info("[app] MDNX-auto-dl has started.")
+    get_running_user()
     update_mdnx_config()
     app()
