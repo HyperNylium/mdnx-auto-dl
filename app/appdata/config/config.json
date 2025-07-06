@@ -1,0 +1,49 @@
+{
+    "monitor-series-id": [],
+    "app": {
+        "TEMP_DIR": "/app/appdata/temp",
+        "BIN_DIR": "/app/appdata/bin",
+        "LOG_FILE": "/app/appdata/logs/app.log",
+        "MDNX_API_FORCE_REAUTH": false,
+        "MDNX_API_SKIP_TEST": false,
+        "MDNX_SERVICE_USERNAME": "",
+        "MDNX_SERVICE_PASSWORD": "",
+        "MAIN_LOOP_UPDATE_INTERVAL": 3600
+    },
+    "mdnx": {
+        "bin-path": {
+            "ffmpeg": "ffmpeg",
+            "ffprobe": "ffprobe",
+            "mkvmerge": "mkvmerge",
+            "mp4decrypt": "/app/appdata/bin/Bento4-SDK/bin/mp4decrypt"
+        },
+        "cli-defaults": {
+            "q": 0,
+            "kstream": 1,
+            "server": 1,
+            "partsize": 3,
+            "fileName": "${seriesTitle} - S${season}E${episode}",
+            "dubLang": [
+                "eng",
+                "jpn"
+            ],
+            "dlsubs": [
+                "en"
+            ],
+            "defaultAudio": "jpn",
+            "timeout": 30000,
+            "waittime": 3000,
+            "mp4": false,
+            "nocleanup": false,
+            "dlVideoOnce": false,
+            "keepAllVideos": false
+        },
+        "dir-path": {
+            "content": "./videos/",
+            "fonts": "./fonts/"
+        },
+        "gui": {
+            "port": 3000
+        }
+    }
+}
