@@ -115,7 +115,7 @@ class MDNX_API:
     def test(self) -> None:
         logger.info("[MDNX_API] Testing MDNX API...")
 
-        tmp_cmd = f"{self.mdnx_path} --service {self.mdnx_service} --srz GMEHME81V"
+        tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", "GMEHME81V"]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8").stdout
         logger.info(f"[MDNX_API] MDNX API test resault:\n{result}")
 
@@ -133,10 +133,10 @@ class MDNX_API:
         logger.info(f"[MDNX_API] Authenticating with {self.mdnx_service}...")
 
         if not self.username or not self.password:
-            logger.error("[MDNX_API] MDNX service username or password not found.\nPlease check the config.json file and enter your credentials in the following keys:\nMDNX_SERVICE_USERNAME\nMDNX_SERVICE_PASSWORD.\nExiting...")
+            logger.error("[MDNX_API] MDNX service username or password not found.\nPlease check the config.json file and enter your credentials in the following keys:\nMDNX_SERVICE_USERNAME\nMDNX_SERVICE_PASSWORD\nExiting...")
             sys.exit(1)
 
-        tmp_cmd = f"{self.mdnx_path} --service {self.mdnx_service} --auth --username {self.username} --password {self.password} --silentAuth"
+        tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--auth", "--username", self.username, "--password", self.password, "--silentAuth"]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
         logger.info(f"[MDNX_API] Console output for auth process:\n{result.stdout}")
 
@@ -146,7 +146,7 @@ class MDNX_API:
     def start_monitor(self, series_id: str) -> str:
         logger.info(f"[MDNX_API] Monitoring series with ID: {series_id}")
 
-        tmp_cmd = f"{self.mdnx_path} --service {self.mdnx_service} --srz {series_id}"
+        tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
         logger.info(f"[MDNX_API] Console output for start_monitor process:\n{result.stdout}")
 
@@ -166,7 +166,7 @@ class MDNX_API:
     def update_monitor(self, series_id: str) -> str:
         logger.info(f"[MDNX_API] Updating monitor for series with ID: {series_id}")
 
-        tmp_cmd = f"{self.mdnx_path} --service {self.mdnx_service} --srz {series_id}"
+        tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
         logger.info(f"[MDNX_API] Console output for update_monitor process:\n{result.stdout}")
 
