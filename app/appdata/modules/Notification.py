@@ -1,5 +1,6 @@
 # Send SMTP notification when new episode is downloaded for a series
 # This is a quick draft of what i am thinking and needs improvement
+# NOT PROD READY!!!
 
 import smtplib
 from .Vars import logger

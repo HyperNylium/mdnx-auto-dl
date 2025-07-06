@@ -1,16 +1,15 @@
 import os
 import sys
+import pwd
+import grp
 import json
-import shutil
 import logging
-import requests
-from zipfile import ZipFile
 from string import Template
 from io import TextIOWrapper
 
 
-CONFIG_PATH = "appdata/config/config.json"
-QUEUE_PATH = "appdata/config/queue.json"
+CONFIG_PATH = os.getenv("CONFIG_FILE", "appdata/config/config.json")
+QUEUE_PATH = os.getenv("QUEUE_FILE", "appdata/config/queue.json")
 
 
 # Load the config file
@@ -22,14 +21,11 @@ LOG_FILE = config["app"]["LOG_FILE"]
 TEMP_DIR = config["app"]["TEMP_DIR"]
 BIN_DIR = config["app"]["BIN_DIR"]
 
-# Dependency URLs
-DEPENDENCY_URLS = config["dependency_urls"]
-
 # MDNX config settings
 MDNX_CONFIG = config["mdnx"]
 
 # Dynamic paths
-MDNX_SERVICE_BIN_PATH = os.path.join(BIN_DIR, "mdnx", "aniDL.exe")
+MDNX_SERVICE_BIN_PATH = os.path.join(BIN_DIR, "mdnx", "aniDL")
 MDNX_SERVICE_CR_TOKEN_PATH = os.path.join(BIN_DIR, "mdnx", "config", "cr_token.yml")
 
 
@@ -56,53 +52,19 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 
     logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
 
-def download_file(url, *, tmp_dir=TEMP_DIR, dest_dir=BIN_DIR):
-    logger.info(f"[Vars] Downloading file from: {url}")
-    # extract the file name from the URL
-    filename = os.path.basename(url)
-    tmp_path = os.path.join(tmp_dir, filename)
-    dest_path = os.path.join(dest_dir, filename)
+def get_running_user():
+    uid  = os.getuid()   # real UID
+    gid  = os.getgid()   # real GID
+    euid = os.geteuid()  # effective UID (after set-uid, if any)
+    egid = os.getegid()  # effective GID
 
-    # create directories if they do not exist
-    os.makedirs(tmp_dir, exist_ok=True)
-    os.makedirs(dest_dir, exist_ok=True)
+    user  = pwd.getpwuid(uid).pw_name
+    group = grp.getgrgid(gid).gr_name
 
-    # start the request and stream the content
-    response = requests.get(url, stream=True)
-    response.raise_for_status()  # raise an error for bad responses
+    logger.info(f"[Vars] Running as UID={uid} ({user}), GID={gid} ({group})")
+    logger.info(f"[Vars] Effective UID={euid}, effective GID={egid}")
 
-    # write the file in chunks without a progress bar
-    with open(tmp_path, "wb") as f:
-        for chunk in response.iter_content(chunk_size=1024):
-            if chunk:  # filter out keep-alive chunks
-                f.write(chunk)
-
-    # move the file from the temp directory to the destination
-    shutil.move(tmp_path, dest_path)
-    logger.info(f"[Vars] Download complete. File moved to: {dest_path}")
-
-def extract_archive(archive_path, dest_dir=BIN_DIR):
-    logger.info(f"[Vars] Extracting archive: {archive_path}")
-    with ZipFile(archive_path, "r") as zip_ref:
-        zip_ref.extractall(dest_dir)
-    os.remove(archive_path)
-    logger.info(f"[Vars] Extracted archive to: {dest_dir}")
-
-def check_dependencies():
-    logger.info("[Vars] Checking dependencies...")
-
-    if not os.path.exists(BIN_DIR):
-        logger.info(f"[Vars] {BIN_DIR} not found. Creating directory...")
-        os.makedirs(BIN_DIR)
-
-    for dependency_name, dependency_dl_url in DEPENDENCY_URLS.items():
-        if not os.path.exists(os.path.join(BIN_DIR, dependency_name)):
-            logger.info(f"[Vars] {dependency_name} not found. Downloading...")
-            download_file(dependency_dl_url)
-            logger.info(f"[Vars] Extracting {dependency_name}...")
-            extract_archive(os.path.join(BIN_DIR, f"{dependency_name}.zip"))
-
-    logger.info("[Vars] Dependencies check complete.")
+    return (uid, user, gid, group, euid, egid)
 
 def format_value(val):
     """
