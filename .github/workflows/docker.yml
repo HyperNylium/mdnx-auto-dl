@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Optional SemVer to tag the image with (e.g. 0.3.2)."
+        description: "Version tag"
         required: false
         default: ""
 
