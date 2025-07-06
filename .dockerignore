@@ -1,0 +1,14 @@
+# Byte-code & venvs
+__pycache__/
+*.py[cod]
+.venv/
+.env/
+
+# Git & editors
+.git/
+.gitignore
+.idea/
+.vscode/
+
+# OS junk
+.DS_Store

@@ -1,0 +1,16 @@
+services:
+  mdnx:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mdnx-auto-dl
+    restart: unless-stopped
+    volumes:
+      - ./appdata/logs:/app/appdata/logs:rw
+      - ./appdata/config:/app/appdata/config:rw
+    environment:
+      - UID=1000
+      - GID=1000
+      - TZ=America/New_York
+      - CONFIG_FILE=/app/appdata/config/config.json
+      - QUEUE_FILE=/app/appdata/config/queue.json

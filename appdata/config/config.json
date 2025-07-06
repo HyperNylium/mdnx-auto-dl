@@ -1,9 +1,9 @@
 {
     "monitor-series-id": [],
     "app": {
-        "TEMP_DIR": "appdata/temp",
-        "BIN_DIR": "appdata/bin",
-        "LOG_FILE": "appdata/logs/app.log",
+        "TEMP_DIR": "/app/appdata/temp",
+        "BIN_DIR": "/app/appdata/bin",
+        "LOG_FILE": "/app/appdata/logs/app.log",
         "MDNX_API_FORCE_REAUTH": false,
         "MDNX_API_SKIP_TEST": false,
         "MDNX_SERVICE_USERNAME": "",
@@ -12,10 +12,10 @@
     },
     "mdnx": {
         "bin-path": {
-            "ffmpeg": "../ffmpeg/bin/ffmpeg.exe",
-            "ffprobe": "../ffmpeg/bin/ffprobe.exe",
-            "mkvmerge": "../mkvtoolnix/mkvmerge.exe",
-            "mp4decrypt": "../Bento4-SDK/bin/mp4decrypt.exe"
+            "ffmpeg": "ffmpeg",
+            "ffprobe": "ffprobe",
+            "mkvmerge": "mkvmerge",
+            "mp4decrypt": "/app/appdata/bin/Bento4-SDK/bin/mp4decrypt"
         },
         "cli-defaults": {
             "q": 0,
@@ -45,11 +45,5 @@
         "gui": {
             "port": 3000
         }
-    },
-    "dependency_urls": {
-        "Bento4-SDK": "https://cdn.hypernylium.com/mdnx-auto-dl/Bento4-SDK.zip",
-        "ffmpeg": "https://cdn.hypernylium.com/mdnx-auto-dl/ffmpeg.zip",
-        "mdnx": "https://cdn.hypernylium.com/mdnx-auto-dl/mdnx.zip",
-        "mkvtoolnix": "https://cdn.hypernylium.com/mdnx-auto-dl/mkvtoolnix.zip"
     }
 }
