@@ -58,24 +58,14 @@ if [ "$IS_LINUX" = true ]; then
     fi
     chown -R "$USER_ID:$GROUP_ID" /app
     chmod -R 775 /app
-
-    # Run as non-root user
-    # exec gosu "$USER_ID:$GROUP_ID" bash -c "python /app/app.py"
-
-    echo "[entrypoint] Starting app.py as $USER_ID:$GROUP_ID"
-
-    gosu "$USER_ID:$GROUP_ID" bash -c "python /app/app.py" || {
-        echo "app.py crashed – keeping container alive" >&2
-        tail -f /dev/null
-    }
-else
-    # Run as non-root user
-    # exec gosu "$USER_ID:$GROUP_ID" bash -c "python /app/app.py"
-
-    echo "[entrypoint] Starting app.py as $USER_ID:$GROUP_ID"
-
-    gosu "$USER_ID:$GROUP_ID" bash -c "python /app/app.py" || {
-        echo "app.py crashed – keeping container alive" >&2
-        tail -f /dev/null
-    }
 fi
+
+# Run as non-root user
+echo "[entrypoint] Starting app.py as $USER_ID:$GROUP_ID"
+exec gosu "$USER_ID:$GROUP_ID" bash -c "python /app/app.py"
+
+# For debugging docker container.
+# gosu "$USER_ID:$GROUP_ID" bash -c "python /app/app.py" || {
+#     echo "app.py crashed – keeping container alive" >&2
+#     tail -f /dev/null
+# }
