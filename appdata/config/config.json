@@ -9,7 +9,8 @@
         "MDNX_API_SKIP_TEST": false,
         "MDNX_SERVICE_USERNAME": "",
         "MDNX_SERVICE_PASSWORD": "",
-        "MAIN_LOOP_UPDATE_INTERVAL": 3600
+        "MAIN_LOOP_UPDATE_INTERVAL": 3600,
+        "MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL": 20
     },
     "mdnx": {
         "bin-path": {
