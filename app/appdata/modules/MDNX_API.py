@@ -1,3 +1,4 @@
+import os
 import re
 import sys
 import subprocess
@@ -184,4 +185,28 @@ class MDNX_API:
 
     def download_episode(self, series_id: str, season_id: str, episode_number: str) -> bool:
         logger.info(f"[MDNX_API] Downloading episode {episode_number} for series {series_id} season {season_id}")
-        return False
+
+        tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id, "-s", season_id, "-e", episode_number]
+
+        if os.path.exists("/usr/bin/stdbuf"):
+            logger.info("[MDNX_API] Using stdbuf to ensure live output streaming.")
+            cmd = ["stdbuf", "-oL", "-eL", *tmp_cmd]
+        else:
+            logger.info("[MDNX_API] stdbuf not found, using default command without buffering.")
+            cmd = tmp_cmd
+
+        logger.info(f"[MDNX_API] Command to execute: {' '.join(cmd)}")
+
+        with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
+            for line in proc.stdout:
+                logger.info("[MDNX_API][multidownload-nx] %s", line.rstrip())
+
+        success = None
+        if proc.returncode == 0:
+            logger.info("[MDNX_API] Download finished successfully.")
+            success = True
+        else:
+            logger.error(f"[MDNX_API] Download failed with exit code {proc.returncode}")
+            success = False
+
+        return success

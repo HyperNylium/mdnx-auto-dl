@@ -53,33 +53,31 @@ class MainLoop:
                     continue
 
                 # Should episode be downloaded logic
-                if not episode_info["episode_downloaded"]:
-                    logger.info(f"[MainLoop] Episode {episode_key} for series {series_id} season {season_key} needs to be downloaded.")
+                if episode_info["episode_downloaded"]:
+                    logger.info(f"[MainLoop] Episode {episode_info['episode_number']} ({episode_info['episode_name']}) 'episode_downloaded' status is True. Skipping download.")
+                    continue
+                else:
+                    logger.info(f"[MainLoop] Episode {episode_info['episode_number']} ({episode_info['episode_name']}) 'episode_downloaded' status is False. Checking file path to make sure file actually does not exist...")
 
                     # Construct the expected file path using the dynamic template.
                     file_path = get_episode_file_path(current_queue, series_id, season_key, episode_key, base_dir)
                     logger.info(f"[MainLoop] Checking for episode at {file_path}.")
 
-                    if self.mdnx_api.queue_manager.is_episode_downloaded(series_id, season_key, episode_key):
-                        logger.info(f"[MainLoop] Episode 'episode_downloaded' status is True. Skipping download.")
+                    if os.path.exists(file_path):
+                        logger.info(f"[MainLoop] Episode already exists at {file_path}. Updating 'episode_downloaded' status to True and skipping download.")
+                        self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
                         continue
                     else:
-                        logger.info(f"[MainLoop] Episode 'episode_downloaded' status is False. Checking file path to make sure file actually does not exist...")
-                        if os.path.exists(file_path):
-                            logger.info(f"[MainLoop] Episode already exists at {file_path}. Updating 'episode_downloaded' status and skipping download.")
+                        logger.info(f"[MainLoop] Episode not found at {file_path} and 'episode_downloaded' status is False. Initiating download.")
+                        download_successful = self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number"])
+                        if download_successful:
+                            logger.info(f"[MainLoop] Episode downloaded successfully.")
                             self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
-                            continue
                         else:
-                            logger.info(f"[MainLoop] Episode not found at {file_path} and 'episode_downloaded' status is False. Initiating download.")
-                            download_successful = self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number"])
-                            if download_successful:
-                                logger.info(f"[MainLoop] Episode downloaded successfully.")
-                                self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
-                            else:
-                                logger.error(f"[MainLoop] Episode download failed for {series_id} season {season_key} - {episode_key}.")
-                                self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
-                            logger.info(f"[MainLoop] Waiting for {config['app']['MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL']} seconds before next episode download.")
-                            time.sleep(config["app"]["MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL"])  # sleep to avoid API rate limits
+                            logger.error(f"[MainLoop] Episode download failed for {series_id} season {season_key} - {episode_key}.")
+                            self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
+                        logger.info(f"[MainLoop] Waiting for {config['app']['MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL']} seconds before next episode download.")
+                        time.sleep(config["app"]["MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL"])  # sleep to avoid API rate limits
 
             self.mainloop_iter += 1
             logger.info(f"[MainLoop] Current main loop iteration: {self.mainloop_iter}")
