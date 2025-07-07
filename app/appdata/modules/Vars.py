@@ -45,8 +45,8 @@ logger = logging.getLogger(__name__)
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
-    if issubclass(exc_type, KeyboardInterrupt):
-        # Call the default excepthook to handle the exception if it's a KeyboardInterrupt
+    # skip logging for KeyboardInterrupt and SystemExit. Use the default handler.
+    if issubclass(exc_type, (KeyboardInterrupt, SystemExit)):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
 
