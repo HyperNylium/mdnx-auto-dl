@@ -36,8 +36,9 @@ class MDNX_API:
 
     def process_console_output(self, output: str, add2queue: bool = True) -> dict:
         logger.info("[MDNX_API] Processing console output...")
+
         tmp_dict = {}
-        episode_counters = {}  # maps season key ("S1", "S2", etc) to episode counter
+        episode_counters = {} # maps season key ("S1", "S2", etc) to episode counter
         current_series_id = None
 
         for line in output.splitlines():
@@ -48,10 +49,10 @@ class MDNX_API:
             # Check for series information.
             series = self.series_pattern.match(line)
             if series:
-                series_info = series.groupdict()
-                current_series_id = series_info["series_id"]
+                info = series.groupdict()
+                current_series_id = info["series_id"]
                 tmp_dict[current_series_id] = {
-                    "series": series_info,
+                    "series": info,
                     "seasons": {}
                 }
                 continue
@@ -59,12 +60,11 @@ class MDNX_API:
             # Check for season information.
             season = self.season_pattern.match(line)
             if season and current_series_id is not None:
-                season_info = season.groupdict()
-                # Assume the season info includes a key "season_number" (or similar)
-                season_num = season_info.get("season_number") or season_info.get("season")
+                info = season.groupdict()
+                season_num = info.get("season_number") or info.get("season")
                 season_key = f"S{season_num}"
                 tmp_dict[current_series_id]["seasons"][season_key] = {
-                    **season_info,
+                    **info,
                     "episodes": {}
                 }
                 # Initialize the episode counter for this season.
@@ -74,17 +74,18 @@ class MDNX_API:
             # Check for episode information.
             episode = self.episode_pattern.match(line)
             if episode and current_series_id is not None:
-                episode_info = episode.groupdict()
-                # Extract the season number from the episode line.
-                season_number_match = re.search(r'- Season (\d+) -', line)
-                if season_number_match:
-                    season_num = season_number_match.group(1)
-                    season_key = f"S{season_num}"
-                else:
-                    logger.warning(f"Season not found in episode line: {line}")
+                ep_info = episode.groupdict()
+
+                # grab the season number from the episode line itself
+                match = re.search(r'- Season (\d+) -', line)
+                if not match:
+                    logger.warning(f"[MDNX_API] Season not found in episode line: {line}")
                     continue
 
-                # If the season hasn't been registered (episode comes before its season header), create a minimal season entry.
+                season_num = match.group(1)
+                season_key = f"S{season_num}"
+
+                # ensure season entry exists even if header was missing
                 if season_key not in tmp_dict[current_series_id]["seasons"]:
                     tmp_dict[current_series_id]["seasons"][season_key] = {
                         "season_id": None,
@@ -94,16 +95,16 @@ class MDNX_API:
                     }
                     episode_counters[season_key] = 1
 
-                # Use the per‑season episode counter.
-                current_counter = episode_counters[season_key]
-                # Clean up the episode name by splitting on the last " - "
-                parts = episode_info["full_episode_name"].rsplit(" - ", 1)
-                cleaned_name = parts[-1] if len(parts) > 1 else episode_info["full_episode_name"]
-                ep_key = f"E{current_counter}"
+                counter = episode_counters[season_key]
+
+                # clean the title
+                parts = ep_info["full_episode_name"].rsplit(" - ", 1)
+                cleaned_name = parts[-1] if len(parts) > 1 else ep_info["full_episode_name"]
+
+                ep_key = f"E{counter}"
                 tmp_dict[current_series_id]["seasons"][season_key]["episodes"][ep_key] = {
-                    "episode_number": str(current_counter),
-                    "episode_name": cleaned_name,
-                    "episode_downloaded": False
+                    "episode_number": str(counter),
+                    "episode_name":   cleaned_name
                 }
                 episode_counters[season_key] += 1
                 continue
@@ -111,7 +112,7 @@ class MDNX_API:
         logger.info("[MDNX_API] Console output processed.")
 
         if add2queue:
-            logger.info("[MDNX_API] Adding processed console output to the queue manager...")
+            logger.info("[MDNX_API] Adding processed console output to QueueManager...")
             self.queue_manager.add(tmp_dict)
 
         return tmp_dict

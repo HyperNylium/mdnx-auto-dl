@@ -47,8 +47,8 @@ class MainLoop:
 
             logger.info("[MainLoop] Checking for episodes to download.")
             for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(current_queue):
-                print(f"episode status: {episode_info['episode_downloaded']}")
-                # Optionally skip non-standard episode keys (e.g., if key starts with "S") - this will be optional in the future.
+
+                # Optionally skip non-standard (special) episode keys (e.g., if key starts with "S") - this will be optional in the future.
                 if not episode_key.startswith("E"):
                     continue
 
