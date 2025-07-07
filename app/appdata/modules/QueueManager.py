@@ -32,6 +32,12 @@ class QueueManager:
 
         return {}
 
+    def is_episode_downloaded(self, series_id: str, season_id: str, episode_id: str):
+        try:
+            return self.queue_data[series_id]["seasons"][season_id]["episodes"][episode_id].get("episode_downloaded", False)
+        except KeyError:
+            return False
+
     def save_queue(self) -> None:
         logger.info("[QueueManager] Saving queue.")
         with open(self.queue_path, "w", encoding="utf-8") as f:
