@@ -4,6 +4,7 @@
         "TEMP_DIR": "/app/appdata/temp",
         "BIN_DIR": "/app/appdata/bin",
         "LOG_FILE": "/app/appdata/logs/app.log",
+        "DATA_DIR": "/data",
         "MDNX_API_FORCE_REAUTH": false,
         "MDNX_API_SKIP_TEST": false,
         "MDNX_SERVICE_USERNAME": "",
@@ -39,7 +40,7 @@
             "keepAllVideos": false
         },
         "dir-path": {
-            "content": "./videos/",
+            "content": "/app/appdata/temp",
             "fonts": "./fonts/"
         },
         "gui": {
