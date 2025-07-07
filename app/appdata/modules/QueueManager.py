@@ -47,27 +47,39 @@ class QueueManager:
     def add(self, new_data: dict):
         logger.info("[QueueManager] Adding series to the queue.")
         for series_id, series_info in new_data.items():
-            if series_id in self.queue_data:
-                # Update the series metadata.
-                self.queue_data[series_id]["series"] = series_info["series"]
-                # Iterate over each season and update or add it.
-                for season_key, season_info in series_info.get("seasons", {}).items():
-                    if season_key in self.queue_data[series_id]["seasons"]:
-                        # Update season info (except episodes) and merge episode data.
-                        self.queue_data[series_id]["seasons"][season_key].update(
-                            {k: v for k, v in season_info.items() if k != "episodes"}
-                        )
-                        self.queue_data[series_id]["seasons"][season_key]["episodes"].update(
-                            season_info.get("episodes", {})
-                        )
-                    else:
-                        # Add new season entry.
-                        self.queue_data[series_id]["seasons"][season_key] = season_info
-                logger.info(f"[QueueManager] Updated series '{series_id}' in the queue.")
-            else:
-                # Add a new series entry.
+            if series_id not in self.queue_data:
+                # new series just gets copied and makes sure every ep has the flag
                 self.queue_data[series_id] = series_info
+                for s in series_info["seasons"].values():
+                    for ep in s["episodes"].values():
+                        ep.setdefault("episode_downloaded", False)
                 logger.info(f"[QueueManager] Added series '{series_id}' to the queue.")
+                continue
+
+            # series already exists
+            self.queue_data[series_id]["series"] = series_info["series"]
+
+            for season_key, season_info in series_info.get("seasons", {}).items():
+                # create season if missing
+                season = self.queue_data[series_id]["seasons"].setdefault(
+                    season_key, {**season_info, "episodes": {}}
+                )
+
+                # update non-episode metadata
+                season.update({k: v for k, v in season_info.items() if k != "episodes"})
+
+                for ep_key, new_ep in season_info["episodes"].items():
+                    old_ep = season["episodes"].get(ep_key)
+                    if old_ep:
+                        # keep existing flag
+                        new_ep["episode_downloaded"] = old_ep.get("episode_downloaded", False)
+                    else:
+                        # first time we see this episode
+                        new_ep.setdefault("episode_downloaded", False)
+
+                    season["episodes"][ep_key] = new_ep
+
+            logger.info(f"[QueueManager] Updated series '{series_id}' in the queue.")
         self.save_queue()
 
     def remove(self, series_id: str) -> None:
