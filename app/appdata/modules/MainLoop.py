@@ -7,13 +7,13 @@ from .Vars import logger, config
 from .Vars import get_episode_file_path, iter_episodes, log_manager
 
 # Only for syntax highlighting in VSCode - remove in prod
-# from .MDNX_API import MDNX_API
+from .MDNX_API import MDNX_API
 
 
 
 class MainLoop:
-    # def __init__(self, mdnx_api: MDNX_API, config=config) -> None:
-    def __init__(self, mdnx_api, config=config) -> None:
+    def __init__(self, mdnx_api: MDNX_API, config=config) -> None:
+    # def __init__(self, mdnx_api, config=config) -> None:
         logger.info(f"[MainLoop] MainLoop initialized.")
         self.mdnx_api = mdnx_api
         self.config = config
@@ -47,6 +47,7 @@ class MainLoop:
 
             logger.info("[MainLoop] Checking for episodes to download.")
             for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(current_queue):
+                print(f"episode status: {episode_info['episode_downloaded']}")
                 # Optionally skip non-standard episode keys (e.g., if key starts with "S") - this will be optional in the future.
                 if not episode_key.startswith("E"):
                     continue
@@ -58,18 +59,24 @@ class MainLoop:
                     file_path = get_episode_file_path(current_queue, series_id, season_key, episode_key, base_dir)
                     logger.info(f"[MainLoop] Checking for episode at {file_path}.")
 
-                    if os.path.exists(file_path):
-                        logger.info(f"[MainLoop] Episode already exists at {file_path}. Skipping download.")
-                        self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
+                    if self.mdnx_api.queue_manager.is_episode_downloaded(series_id, season_key, episode_key):
+                        logger.info(f"[MainLoop] Episode 'episode_downloaded' status is True. Skipping download.")
+                        continue
                     else:
-                        logger.info(f"[MainLoop] Episode not found at {file_path}. Initiating download.")
-                        download_successful = self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number"])
-                        if download_successful:
-                            logger.info(f"[MainLoop] Episode downloaded successfully.")
+                        logger.info(f"[MainLoop] Episode 'episode_downloaded' status is False. Checking file path to make sure file actually does not exist...")
+                        if os.path.exists(file_path):
+                            logger.info(f"[MainLoop] Episode already exists at {file_path}. Updating 'episode_downloaded' status and skipping download.")
                             self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
+                            continue
                         else:
-                            logger.error(f"[MainLoop] Episode download failed for {series_id} season {season_key} - {episode_key}.")
-                            self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
+                            logger.info(f"[MainLoop] Episode not found at {file_path} and 'episode_downloaded' status is False. Initiating download.")
+                            download_successful = self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number"])
+                            if download_successful:
+                                logger.info(f"[MainLoop] Episode downloaded successfully.")
+                                self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
+                            else:
+                                logger.error(f"[MainLoop] Episode download failed for {series_id} season {season_key} - {episode_key}.")
+                                self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
 
             self.mainloop_iter += 1
             logger.info(f"[MainLoop] Current main loop iteration: {self.mainloop_iter}")
