@@ -16,6 +16,8 @@ RUN apt-get update && \
         unzip && \
     rm -rf /var/lib/apt/lists/*
 
+RUN pip install --no-cache-dir watchdog
+
 WORKDIR /app
 
 COPY app/ .

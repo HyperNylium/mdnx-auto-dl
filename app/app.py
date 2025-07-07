@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import signal
 
 # Custom imports
 from appdata.modules.MDNX_API import MDNX_API
@@ -74,14 +75,13 @@ def app():
     mainloop = MainLoop(mdnx_api=mdnx_api)
     mainloop.start()
 
-    # this will terminate on SIGINT in the future for Docker
-    # for now, it will terminate on KeyboardInterrupt
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        logger.info("[app] Keyboard interrupt received. Stopping the main loop.")
+    def shutdown(signum, frame):
+        logger.info(f"[app] Received signal {signum}. Stopping the main loop...")
         mainloop.stop()
+
+    # catch both Ctrl-C and Docker SIGTERM
+    signal.signal(signal.SIGINT, shutdown)
+    signal.signal(signal.SIGTERM, shutdown)
 
 if __name__ == "__main__":
     logger.info("[app] Overriding sys.excepthook to log uncaught exceptions...")
