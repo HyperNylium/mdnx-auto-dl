@@ -52,6 +52,7 @@ class MainLoop:
                 if not episode_key.startswith("E"):
                     continue
 
+                # Should episode be downloaded logic
                 if not episode_info["episode_downloaded"]:
                     logger.info(f"[MainLoop] Episode {episode_key} for series {series_id} season {season_key} needs to be downloaded.")
 
