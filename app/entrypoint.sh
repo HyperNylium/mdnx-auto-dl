@@ -23,6 +23,25 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
   echo "[entrypoint] Default config written to $CONFIG_FILE. At some point, modify the file to your liking."
 fi
 
+# Extract BIN_DIR (falls back to /app/appdata/bin if the JSON key is null/absent)
+BIN_DIR="$(jq -er '.app.BIN_DIR // "/app/appdata/bin"' "$CONFIG_FILE")"
+
+echo "[entrypoint] Using CONFIG_FILE=$CONFIG_FILE"
+echo "[entrypoint] Using BIN_DIR=$BIN_DIR"
+mkdir -p "$BIN_DIR"
+
+# Download Bento4 SDK
+echo "[entrypoint] Fetching Bento4 SDK..."
+curl -L -o /tmp/Bento4-SDK.zip https://cdn.hypernylium.com/mdnx-auto-dl/Bento4-SDK.zip
+unzip -oq /tmp/Bento4-SDK.zip -d "$BIN_DIR"
+rm -f /tmp/Bento4-SDK.zip
+
+# Download MDNX CLI
+echo "[entrypoint] Fetching MDNX CLI..."
+curl -L -o /tmp/mdnx.zip https://cdn.hypernylium.com/mdnx-auto-dl/mdnx.zip
+unzip -oq /tmp/mdnx.zip -d "$BIN_DIR"
+rm -f /tmp/mdnx.zip
+
 # Create non-root user and start app with said user
 if grep -qEi 'microsoft|wsl' /proc/version 2>/dev/null; then
     IS_LINUX=true
