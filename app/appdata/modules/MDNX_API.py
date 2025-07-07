@@ -34,7 +34,7 @@ class MDNX_API:
         else:
             logger.info("[MDNX_API] MDNX API test skipped by user.")
 
-    def process_console_output(self, output: str) -> dict:
+    def process_console_output(self, output: str, add2queue: bool = True) -> dict:
         logger.info("[MDNX_API] Processing console output...")
         tmp_dict = {}
         episode_counters = {}  # maps season key ("S1", "S2", etc) to episode counter
@@ -108,8 +108,12 @@ class MDNX_API:
                 episode_counters[season_key] += 1
                 continue
 
-        self.queue_manager.add(tmp_dict)
         logger.info("[MDNX_API] Console output processed.")
+
+        if add2queue:
+            logger.info("[MDNX_API] Adding processed console output to the queue manager...")
+            self.queue_manager.add(tmp_dict)
+
         return tmp_dict
 
     def test(self) -> None:
@@ -118,6 +122,8 @@ class MDNX_API:
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", "GMEHME81V"]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8").stdout
         logger.info(f"[MDNX_API] MDNX API test resault:\n{result}")
+        json_result = self.process_console_output(result, add2queue=False)
+        logger.info(f"[MDNX_API] Processed console output:\n{json_result}")
 
         # Check if the output contains authentication errors
         error_triggers = ["invalid_grant", "Token Refresh Failed", "Authentication required", "Anonymous"]

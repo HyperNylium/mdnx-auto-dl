@@ -5,12 +5,14 @@ services:
     # build:
     #   context: .
     #   dockerfile: Dockerfile
+    # image: mdnx-auto-dl:latest
     image: ghcr.io/hypernylium/mdnx-auto-dl:latest
     container_name: mdnx-auto-dl
     restart: unless-stopped
     volumes:
       - ./appdata/logs:/app/appdata/logs:rw
       - ./appdata/config:/app/appdata/config:rw
+      - ./appdata/data:/data:rw
     environment:
       - UID=1000
       - GID=1000
