@@ -181,6 +181,6 @@ class MDNX_API:
         logger.info(f"[MDNX_API] Updating monitor for series with ID: {series_id} complete.")
         return result.stdout
 
-    def download_episode(self, series_id: str, season_key: str, episode_key: str) -> bool:
-        logger.info(f"[MDNX_API] Downloading episode {episode_key} for series {series_id} season {season_key}")
+    def download_episode(self, series_id: str, season_id: str, episode_number: str) -> bool:
+        logger.info(f"[MDNX_API] Downloading episode {episode_number} for series {series_id} season {season_id}")
         return False

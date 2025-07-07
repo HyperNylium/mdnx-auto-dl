@@ -42,11 +42,11 @@ class MainLoop:
     def mainloop(self) -> None:
         while not self.stop_event.is_set():
             logger.info("[MainLoop] Executing main loop task.")
-            base_dir = config["mdnx"]["dir-path"]["content"]
+            base_dir = config["app"]["DATA_DIR"]
             current_queue = self.mdnx_api.queue_manager.output()
 
             logger.info("[MainLoop] Checking for episodes to download.")
-            for series_id, season_key, episode_key, episode_info in iter_episodes(current_queue):
+            for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(current_queue):
                 # Optionally skip non-standard episode keys (e.g., if key starts with "S") - this will be optional in the future.
                 if not episode_key.startswith("E"):
                     continue
@@ -63,7 +63,7 @@ class MainLoop:
                         self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
                     else:
                         logger.info(f"[MainLoop] Episode not found at {file_path}. Initiating download.")
-                        download_successful = self.mdnx_api.download_episode(series_id, season_key, episode_key)
+                        download_successful = self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number"])
                         if download_successful:
                             logger.info(f"[MainLoop] Episode downloaded successfully.")
                             self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)

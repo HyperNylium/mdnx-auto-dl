@@ -12,6 +12,8 @@ services:
     volumes:
       - ./appdata/logs:/app/appdata/logs:rw
       - ./appdata/config:/app/appdata/config:rw
+      - ./appdata/mdnx/widevine:/app/appdata/bin/mdnx/widevine:rw
+      - ./appdata/mdnx/config:/app/appdata/bin/mdnx/config:rw
       - ./appdata/data:/data:rw
     environment:
       - UID=1000
