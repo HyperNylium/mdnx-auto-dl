@@ -77,6 +77,8 @@ class MainLoop:
                             else:
                                 logger.error(f"[MainLoop] Episode download failed for {series_id} season {season_key} - {episode_key}.")
                                 self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
+                            logger.info(f"[MainLoop] Waiting for {config['app']['MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL']} seconds before next episode download.")
+                            time.sleep(config["app"]["MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL"])  # sleep to avoid API rate limits
 
             self.mainloop_iter += 1
             logger.info(f"[MainLoop] Current main loop iteration: {self.mainloop_iter}")
