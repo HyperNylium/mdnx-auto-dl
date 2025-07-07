@@ -11,9 +11,7 @@ RUN apt-get update && \
         iputils-ping \
         ffmpeg \
         mkvtoolnix \
-        jq \
-        gosu \
-        unzip && \
+        gosu && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
