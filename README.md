@@ -286,3 +286,18 @@ Contents of "/mnt/plexdata/Anime":
 Every dependency is included in the image (ffmpeg and mkvmerge) and downloaded/installed from debian repositories (apt install). \
 If you find a better way to do this (and it actually works), please open a PR. I would happily accept it! \
 Preferably, the Bento4-SDK and multi-download-nx packages should be downloaded from their respective websites and using the `entrypoint.sh` script to install them.
+
+# Acknowledgments
+**This project would not be possible without the following third-party tools/packages:**
+
+Multi-download-nx
+https://github.com/anidl/multi-downloader-nx
+
+FFmpeg
+https://ffmpeg.org/
+
+MKVToolNix
+https://mkvtoolnix.download/
+
+Bento4-SDK
+https://www.bento4.com/
