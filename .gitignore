@@ -163,7 +163,8 @@ cython_debug/
 app/test.py
 
 # Dont upload downloadable binaries
-app/appdata/bin/Bento4-SDK
-app/appdata/bin/ffmpeg
-app/appdata/bin/mdnx
-app/appdata/bin/mkvtoolnix
+app/appdata/bin/*
+appdata/mdnx/config/*
+appdata/mdnx/widevine/*
+!appdata/mdnx/config/.gitkeep
+!appdata/mdnx/widevine/.gitkeep

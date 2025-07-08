@@ -16,7 +16,7 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
 
   # Download the default file
   curl -fsSL https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/main/appdata/config/config.json -o "$CONFIG_FILE" || {
-      echo "[entrypoint] Download failed – aborting."
+      echo "[entrypoint] Download failed - aborting."
       exit 1
     }
 

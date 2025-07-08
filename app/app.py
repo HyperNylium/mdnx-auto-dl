@@ -1,6 +1,6 @@
 import os
 import sys
-import time
+import signal
 
 # Custom imports
 from appdata.modules.MDNX_API import MDNX_API
@@ -8,6 +8,7 @@ from appdata.modules.MainLoop import MainLoop
 from appdata.modules.Vars import logger, config
 from appdata.modules.Vars import MDNX_SERVICE_BIN_PATH, MDNX_SERVICE_CR_TOKEN_PATH
 from appdata.modules.Vars import update_mdnx_config, update_app_config, handle_exception, get_running_user
+
 
 
 def app():
@@ -67,21 +68,26 @@ def app():
     else:
         logger.info("[app] No series to stop monitoring.")
 
-    logger.info("[app] MDNX-auto-dl has finished with housekeeping. Proceeding to main loop.")
+    logger.info("[app] MDNX-auto-dl has finished with housekeeping queue. Proceeding to main loop.")
 
-    # Start the main loop
-    logger.info("[app] Starting main loop...")
+    # Start MainLoop
+    logger.info("[app] Starting MainLoop...")
     mainloop = MainLoop(mdnx_api=mdnx_api)
     mainloop.start()
 
-    # this will terminate on SIGINT in the future for Docker
-    # for now, it will terminate on KeyboardInterrupt
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        logger.info("[app] Keyboard interrupt received. Stopping the main loop.")
+    def shutdown(signum, frame):
+        logger.info(f"[app] Received signal {signum}. Start to shutdown...")
+
+        # Stop MainLoop
+        logger.info("[app] Stopping MainLoop...")
         mainloop.stop()
+
+        logger.info("[app] MDNX-auto-dl has stopped cleanly. Exiting...")
+        sys.exit(0)
+
+    # catch both Ctrl-C and Docker SIGTERM
+    signal.signal(signal.SIGINT, shutdown)
+    signal.signal(signal.SIGTERM, shutdown)
 
 if __name__ == "__main__":
     logger.info("[app] Overriding sys.excepthook to log uncaught exceptions...")

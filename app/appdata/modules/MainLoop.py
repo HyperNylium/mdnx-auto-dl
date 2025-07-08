@@ -3,6 +3,7 @@ import time
 import threading
 
 # Custom imports
+from .FileHandler import FileHandler
 from .Vars import logger, config
 from .Vars import get_episode_file_path, iter_episodes, log_manager
 
@@ -19,6 +20,9 @@ class MainLoop:
         self.config = config
         self.timeout = int(config["app"]["MAIN_LOOP_UPDATE_INTERVAL"])
         self.mainloop_iter = 0
+
+        # Initialize FileHandler
+        self.file_handler = FileHandler()
 
         # Event to signal the loop to stop
         self.stop_event = threading.Event()
@@ -42,34 +46,51 @@ class MainLoop:
     def mainloop(self) -> None:
         while not self.stop_event.is_set():
             logger.info("[MainLoop] Executing main loop task.")
-            base_dir = config["mdnx"]["dir-path"]["content"]
+            base_dir = config["app"]["DATA_DIR"]
             current_queue = self.mdnx_api.queue_manager.output()
 
             logger.info("[MainLoop] Checking for episodes to download.")
-            for series_id, season_key, episode_key, episode_info in iter_episodes(current_queue):
-                # Optionally skip non-standard episode keys (e.g., if key starts with "S") - this will be optional in the future.
+            for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(current_queue):
+
+                # Optionally skip non-standard (special) episode keys (e.g., if key starts with "S") - this will be optional in the future.
                 if not episode_key.startswith("E"):
                     continue
 
-                if not episode_info["episode_downloaded"]:
-                    logger.info(f"[MainLoop] Episode {episode_key} for series {series_id} season {season_key} needs to be downloaded.")
+                # Should episode be downloaded logic
+                if episode_info["episode_downloaded"]:
+                    logger.info(f"[MainLoop] Episode {episode_info['episode_number']} ({episode_info['episode_name']}) 'episode_downloaded' status is True. Skipping download.")
+                    continue
+                else:
+                    logger.info(f"[MainLoop] Episode {episode_info['episode_number']} ({episode_info['episode_name']}) 'episode_downloaded' status is False. Checking file path to make sure file actually does not exist...")
 
                     # Construct the expected file path using the dynamic template.
                     file_path = get_episode_file_path(current_queue, series_id, season_key, episode_key, base_dir)
                     logger.info(f"[MainLoop] Checking for episode at {file_path}.")
 
                     if os.path.exists(file_path):
-                        logger.info(f"[MainLoop] Episode already exists at {file_path}. Skipping download.")
+                        logger.info(f"[MainLoop] Episode already exists at {file_path}. Updating 'episode_downloaded' status to True and skipping download.")
                         self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
+                        continue
                     else:
-                        logger.info(f"[MainLoop] Episode not found at {file_path}. Initiating download.")
-                        download_successful = self.mdnx_api.download_episode(series_id, season_key, episode_key)
+                        logger.info(f"[MainLoop] Episode not found at {file_path} and 'episode_downloaded' status is False. Initiating download.")
+                        download_successful = self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number"])
                         if download_successful:
                             logger.info(f"[MainLoop] Episode downloaded successfully.")
                             self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
+
+                            src = os.path.join(self.file_handler.source, os.path.basename(file_path))
+                            dst = file_path
+                            if self.file_handler.transfer(src, dst):
+                                logger.info(f"[MainLoop] Transfer complete: {dst}")
+                            else:
+                                logger.error(f"[MainLoop] Transfer failed for {dst}")
+
                         else:
                             logger.error(f"[MainLoop] Episode download failed for {series_id} season {season_key} - {episode_key}.")
                             self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
+                            self.file_handler.remove_temp_files()
+                        logger.info(f"[MainLoop] Waiting for {config['app']['MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL']} seconds before next episode download.")
+                        time.sleep(config["app"]["MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL"])  # sleep to avoid API rate limits
 
             self.mainloop_iter += 1
             logger.info(f"[MainLoop] Current main loop iteration: {self.mainloop_iter}")
