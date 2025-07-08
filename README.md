@@ -284,4 +284,5 @@ Contents of "/mnt/plexdata/Anime":
     - https://cdn.hypernylium.com/mdnx-auto-dl/Bento4-SDK.zip
     - https://cdn.hypernylium.com/mdnx-auto-dl/mdnx.zip \
 Every dependency is included in the image (ffmpeg and mkvmerge) and downloaded/installed from debian repositories (apt install). \
-If you find a better way to do this (and it actually works), please open a PR. I would happily accept it!
+If you find a better way to do this (and it actually works), please open a PR. I would happily accept it! \
+Preferably, the Bento4-SDK and multi-download-nx packages should be downloaded from their respective websites and using the `entrypoint.sh` script to install them.
