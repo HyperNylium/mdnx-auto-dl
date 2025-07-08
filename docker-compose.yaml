@@ -1,17 +1,23 @@
 services:
   mdnx-auto-dl:
-    # Build image locally if you want.
-    # Requires all files from repo to be present
+    ### Build image locally if you want.
+    ### Requires all files from repo to be present.
     # build:
     #   context: .
     #   dockerfile: Dockerfile
+
+    ### Use local image if you manually ran "docker build -t mdnx-auto-dl:latest ."
     # image: mdnx-auto-dl:latest
+
+    ### Use public image.
     image: ghcr.io/hypernylium/mdnx-auto-dl:latest
     container_name: mdnx-auto-dl
     restart: unless-stopped
     volumes:
       - ./appdata/logs:/app/appdata/logs:rw
       - ./appdata/config:/app/appdata/config:rw
+      - ./appdata/mdnx/widevine:/app/appdata/bin/mdnx/widevine:rw
+      - ./appdata/mdnx/config:/app/appdata/bin/mdnx/config:rw
       - ./appdata/data:/data:rw
     environment:
       - UID=1000
