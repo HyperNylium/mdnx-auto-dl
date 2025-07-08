@@ -4,11 +4,13 @@
         "TEMP_DIR": "/app/appdata/temp",
         "BIN_DIR": "/app/appdata/bin",
         "LOG_FILE": "/app/appdata/logs/app.log",
+        "DATA_DIR": "/data",
         "MDNX_API_FORCE_REAUTH": false,
         "MDNX_API_SKIP_TEST": false,
         "MDNX_SERVICE_USERNAME": "",
         "MDNX_SERVICE_PASSWORD": "",
-        "MAIN_LOOP_UPDATE_INTERVAL": 3600
+        "MAIN_LOOP_UPDATE_INTERVAL": 3600,
+        "MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL": 20
     },
     "mdnx": {
         "bin-path": {
@@ -39,7 +41,7 @@
             "keepAllVideos": false
         },
         "dir-path": {
-            "content": "./videos/",
+            "content": "/app/appdata/temp",
             "fonts": "./fonts/"
         },
         "gui": {

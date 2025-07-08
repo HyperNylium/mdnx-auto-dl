@@ -45,8 +45,8 @@ logger = logging.getLogger(__name__)
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
-    if issubclass(exc_type, KeyboardInterrupt):
-        # Call the default excepthook to handle the exception if it's a KeyboardInterrupt
+    # skip logging for KeyboardInterrupt and SystemExit. Use the default handler.
+    if issubclass(exc_type, (KeyboardInterrupt, SystemExit)):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
 
@@ -138,7 +138,7 @@ def log_manager(log_file_path=LOG_FILE, max_lines: int = 50000, keep_lines: int 
 def get_episode_file_path(queue, series_id, season_key, episode_key, base_dir, extension=".mkv"):
     """
     Constructs the full file path for an episode using the dynamic file naming.
-    
+
     The folder structure is:
       {base_dir}/{series_name}/S{season}/{file_name}
 
@@ -208,4 +208,4 @@ def iter_episodes(queue_data: dict):
     for series_id, series_info in queue_data.items():
         for season_key, season_info in series_info["seasons"].items():
             for episode_key, episode_info in season_info["episodes"].items():
-                yield series_id, season_key, episode_key, episode_info
+                yield series_id, season_key, episode_key, season_info, episode_info
