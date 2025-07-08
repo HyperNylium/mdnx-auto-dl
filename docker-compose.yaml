@@ -1,11 +1,15 @@
 services:
   mdnx-auto-dl:
-    # Build image locally if you want.
-    # Requires all files from repo to be present
+    ### Build image locally if you want.
+    ### Requires all files from repo to be present.
     # build:
     #   context: .
     #   dockerfile: Dockerfile
+
+    ### Use local image if you manually ran "docker build -t mdnx-auto-dl:latest ."
     # image: mdnx-auto-dl:latest
+
+    ### Use public image.
     image: ghcr.io/hypernylium/mdnx-auto-dl:latest
     container_name: mdnx-auto-dl
     restart: unless-stopped
