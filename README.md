@@ -27,24 +27,24 @@ services:
     container_name: mdnx-auto-dl
     restart: unless-stopped
     volumes:
-    	# log file location
+      # log file location
       - ./appdata/logs:/app/appdata/logs:rw
 
       # mdnx-auto-dl config location.
       # This will house config.json and queue.json.
       - ./appdata/config:/app/appdata/config:rw
 
-			# multi-download-nx config and widevine folder locations
+      # multi-download-nx config and widevine folder locations
       # to keep cr_token.yml and make DRM decryption possible
       - ./appdata/mdnx/widevine:/app/appdata/bin/mdnx/widevine:rw
       - ./appdata/mdnx/config:/app/appdata/bin/mdnx/config:rw
 
-			# plex/jellyfin/emby anime storage location.
+      # plex/jellyfin/emby anime storage location.
       # I suggest to make a separate "active-anime" library and mount that here.
       # Only modify the left side ("./appdata/data") not the right.
       # Example:
       #- /mnt/plexdata/active-anime:/data:rw
-			- ./appdata/data:/data:rw
+      - ./appdata/data:/data:rw
     environment:
       - UID=1000
       - GID=1000
