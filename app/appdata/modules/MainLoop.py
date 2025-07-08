@@ -8,13 +8,13 @@ from .Vars import logger, config
 from .Vars import get_episode_file_path, iter_episodes, log_manager
 
 # Only for syntax highlighting in VSCode - remove in prod
-from .MDNX_API import MDNX_API
+# from .MDNX_API import MDNX_API
 
 
 
 class MainLoop:
-    def __init__(self, mdnx_api: MDNX_API, config=config) -> None:
-    # def __init__(self, mdnx_api, config=config) -> None:
+    # def __init__(self, mdnx_api: MDNX_API, config=config) -> None:
+    def __init__(self, mdnx_api, config=config) -> None:
         logger.info(f"[MainLoop] MainLoop initialized.")
         self.mdnx_api = mdnx_api
         self.config = config
@@ -23,7 +23,6 @@ class MainLoop:
 
         # Initialize FileHandler
         self.file_handler = FileHandler()
-        logger.info("[MainLoop] FileHandler initialized.")
 
         # Event to signal the loop to stop
         self.stop_event = threading.Event()
@@ -78,11 +77,18 @@ class MainLoop:
                         if download_successful:
                             logger.info(f"[MainLoop] Episode downloaded successfully.")
                             self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
-                            self.file_handler.transfer()
+
+                            src = os.path.join(self.file_handler.source, os.path.basename(file_path))
+                            dst = file_path
+                            if self.file_handler.transfer(src, dst):
+                                logger.info(f"[MainLoop] Transfer complete: {dst}")
+                            else:
+                                logger.error(f"[MainLoop] Transfer failed for {dst}")
+
                         else:
                             logger.error(f"[MainLoop] Episode download failed for {series_id} season {season_key} - {episode_key}.")
                             self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
-                            self.file_handler.remove()
+                            self.file_handler.remove_temp_files()
                         logger.info(f"[MainLoop] Waiting for {config['app']['MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL']} seconds before next episode download.")
                         time.sleep(config["app"]["MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL"])  # sleep to avoid API rate limits
 
