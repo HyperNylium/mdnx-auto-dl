@@ -290,14 +290,10 @@ Preferably, the Bento4-SDK and multi-download-nx packages should be downloaded f
 # Acknowledgments
 **This project would not be possible without the following third-party tools/packages:**
 
-Multi-download-nx
-https://github.com/anidl/multi-downloader-nx
+[Multi-download-nx](https://github.com/anidl/multi-downloader-nx)
 
-FFmpeg
-https://ffmpeg.org/
+[FFmpeg](https://ffmpeg.org/)
 
-MKVToolNix
-https://mkvtoolnix.download/
+[MKVToolNix](https://mkvtoolnix.download/)
 
-Bento4-SDK
-https://www.bento4.com/
+[Bento4-SDK](https://www.bento4.com/)
