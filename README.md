@@ -279,7 +279,7 @@ Contents of "/mnt/plexdata/Anime":
 - Add audio options using [mkv-auto](https://github.com/philiptn/mkv-auto) if you want to have [whatever CR auido is] -> EOS for example. Higher vocals, lower booms.
 - Add capability to set different `/data` folder structures.
 - Add capability to rename seasons correctly. Sometimes, CR has season 66 or whatever for season 4. Wrong season number is also passed through multi-download-nx - which is expected and is totally fine. Maybe include seasons first and last episode in TVDB search and figure out what season it came from using said episode names. This would also help for things like S02E13. Season 2 episode 1 turned into episode 13.
-- I was not able to figure out a great way to download the Bento4-SDK and multi-download-nx packages. For now, both are download from my webserver. There are the URLs:
+- I was not able to figure out a great way to download the [Bento4-SDK](https://www.bento4.com/downloads/) and [multi-download-nx](https://github.com/anidl/multi-downloader-nx/releases/latest) packages. For now, both are download from my webserver. There are the URLs:
     - https://cdn.hypernylium.com/mdnx-auto-dl/Bento4-SDK.zip
     - https://cdn.hypernylium.com/mdnx-auto-dl/mdnx.zip
 Every dependency is included in the image (ffmpeg and mkvmerge) and downloaded/installed from debian repositories (apt install). \
