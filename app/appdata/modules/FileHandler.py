@@ -1,10 +1,8 @@
 import os
 import time
-import signal
 from shutil import move as shmove
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
 
+# Custom imports
 from .Vars import logger, config
 
 
@@ -12,45 +10,39 @@ from .Vars import logger, config
 class FileHandler:
     def __init__(self):
         self.source = config["app"]["TEMP_DIR"]
-        self.dest = config["app"]["DATA_DIR"]
-        self.extension = ".mkv"
-        self.readyCheckInterval = 1       # seconds between size checks
-        self.readyStableSeconds = 5       # how long size must remain unchanged
-        self.readyTimeout = 300           # give up after 5 minutes
-        self.moveRetries = 3              # number of retries for move operation
-        self.retryDelay = 5               # seconds between move attempts
+        self.dest   = config["app"]["DATA_DIR"]
+        self.readyCheckInterval = 1  # seconds between size checks
+        self.readyStableSeconds = 5  # how long size must remain unchanged
+        self.readyTimeout = 300      # overall timeout for readiness
+        self.moveRetries = 3         # number of attempts to move file
+        self.retryDelay = 5          # seconds between move attempts
 
-        # set up watchdog observer with a plain handler
-        handler = FileSystemEventHandler()
-        handler.on_created = self.onCreated
-        self.observer = Observer()
-        self.observer.schedule(handler, self.source, recursive=False)
+        logger.info(f"[FileHandler] FileHandler initialized.\nSource: {self.source}\nDestination: {self.dest}")
 
-        logger.info(f"[FileHandler] Initialized with\nSource: {self.source}\nDestination: {self.dest}")
+    def transfer(self):
+        for name in os.listdir(self.source):
+            if not name.lower().endswith(".mkv"):
+                continue
+            srcPath = os.path.join(self.source, name)
+            logger.info(f"[FileHandler] Starting transfer for {srcPath}.")
 
-    def onCreated(self, event):
-        # ignore dirs and non .mkv files
-        if event.is_directory or not event.src_path.lower().endswith(self.extension):
-            return
-
-        path = event.src_path
-        logger.info(f"[FileHandler] Detected new {self.extension} file: {path}")
-
-        if self.waitForReady(path):
-            name = os.path.basename(path)
-            targetPath = os.path.join(self.dest, name)
-
-            if self.moveWithRetries(path, targetPath):
-                logger.info(f"[FileHandler] Moved {path} to {targetPath}")
-                # verify
-                if os.path.exists(targetPath) and not os.path.exists(path):
-                    logger.info("[FileHandler] Move verified successfully.")
+            if self.waitForReady(srcPath):
+                dstPath = os.path.join(self.dest, name)
+                if self.moveWithRetries(srcPath, dstPath):
+                    logger.info(f"[FileHandler] Moved {name} to {self.dest}.")
                 else:
-                    logger.error("[FileHandler] Post move verification failed.")
+                    logger.error(f"[FileHandler] Failed to move {name} after {self.moveRetries} attempts.")
             else:
-                logger.error(f"[FileHandler] Failed to move {path} after {self.moveRetries} attempts.")
-        else:
-            logger.warning(f"[FileHandler] File not ready within {self.readyTimeout} seconds: {path}")
+                logger.warning(f"[FileHandler] {name} not ready within {self.readyTimeout} seconds, skipping.")
+
+    def remove(self):
+        for name in os.listdir(self.source):
+            path = os.path.join(self.source, name)
+            try:
+                os.remove(path)
+                logger.info(f"[FileHandler] Removed {path}")
+            except Exception as e:
+                logger.error(f"[FileHandler] Error removing {path}: {e}")
 
     def waitForReady(self, path):
         lastSize = -1
@@ -61,7 +53,7 @@ class FileHandler:
             try:
                 size = os.path.getsize(path)
             except Exception as e:
-                logger.error(f"[FileHandler] Error accessing {path}: {e}")
+                logger.error(f"[FileHandler] Error getting size for {path}: {e}")
                 return False
 
             if size == lastSize:
@@ -73,7 +65,6 @@ class FileHandler:
                 lastSize = size
 
             time.sleep(self.readyCheckInterval)
-
         return False
 
     def moveWithRetries(self, src, dst):
@@ -82,21 +73,6 @@ class FileHandler:
                 shmove(src, dst)
                 return True
             except Exception as e:
-                logger.error(f"[FileHandler] Attempt {attempt}. Move failed: {e}")
+                logger.error(f"[FileHandler] (attempt {attempt} - Move failed for {src}: {e}")
                 time.sleep(self.retryDelay)
         return False
-
-    def start(self):
-        logger.info(f"[FileHandler] Starting monitor: {self.source} to {self.dest}")
-        self.observer.start()
-
-        def shutdown(signum, frame):
-            logger.info(f"[FileHandler] Received signal {signum}. Stopping monitor...")
-            self.observer.stop()
-
-        # catch both Ctrl-C and Dockers SIGTERM
-        signal.signal(signal.SIGINT, shutdown)
-        signal.signal(signal.SIGTERM, shutdown)
-
-        self.observer.join()
-        logger.info("[FileHandler] Monitor stopped cleanly.")

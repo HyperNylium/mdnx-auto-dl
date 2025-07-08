@@ -3,6 +3,7 @@ import time
 import threading
 
 # Custom imports
+from .FileHandler import FileHandler
 from .Vars import logger, config
 from .Vars import get_episode_file_path, iter_episodes, log_manager
 
@@ -19,6 +20,10 @@ class MainLoop:
         self.config = config
         self.timeout = int(config["app"]["MAIN_LOOP_UPDATE_INTERVAL"])
         self.mainloop_iter = 0
+
+        # Initialize FileHandler
+        self.file_handler = FileHandler()
+        logger.info("[MainLoop] FileHandler initialized.")
 
         # Event to signal the loop to stop
         self.stop_event = threading.Event()
@@ -73,9 +78,11 @@ class MainLoop:
                         if download_successful:
                             logger.info(f"[MainLoop] Episode downloaded successfully.")
                             self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
+                            self.file_handler.transfer()
                         else:
                             logger.error(f"[MainLoop] Episode download failed for {series_id} season {season_key} - {episode_key}.")
                             self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
+                            self.file_handler.remove()
                         logger.info(f"[MainLoop] Waiting for {config['app']['MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL']} seconds before next episode download.")
                         time.sleep(config["app"]["MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL"])  # sleep to avoid API rate limits
 
