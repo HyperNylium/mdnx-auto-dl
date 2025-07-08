@@ -297,3 +297,6 @@ Preferably, the Bento4-SDK and multi-download-nx packages should be downloaded f
 [MKVToolNix](https://mkvtoolnix.download/)
 
 [Bento4-SDK](https://www.bento4.com/)
+
+# License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
