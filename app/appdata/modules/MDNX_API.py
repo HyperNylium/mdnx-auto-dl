@@ -6,6 +6,7 @@ import subprocess
 # Custom imports
 from .QueueManager import QueueManager
 from .Vars import logger, config
+from .Vars import sanitize_cr_filename
 
 
 
@@ -35,9 +36,8 @@ class MDNX_API:
         else:
             logger.info("[MDNX_API] MDNX API test skipped by user.")
 
-    def process_console_output(self, output: str, add2queue: bool = True) -> dict:
+    def process_console_output(self, output: str, add2queue: bool = True):
         logger.info("[MDNX_API] Processing console output...")
-
         tmp_dict = {}
         episode_counters = {} # maps season key ("S1", "S2", etc) to episode counter
         current_series_id = None
@@ -48,74 +48,74 @@ class MDNX_API:
                 continue
 
             # Check for series information.
-            series = self.series_pattern.match(line)
-            if series:
-                info = series.groupdict()
+            m = self.series_pattern.match(line)
+            if m:
+                info = m.groupdict()
+                # add CR version of series_name
+                info["series_name_CR"] = sanitize_cr_filename(info["series_name"])
                 current_series_id = info["series_id"]
-                tmp_dict[current_series_id] = {
-                    "series": info,
-                    "seasons": {}
-                }
+                tmp_dict[current_series_id] = { "series": info, "seasons": {} }
                 continue
 
             # Check for season information.
-            season = self.season_pattern.match(line)
-            if season and current_series_id is not None:
-                info = season.groupdict()
-                season_num = info.get("season_number") or info.get("season")
-                season_key = f"S{season_num}"
-                tmp_dict[current_series_id]["seasons"][season_key] = {
-                    **info,
-                    "episodes": {}
-                }
-                # Initialize the episode counter for this season.
+            m = self.season_pattern.match(line)
+            if m and current_series_id:
+                info = m.groupdict()
+                info["season_name_CR"] = sanitize_cr_filename(info["season_name"])
+                season_key = f"S{info['season_number']}"
+                tmp_dict[current_series_id]["seasons"][season_key] = { **info, "episodes": {} }
                 episode_counters[season_key] = 1
                 continue
 
             # Check for episode information.
-            episode = self.episode_pattern.match(line)
-            if episode and current_series_id is not None:
-                ep_info = episode.groupdict()
-
-                # grab the season number from the episode line itself
-                match = re.search(r'- Season (\d+) -', line)
-                if not match:
-                    logger.warning(f"[MDNX_API] Season not found in episode line: {line}")
+            m = self.episode_pattern.match(line)
+            if m and current_series_id:
+                ep_info = m.groupdict()
+                # find season number in full line
+                sn = re.search(r'- Season (\d+) -', line)
+                if not sn:
+                    logger.warning(f"[MDNX_API] Season not found in line: {line}")
                     continue
+                season_key = f"S{sn.group(1)}"
 
-                season_num = match.group(1)
-                season_key = f"S{season_num}"
-
-                # ensure season entry exists even if header was missing
+                # init if missing
                 if season_key not in tmp_dict[current_series_id]["seasons"]:
                     tmp_dict[current_series_id]["seasons"][season_key] = {
                         "season_id": None,
                         "season_name": None,
-                        "season_number": season_num,
+                        "season_name_CR": None,
+                        "season_number": sn.group(1),
                         "episodes": {}
                     }
                     episode_counters[season_key] = 1
 
-                counter = episode_counters[season_key]
-
-                # clean the title
-                parts = ep_info["full_episode_name"].rsplit(" - ", 1)
-                cleaned_name = parts[-1] if len(parts) > 1 else ep_info["full_episode_name"]
-
-                ep_key = f"E{counter}"
-                tmp_dict[current_series_id]["seasons"][season_key]["episodes"][ep_key] = {
-                    "episode_number": str(counter),
-                    "episode_name":   cleaned_name
-                }
+                idx = episode_counters[season_key]
+                ep_key = f"E{idx}"
                 episode_counters[season_key] += 1
+
+                # Clean episode number and title
+                episode_number_clean = str(idx)
+                parts = ep_info["full_episode_name"].rsplit(" - ", 1)
+                if len(parts) > 1:
+                    episode_title_clean = parts[-1]
+                else:
+                    episode_title_clean = ep_info["full_episode_name"]
+
+                episode_number_cr = ep_info["episode_number"]  
+                episode_title_cr = sanitize_cr_filename(episode_title_clean)
+
+                tmp_dict[current_series_id]["seasons"][season_key]["episodes"][ep_key] = {
+                    "episode_number": episode_number_clean,
+                    "episode_number_CR": episode_number_cr,
+                    "episode_name": episode_title_clean,
+                    "episode_name_CR": episode_title_cr,
+                    "episode_downloaded": False
+                }
                 continue
 
         logger.info("[MDNX_API] Console output processed.")
-
         if add2queue:
-            logger.info("[MDNX_API] Adding processed console output to QueueManager...")
             self.queue_manager.add(tmp_dict)
-
         return tmp_dict
 
     def test(self) -> None:
@@ -187,7 +187,6 @@ class MDNX_API:
         logger.info(f"[MDNX_API] Downloading episode {episode_number} for series {series_id} season {season_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id, "-s", season_id, "-e", episode_number]
-
         if os.path.exists("/usr/bin/stdbuf"):
             logger.info("[MDNX_API] Using stdbuf to ensure live output streaming.")
             cmd = ["stdbuf", "-oL", "-eL", *tmp_cmd]
@@ -195,18 +194,23 @@ class MDNX_API:
             logger.info("[MDNX_API] stdbuf not found, using default command without buffering.")
             cmd = tmp_cmd
 
-        logger.info(f"[MDNX_API] Command to execute: {' '.join(cmd)}")
+        logger.info(f"[MDNX_API] Executing command: {' '.join(cmd)}")
 
+        error_detected = False
         with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
             for line in proc.stdout:
-                logger.info("[MDNX_API][multidownload-nx] %s", line.rstrip())
+                cleaned = line.rstrip()
+                logger.info("[MDNX_API][multidownload-nx] %s", cleaned)
+                if "Unable to download" in cleaned:
+                    error_detected = True
 
-        success = None
-        if proc.returncode == 0:
-            logger.info("[MDNX_API] Download finished successfully.")
-            success = True
-        else:
+        if proc.returncode != 0:
             logger.error(f"[MDNX_API] Download failed with exit code {proc.returncode}")
-            success = False
+            return False
 
-        return success
+        if error_detected:
+            logger.error("[MDNX_API] Download reported errors in output despite exit code 0.")
+            return False
+
+        logger.info("[MDNX_API] Download finished successfully.")
+        return True
