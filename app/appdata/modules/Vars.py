@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import pwd
 import grp
@@ -28,6 +29,9 @@ MDNX_CONFIG = config["mdnx"]
 MDNX_SERVICE_BIN_PATH = os.path.join(BIN_DIR, "mdnx", "aniDL")
 MDNX_SERVICE_CR_TOKEN_PATH = os.path.join(BIN_DIR, "mdnx", "config", "cr_token.yml")
 
+# Regular expression to match invalid characters in filenames
+INVALID_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1F]')
+
 
 # Set up logging
 logging.basicConfig(
@@ -51,6 +55,30 @@ def handle_exception(exc_type, exc_value, exc_traceback):
         return
 
     logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+def sanitize_cr_filename(name: str) -> str:
+    """
+    Replace every invalid character with '_' (one-for-one, preserving runs)
+    to exactly mirror multidownload-nx output when it encounters invalid characters
+    such as <, >, :, ", /, \, |, ?, *.
+    """
+    sanitized = INVALID_CHARS_RE.sub("_", name)
+    logger.info(f"[Vars] Sanitize CR filename '{name}' to '{sanitized}'")
+    return sanitized
+
+def sanitize_destination_filename(segment: str) -> str:
+    """
+    Prepare a path segment for your the filesystem:
+      - Replace invalid chars (and any underscores) with spaces
+      - Collapse runs of whitespace into single spaces
+      - Trim leading/trailing spaces
+    """
+    cleaned = INVALID_CHARS_RE.sub(" ", segment)
+    cleaned = cleaned.replace("_", " ")
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if cleaned != segment:
+        logger.info(f"[Vars] Sanitize destination '{segment}' to '{cleaned}'")
+    return cleaned
 
 def get_running_user():
     uid  = os.getuid()   # real UID
@@ -137,28 +165,66 @@ def log_manager(log_file_path=LOG_FILE, max_lines: int = 50000, keep_lines: int 
 
 def get_episode_file_path(queue, series_id, season_key, episode_key, base_dir, extension=".mkv"):
     """
-    Constructs the full file path for an episode using the dynamic file naming.
+    Constructs the full file path for an episode using the dynamic file naming,
+    sanitizing the series and episode names for the final destination.
 
     The folder structure is:
       {base_dir}/{series_name}/S{season}/{file_name}
-
-    Where file_name is generated based on the template from "mdnx > cli-defaults > fileName" config.
     """
     # Get data from the queue.
-    series_name = queue[series_id]["series"]["series_name"]
+    raw_series = queue[series_id]["series"]["series_name"]
     season = queue[series_id]["seasons"][season_key]["season_number"]
     episode = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_number"]
-    episode_name = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_name"]
+    raw_episode_name = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_name"]
+
+    clean_series = sanitize_destination_filename(raw_series)
+    clean_episode = sanitize_destination_filename(raw_episode_name)
 
     # Generate the file name using the template.
-    file_name = get_episode_naming_template(series_name, season, episode, episode_name, extension)
+    file_name = get_episode_naming_template(clean_series, season, episode, clean_episode, extension)
 
     # Build the season folder name (for folder organization, e.g., "S1")
     season_folder = f"S{int(season)}"
 
     # Combine to form the full file path.
-    file_path = os.path.join(base_dir, series_name, season_folder, file_name)
-    return file_path
+    return os.path.join(base_dir, clean_series, season_folder, file_name)
+
+def get_episode_file_path_cr(queue, series_id, season_key, episode_key, base_dir, extension=".mkv"):
+    """
+    Constructs the full TEMP_DIR file path for an episode using the dynamic file naming.
+
+    The resulting path is base_dir then the episode file name:
+      {base_dir}/{file_name_cr}
+    """
+    raw_series = queue[series_id]["series"]["series_name"]
+    season = queue[series_id]["seasons"][season_key]["season_number"]
+    episode = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_number_CR"]
+    raw_episode_name = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_name"]
+
+    series_cr = sanitize_cr_filename(raw_series)
+    episode_cr = sanitize_cr_filename(raw_episode_name)
+
+    file_name_cr = get_episode_naming_template(series_cr, season, episode, episode_cr, extension)
+
+    return os.path.join(base_dir, file_name_cr)
+
+def get_temp_episode_file_path(queue, series_id, season_key, episode_key, temp_dir, extension=".mkv"):
+    raw_series = queue[series_id]["series"]["series_name"]
+    season = queue[series_id]["seasons"][season_key]["season_number"]
+    episode_number = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_number"]
+    episode_number_cr = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_number_CR"]
+    raw_episode_name = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_name"]
+
+    series = sanitize_cr_filename(raw_series)
+    episode_name = sanitize_cr_filename(raw_episode_name)
+
+    filename = get_episode_naming_template(series, season, episode_number, episode_name, extension)
+    filename_cr = get_episode_naming_template(series, season, episode_number_cr, episode_name, extension)
+
+    episode_path = os.path.join(temp_dir, filename)
+    episode_path_cr = os.path.join(temp_dir, filename_cr)
+
+    return (episode_path_cr, episode_path)
 
 def get_episode_naming_template(series_title, season, episode, episode_name, extension):
     """
