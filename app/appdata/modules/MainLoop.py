@@ -5,7 +5,7 @@ import threading
 # Custom imports
 from .FileHandler import FileHandler
 from .Vars import logger, config
-from .Vars import get_episode_file_path, iter_episodes, log_manager
+from .Vars import get_episode_file_path, get_temp_episode_file_path, iter_episodes, log_manager
 
 # Only for syntax highlighting in VSCode - remove in prod
 # from .MDNX_API import MDNX_API
@@ -46,7 +46,6 @@ class MainLoop:
     def mainloop(self) -> None:
         while not self.stop_event.is_set():
             logger.info("[MainLoop] Executing main loop task.")
-            base_dir = config["app"]["DATA_DIR"]
             current_queue = self.mdnx_api.queue_manager.output()
 
             logger.info("[MainLoop] Checking for episodes to download.")
@@ -64,7 +63,7 @@ class MainLoop:
                     logger.info(f"[MainLoop] Episode {episode_info['episode_number']} ({episode_info['episode_name']}) 'episode_downloaded' status is False. Checking file path to make sure file actually does not exist...")
 
                     # Construct the expected file path using the dynamic template.
-                    file_path = get_episode_file_path(current_queue, series_id, season_key, episode_key, base_dir)
+                    file_path = get_episode_file_path(current_queue, series_id, season_key, episode_key, config["app"]["DATA_DIR"])
                     logger.info(f"[MainLoop] Checking for episode at {file_path}.")
 
                     if os.path.exists(file_path):
@@ -76,19 +75,34 @@ class MainLoop:
                         download_successful = self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number"])
                         if download_successful:
                             logger.info(f"[MainLoop] Episode downloaded successfully.")
-                            self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
 
-                            src = os.path.join(self.file_handler.source, os.path.basename(file_path))
-                            dst = file_path
-                            if self.file_handler.transfer(src, dst):
-                                logger.info(f"[MainLoop] Transfer complete: {dst}")
+                            dst = get_episode_file_path(current_queue, series_id, season_key, episode_key, config["app"]["DATA_DIR"])
+                            paths = get_temp_episode_file_path(current_queue, series_id, season_key, episode_key, config["app"]["TEMP_DIR"])
+
+                            logger.info(f"[MainLoop] Testing paths:\n{paths}")
+
+                            for path in paths:
+                                if os.path.exists(path):
+                                    src = path
+                                    logger.info(f"[MainLoop] Using path: {src}")
+                                    break
                             else:
-                                logger.error(f"[MainLoop] Transfer failed for {dst}")
+                                logger.error(f"[MainLoop] No temp file found:\n{paths}")
+                                self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
+                                continue
+
+                            if self.file_handler.transfer(src, dst):
+                                logger.info(f"[MainLoop] Transfer complete.")
+                                self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
+                            else:
+                                logger.error(f"[MainLoop] Transfer failed.")
+                                self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
 
                         else:
                             logger.error(f"[MainLoop] Episode download failed for {series_id} season {season_key} - {episode_key}.")
                             self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
-                            self.file_handler.remove_temp_files()
+
+                        self.file_handler.remove_temp_files()
                         logger.info(f"[MainLoop] Waiting for {config['app']['MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL']} seconds before next episode download.")
                         time.sleep(config["app"]["MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL"])  # sleep to avoid API rate limits
 
