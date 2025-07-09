@@ -79,7 +79,7 @@ class MainLoop:
                             dst = get_episode_file_path(current_queue, series_id, season_key, episode_key, config["app"]["DATA_DIR"])
                             paths = get_temp_episode_file_path(current_queue, series_id, season_key, episode_key, config["app"]["TEMP_DIR"])
 
-                            logger.info(f"[MainLoop] Testing paths:\n{paths}")
+                            logger.info(f"[MainLoop] Testing paths: {paths}")
 
                             for path in paths:
                                 if os.path.exists(path):
@@ -87,7 +87,7 @@ class MainLoop:
                                     logger.info(f"[MainLoop] Using path: {src}")
                                     break
                             else:
-                                logger.error(f"[MainLoop] No temp file found:\n{paths}")
+                                logger.error(f"[MainLoop] No temp file found: {paths}")
                                 self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
                                 continue
 
