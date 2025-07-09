@@ -4,8 +4,7 @@ from shutil import move as shmove
 
 # Custom imports
 from .Vars import logger, config
-
-
+from .Vars import sanitize_destination_filename
 
 class FileHandler:
     def __init__(self):
@@ -18,39 +17,53 @@ class FileHandler:
         self.moveRetries = 3         # number of attempts to move file
         self.retryDelay = 5          # seconds between move attempts
 
-        logger.info(f"[FileHandler] FileHandler initialized.\nSource: {self.source}\nDestination: {self.dest}")
+        logger.info(f"[FileHandler] initialized with\nSource: {self.source}\nDestination: {self.dest}")
 
-    def transfer(self, src_path: str, dst_path: str):
-        name = os.path.basename(src_path)
-        logger.info(f"[FileHandler] Starting transfer for {src_path}.")
+    def transfer(self, src_path: str, dst_path: str) -> bool:
+        logger.info(f"[FileHandler] Starting transfer from '{src_path}' to '{dst_path}'")
+
+        src_basename = os.path.basename(src_path)
+
+        if not os.path.exists(src_path):
+            logger.error(f"[FileHandler] Expected CR file not found: {src_path}")
+            return False
+        logger.info(f"[FileHandler] Found CR source: {src_path}")
 
         if not self.waitForReady(src_path):
-            logger.warning(f"[FileHandler] {name} not ready within {self.readyTimeout} seconds, skipping.")
+            logger.warning(f"[FileHandler] '{src_basename}' not ready within {self.readyTimeout} seconds, skipping.")
             return False
 
-        parent_dir = os.path.dirname(dst_path)
-        try:
-            os.makedirs(parent_dir, exist_ok=True)
-            logger.info(f"[FileHandler] Ensured directory exists: {parent_dir}")
-        except Exception as e:
-            logger.error(f"[FileHandler] Could not create directory {parent_dir}: {e}")
-            return False
+        parts = dst_path.split(os.sep)
+        sanitized = []
+        for p in parts:
+            if not p:
+                continue
+            sanitized.append(sanitize_destination_filename(p))
 
-        if self.moveWithRetries(src_path, dst_path):
-            logger.info(f"[FileHandler] Moved {name} to {dst_path}")
-            return True
+        if dst_path.startswith(os.sep):
+            parent = os.sep + os.path.join(*sanitized[:-1])
         else:
-            logger.error(f"[FileHandler] Failed to move {name} after {self.moveRetries} attempts.")
+            parent = os.path.join(*sanitized[:-1])
+        final_dst = os.path.join(parent, sanitized[-1])
+
+        try:
+            os.makedirs(parent, exist_ok=True)
+            logger.info(f"[FileHandler] Ensured directory exists: {parent}")
+        except Exception as e:
+            logger.error(f"[FileHandler] Could not create directory {parent}: {e}")
             return False
 
-    def remove_temp_files(self):
-        for name in os.listdir(self.source):
-            path = os.path.join(self.source, name)
+        for attempt in range(1, self.moveRetries + 1):
             try:
-                os.remove(path)
-                logger.info(f"[FileHandler] Removed {path}")
+                shmove(src_path, final_dst)
+                logger.info(f"[FileHandler] Moved '{src_basename}' to '{final_dst}'")
+                return True
             except Exception as e:
-                logger.error(f"[FileHandler] Error removing {path}: {e}")
+                logger.error(f"[FileHandler] (attempt {attempt}) Move failed for '{src_basename}' to '{final_dst}': {e}")
+                time.sleep(self.retryDelay)
+
+        logger.error(f"[FileHandler] Failed to move '{src_basename}' after {self.moveRetries} attempts.")
+        return False
 
     def waitForReady(self, path):
         lastSize = -1
@@ -75,12 +88,11 @@ class FileHandler:
             time.sleep(self.readyCheckInterval)
         return False
 
-    def moveWithRetries(self, src, dst):
-        for attempt in range(1, self.moveRetries + 1):
+    def remove_temp_files(self):
+        for name in os.listdir(self.source):
+            path = os.path.join(self.source, name)
             try:
-                shmove(src, dst)
-                return True
+                os.remove(path)
+                logger.info(f"[FileHandler] Removed {path}")
             except Exception as e:
-                logger.error(f"[FileHandler] (attempt {attempt} - Move failed for {src}: {e}")
-                time.sleep(self.retryDelay)
-        return False
+                logger.error(f"[FileHandler] Error removing {path}: {e}")
