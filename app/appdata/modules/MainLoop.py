@@ -103,7 +103,7 @@ class MainLoop:
                             self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
 
                         self.file_handler.remove_temp_files()
-                        logger.info(f"[MainLoop] Waiting for {config['app']['MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL']} seconds before next episode download.")
+                        logger.info(f"[MainLoop] Waiting for {config['app']['MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL']} seconds before next iteration.")
                         time.sleep(config["app"]["MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL"])  # sleep to avoid API rate limits
 
             self.mainloop_iter += 1
