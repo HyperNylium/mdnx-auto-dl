@@ -187,7 +187,6 @@ class MDNX_API:
         logger.info(f"[MDNX_API] Downloading episode {episode_number} for series {series_id} season {season_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id, "-s", season_id, "-e", episode_number]
-
         if os.path.exists("/usr/bin/stdbuf"):
             logger.info("[MDNX_API] Using stdbuf to ensure live output streaming.")
             cmd = ["stdbuf", "-oL", "-eL", *tmp_cmd]
@@ -197,16 +196,21 @@ class MDNX_API:
 
         logger.info(f"[MDNX_API] Executing command: {' '.join(cmd)}")
 
+        error_detected = False
         with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
             for line in proc.stdout:
-                logger.info("[MDNX_API][multidownload-nx] %s", line.rstrip())
+                cleaned = line.rstrip()
+                logger.info("[MDNX_API][multidownload-nx] %s", cleaned)
+                if "Unable to download" in cleaned:
+                    error_detected = True
 
-        success = None
-        if proc.returncode == 0:
-            logger.info("[MDNX_API] Download finished successfully.")
-            success = True
-        else:
+        if proc.returncode != 0:
             logger.error(f"[MDNX_API] Download failed with exit code {proc.returncode}")
-            success = False
+            return False
 
-        return success
+        if error_detected:
+            logger.error("[MDNX_API] Download reported errors in output despite exit code 0.")
+            return False
+
+        logger.info("[MDNX_API] Download finished successfully.")
+        return True
