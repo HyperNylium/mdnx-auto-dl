@@ -12,7 +12,6 @@ from .Vars import sanitize_cr_filename
 
 class MDNX_API:
     def __init__(self, mdnx_path, config=config, mdnx_service="crunchy") -> None:
-        logger.info(f"[MDNX_API] MDNX API initialized with\nPath: {mdnx_path}\nService: {mdnx_service}")
         self.mdnx_path = mdnx_path
         self.mdnx_service = mdnx_service
         self.username = str(config["app"]["MDNX_SERVICE_USERNAME"])
@@ -29,6 +28,8 @@ class MDNX_API:
         self.episode_pattern = re.compile(
             r'^\[(?P<ep_type>E|S)(?P<episode_number>\d+)\]\s+(?P<full_episode_name>.+?)\s+\['
         )
+
+        logger.info(f"[MDNX_API] MDNX API initialized with: Path: {mdnx_path} | Service: {mdnx_service}")
 
         # Skip MDNX API test if user wants to
         if config["app"]["MDNX_API_SKIP_TEST"] == False:
