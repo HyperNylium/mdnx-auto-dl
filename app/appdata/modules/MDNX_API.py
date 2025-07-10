@@ -203,20 +203,21 @@ class MDNX_API:
 
         logger.info(f"[MDNX_API] Executing command: {' '.join(cmd)}")
 
-        error_detected = False
+        success = False
         with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
             for line in proc.stdout:
                 cleaned = line.rstrip()
-                logger.info("[MDNX_API][multidownload-nx] %s", cleaned)
-                if "Download finished successfully" not in cleaned:
-                    error_detected = True
+                logger.info(f"[MDNX_API][multidownload-nx] {cleaned}")
+
+                if "[mkvmerge Done]" in cleaned:
+                    success = True
 
         if proc.returncode != 0:
             logger.error(f"[MDNX_API] Download failed with exit code {proc.returncode}")
             return False
 
-        if error_detected:
-            logger.error("[MDNX_API] Download reported errors in output despite exit code 0.")
+        if not success:
+            logger.error("[MDNX_API] Download did not report successful download. Assuming failure.")
             return False
 
         logger.info("[MDNX_API] Download finished successfully.")
