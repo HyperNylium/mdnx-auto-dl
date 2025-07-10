@@ -78,7 +78,7 @@ class MDNX_API:
                     continue
                 season_key = f"S{sn.group(1)}"
 
-                # init if missing
+                # init season if missing
                 if season_key not in tmp_dict[current_series_id]["seasons"]:
                     tmp_dict[current_series_id]["seasons"][season_key] = {
                         "season_id": None,
@@ -89,19 +89,25 @@ class MDNX_API:
                     }
                     episode_counters[season_key] = 1
 
-                idx = episode_counters[season_key]
-                ep_key = f"E{idx}"
-                episode_counters[season_key] += 1
+                # decide key & cleaned number based on ep_type
+                if ep_info["ep_type"] == "E":
+                    idx = episode_counters[season_key]
+                    ep_key = f"E{idx}"
+                    episode_number_clean = str(idx)
+                    episode_counters[season_key] += 1
+                else:  # special episode
+                    # use the exact tag from the console, e.g. "S1", "S2", etc.
+                    ep_key = f"S{ep_info['episode_number']}"
+                    episode_number_clean = ep_info["episode_number"]
 
-                # Clean episode number and title
-                episode_number_clean = str(idx)
+                # Clean episode title
                 parts = ep_info["full_episode_name"].rsplit(" - ", 1)
                 if len(parts) > 1:
                     episode_title_clean = parts[-1]
                 else:
                     episode_title_clean = ep_info["full_episode_name"]
 
-                episode_number_cr = ep_info["episode_number"]  
+                episode_number_cr = ep_info["episode_number"]
                 episode_title_cr = sanitize_cr_filename(episode_title_clean)
 
                 tmp_dict[current_series_id]["seasons"][season_key]["episodes"][ep_key] = {
