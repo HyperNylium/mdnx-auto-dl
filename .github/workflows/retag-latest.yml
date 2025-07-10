@@ -20,14 +20,17 @@ jobs:
 
       - name: Pull the old image
         run: |
-          docker pull ghcr.io/${{ github.repository_owner }}/REPO_NAME:${{ github.event.inputs.old_tag }}
+          IMAGE=ghcr.io/${{ github.repository }}
+          docker pull $IMAGE:${{ github.event.inputs.old_tag }}
 
       - name: Tag it as latest
         run: |
+          IMAGE=ghcr.io/${{ github.repository }}
           docker tag \
-            ghcr.io/${{ github.repository_owner }}/REPO_NAME:${{ github.event.inputs.old_tag }} \
-            ghcr.io/${{ github.repository_owner }}/REPO_NAME:latest
+            $IMAGE:${{ github.event.inputs.old_tag }} \
+            $IMAGE:latest
 
       - name: Push the new latest tag
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/REPO_NAME:latest
+          IMAGE=ghcr.io/${{ github.repository }}
+          docker push $IMAGE:latest
