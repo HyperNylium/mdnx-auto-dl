@@ -20,17 +20,14 @@ jobs:
 
       - name: Pull the old image
         run: |
-          IMAGE=ghcr.io/${{ github.repository }}
-          docker pull $IMAGE:${{ github.event.inputs.old_tag }}
+          docker pull ghcr.io/hypernylium/mdnx-auto-dl:${{ github.event.inputs.old_tag }}
 
       - name: Tag it as latest
         run: |
-          IMAGE=ghcr.io/${{ github.repository }}
           docker tag \
-            $IMAGE:${{ github.event.inputs.old_tag }} \
-            $IMAGE:latest
+            ghcr.io/hypernylium/mdnx-auto-dl:${{ github.event.inputs.old_tag }} \
+            ghcr.io/hypernylium/mdnx-auto-dl:latest
 
       - name: Push the new latest tag
         run: |
-          IMAGE=ghcr.io/${{ github.repository }}
-          docker push $IMAGE:latest
+          docker push ghcr.io/hypernylium/mdnx-auto-dl:latest
