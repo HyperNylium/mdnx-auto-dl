@@ -51,8 +51,9 @@ class MainLoop:
             logger.info("[MainLoop] Checking for episodes to download.")
             for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(current_queue):
 
-                # Optionally skip non-standard (special) episode keys (e.g., if key starts with "S") - this will be optional in the future.
-                if not episode_key.startswith("E"):
+                # Optionally skip non-standard (special) episode keys (e.g., if key starts with "S")
+                if episode_key.startswith("S") and not config["app"]["MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES"]:
+                    logger.info(f"[MainLoop] Skipping special episode {episode_key} because MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES is False.")
                     continue
 
                 # Should episode be downloaded logic
