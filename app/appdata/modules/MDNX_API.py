@@ -208,7 +208,7 @@ class MDNX_API:
             for line in proc.stdout:
                 cleaned = line.rstrip()
                 logger.info("[MDNX_API][multidownload-nx] %s", cleaned)
-                if "Unable to download" in cleaned:
+                if "Download finished successfully" not in cleaned:
                     error_detected = True
 
         if proc.returncode != 0:
