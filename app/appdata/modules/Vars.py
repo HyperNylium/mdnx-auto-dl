@@ -56,6 +56,40 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 
     logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
 
+def refresh_queue(mdnx_api):
+    logger.info("[Vars] Getting the current queue IDs...")
+    queue_output = mdnx_api.queue_manager.output()
+    if queue_output is not None:
+        queue_ids = set(queue_output.keys())
+    else:
+        queue_ids = set()
+
+    monitor_ids = set(config["monitor-series-id"])
+    if not monitor_ids and not queue_ids:
+        logger.info("[Vars] No series to monitor or stop monitoring.\nPlease add series IDs to 'monitor-series-id' in the config file to start monitoring.\nExiting...")
+        sys.exit(1)
+
+    # Start or update monitors
+    logger.info("[Vars] Checking to see if any series need to be monitored...")
+    for series_id in monitor_ids:
+        if series_id not in queue_ids:
+            logger.info(f"[Vars] Starting to monitor series with ID: {series_id}")
+            mdnx_api.start_monitor(series_id)
+        else:
+            logger.info(f"[Vars] Series with ID: {series_id} is already being monitored. Updating with new data...")
+            mdnx_api.update_monitor(series_id)
+
+    # Stop monitors for IDs no longer in config
+    logger.info("[Vars] Checking to see if any series need to be stopped from monitoring...")
+    for series_id in queue_ids:
+        if series_id not in monitor_ids:
+            logger.info(f"[Vars] Stopping monitor for series with ID: {series_id}")
+            mdnx_api.stop_monitor(series_id)
+
+    logger.info("[Vars] MDNX queue refresh complete.")
+
+    return True
+
 def sanitize_cr_filename(name: str) -> str:
     """
     Replace every invalid character with '_' (one-for-one, preserving runs)
