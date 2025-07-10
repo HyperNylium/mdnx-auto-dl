@@ -17,7 +17,7 @@ class FileHandler:
         self.moveRetries = 3         # number of attempts to move file
         self.retryDelay = 5          # seconds between move attempts
 
-        logger.info(f"[FileHandler] initialized with\nSource: {self.source}\nDestination: {self.dest}")
+        logger.info(f"[FileHandler] FileHandler initialized with: Source: {self.source} | Destination: {self.dest}")
 
     def transfer(self, src_path: str, dst_path: str) -> bool:
         logger.info(f"[FileHandler] Starting transfer from '{src_path}' to '{dst_path}'")
