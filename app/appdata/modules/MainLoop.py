@@ -5,7 +5,7 @@ import threading
 # Custom imports
 from .FileHandler import FileHandler
 from .Vars import logger, config
-from .Vars import get_episode_file_path, get_temp_episode_file_path, iter_episodes, log_manager
+from .Vars import get_episode_file_path, get_temp_episode_file_path, iter_episodes, log_manager, refresh_queue
 
 # Only for syntax highlighting in VSCode - remove in prod
 # from .MDNX_API import MDNX_API
@@ -15,11 +15,12 @@ from .Vars import get_episode_file_path, get_temp_episode_file_path, iter_episod
 class MainLoop:
     # def __init__(self, mdnx_api: MDNX_API, config=config) -> None:
     def __init__(self, mdnx_api, config=config) -> None:
-        logger.info(f"[MainLoop] MainLoop initialized.")
         self.mdnx_api = mdnx_api
         self.config = config
         self.timeout = int(config["app"]["MAIN_LOOP_UPDATE_INTERVAL"])
         self.mainloop_iter = 0
+
+        logger.info(f"[MainLoop] MainLoop initialized.")
 
         # Initialize FileHandler
         self.file_handler = FileHandler()
@@ -46,13 +47,15 @@ class MainLoop:
     def mainloop(self) -> None:
         while not self.stop_event.is_set():
             logger.info("[MainLoop] Executing main loop task.")
+            refresh_queue(self.mdnx_api)
             current_queue = self.mdnx_api.queue_manager.output()
 
             logger.info("[MainLoop] Checking for episodes to download.")
             for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(current_queue):
 
-                # Optionally skip non-standard (special) episode keys (e.g., if key starts with "S") - this will be optional in the future.
-                if not episode_key.startswith("E"):
+                # Optionally skip non-standard (special) episode keys (e.g., if key starts with "S")
+                if episode_key.startswith("S") and not config["app"]["MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES"]:
+                    logger.info(f"[MainLoop] Skipping special episode {episode_key} because MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES is False.")
                     continue
 
                 # Should episode be downloaded logic

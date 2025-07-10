@@ -90,7 +90,8 @@ These will later become variables you can put into the `docker-compose.yaml` env
         "MDNX_SERVICE_USERNAME": "",
         "MDNX_SERVICE_PASSWORD": "",
         "MAIN_LOOP_UPDATE_INTERVAL": 3600,
-        "MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL": 20
+        "MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL": 20,
+        "MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES": false
     },
     "mdnx": {
         "bin-path": {
