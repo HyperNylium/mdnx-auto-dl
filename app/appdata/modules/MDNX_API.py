@@ -127,7 +127,6 @@ class MDNX_API:
             self.queue_manager.add(tmp_dict)
         return tmp_dict
 
-
     def test(self) -> None:
         logger.info("[MDNX_API] Testing MDNX API...")
 
