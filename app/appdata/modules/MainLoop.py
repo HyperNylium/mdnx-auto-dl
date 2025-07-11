@@ -5,7 +5,7 @@ import threading
 # Custom imports
 from .FileHandler import FileHandler
 from .Vars import logger, config
-from .Vars import get_episode_file_path, get_temp_episode_file_path, iter_episodes, log_manager, refresh_queue
+from .Vars import get_episode_file_path, iter_episodes, log_manager, refresh_queue
 
 # Only for syntax highlighting in VSCode - remove in prod
 # from .MDNX_API import MDNX_API
@@ -54,7 +54,7 @@ class MainLoop:
             for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(current_queue):
 
                 # Optionally skip non-standard (special) episode keys (e.g., if key starts with "S")
-                if episode_key.startswith("S") and not config["app"]["MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES"]:
+                if episode_key.startswith("S") and config["app"]["MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES"] == False:
                     logger.info(f"[MainLoop] Skipping special episode {episode_key} because MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES is False.")
                     continue
 
@@ -79,22 +79,9 @@ class MainLoop:
                         if download_successful:
                             logger.info(f"[MainLoop] Episode downloaded successfully.")
 
-                            dst = get_episode_file_path(current_queue, series_id, season_key, episode_key, config["app"]["DATA_DIR"])
-                            paths = get_temp_episode_file_path(current_queue, series_id, season_key, episode_key, config["app"]["TEMP_DIR"])
+                            temp_path = os.path.join(config["app"]["TEMP_DIR"], "output.mkv")
 
-                            logger.info(f"[MainLoop] Testing paths: {paths}")
-
-                            for path in paths:
-                                if os.path.exists(path):
-                                    src = path
-                                    logger.info(f"[MainLoop] Using path: {src}")
-                                    break
-                            else:
-                                logger.error(f"[MainLoop] No temp file found: {paths}")
-                                self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
-                                continue
-
-                            if self.file_handler.transfer(src, dst):
+                            if self.file_handler.transfer(temp_path, file_path):
                                 logger.info(f"[MainLoop] Transfer complete.")
                                 self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
                             else:
