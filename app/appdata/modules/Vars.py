@@ -90,20 +90,10 @@ def refresh_queue(mdnx_api):
 
     return True
 
-def sanitize_cr_filename(name: str) -> str:
-    """
-    Replace every invalid character with '_' (one-for-one, preserving runs)
-    to exactly mirror multidownload-nx output when it encounters invalid characters
-    such as <, >, :, ", /, \, |, ?, *.
-    """
-    sanitized = INVALID_CHARS_RE.sub("_", name)
-    logger.info(f"[Vars] Sanitize CR filename '{name}' to '{sanitized}'")
-    return sanitized
-
-def sanitize_destination_filename(segment: str) -> str:
+def sanitize(segment: str) -> str:
     """
     Prepare a path segment for your the filesystem:
-      - Replace invalid chars (and any underscores) with spaces
+      - Replace invalid chars with spaces
       - Collapse runs of whitespace into single spaces
       - Trim leading/trailing spaces
     """
@@ -111,7 +101,7 @@ def sanitize_destination_filename(segment: str) -> str:
     cleaned = cleaned.replace("_", " ")
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     if cleaned != segment:
-        logger.info(f"[Vars] Sanitize destination '{segment}' to '{cleaned}'")
+        logger.info(f"[Vars] Sanitized '{segment}' to '{cleaned}'")
     return cleaned
 
 def get_running_user():
@@ -216,7 +206,7 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
     for part in raw_path.split("/"):
         if not part:
             continue
-        parts.append(sanitize_destination_filename(part))
+        parts.append(sanitize(part))
 
     full_path = os.path.join(base_dir, *parts)
 
@@ -237,50 +227,6 @@ def get_episode_file_path(queue, series_id, season_key, episode_key, base_dir, e
     file_name = build_folder_structure(base_dir, raw_series, season, episode, raw_episode_name, extension)
 
     # Combine to form the full file path.
-    return file_name
-
-def get_episode_naming_template(series_title, season, episode, episode_name, extension):
-    """
-    Generates a file name based on the template provided in config.json.
-    
-    The template can include the following tokens:
-      - ${seriesTitle}   : The series name.
-      - ${season}        : The season number (we’ll pad this to two digits).
-      - ${episode}       : The episode number (padded to two digits).
-      - ${episodeName}   : The episode title.
-      
-    For example, with the default template:
-      "${seriesTitle} - S${season}E${episode}"
-    and given:
-      series_title = "Solo Leveling"
-      season = 1
-      episode = 1
-      episode_name = "I'm Used to It"
-      
-    The output will be:
-      "Solo Leveling - S01E01.mkv"
-    """
-    # Read the fileName template from your config
-    file_template = str(config["mdnx"]["cli-defaults"]["fileName"])
-
-    # Create a Template object
-    template_obj = Template(file_template)
-
-    # Prepare the substitution dictionary.
-    substitutions = {
-        "seriesTitle": series_title,
-        "season": str(int(season)).zfill(2),
-        "episode": str(int(episode)).zfill(2),
-        "episodeName": episode_name
-    }
-
-    # Perform the substitution.
-    file_name = template_obj.safe_substitute(substitutions)
-
-    # Append the extension if not already present.
-    if not file_name.endswith(extension):
-        file_name = f"{file_name}{extension}"
-
     return file_name
 
 def iter_episodes(queue_data: dict):

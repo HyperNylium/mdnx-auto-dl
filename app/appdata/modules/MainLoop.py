@@ -75,7 +75,7 @@ class MainLoop:
                         continue
                     else:
                         logger.info(f"[MainLoop] Episode not found at {file_path} and 'episode_downloaded' status is False. Initiating download.")
-                        download_successful = self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number"])
+                        download_successful = self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"])
                         if download_successful:
                             logger.info(f"[MainLoop] Episode downloaded successfully.")
 
