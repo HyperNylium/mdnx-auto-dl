@@ -4,7 +4,7 @@ from shutil import move as shmove
 
 # Custom imports
 from .Vars import logger, config
-from .Vars import sanitize_destination_filename
+from .Vars import sanitize
 
 class FileHandler:
     def __init__(self):
@@ -38,7 +38,7 @@ class FileHandler:
         for part in parts:
             if not part:
                 continue
-            sanitized.append(sanitize_destination_filename(part))
+            sanitized.append(sanitize(part))
 
         if dst_path.startswith(os.sep):
             parent = os.sep + os.path.join(*sanitized[:-1])
