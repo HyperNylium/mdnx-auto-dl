@@ -197,68 +197,47 @@ def log_manager(log_file_path=LOG_FILE, max_lines: int = 50000, keep_lines: int 
     except Exception as e:
         logger.error(f"Error managing log file: {e}")
 
-def get_episode_file_path(queue, series_id, season_key, episode_key, base_dir, extension=".mkv"):
-    """
-    Constructs the full file path for an episode using the dynamic file naming,
-    sanitizing the series and episode names for the final destination.
+def build_folder_structure(base_dir: str, series_title: str, season: str, episode: str, episode_name: str, extension: str = ".mkv") -> str:
+    template_str = str(config["app"]["FOLDER_STRUCTURE"])
 
-    The folder structure is:
-      {base_dir}/{series_name}/S{season}/{file_name}
-    """
+    substitutes = {
+        "seriesTitle": series_title,
+        "season": str(int(season)),
+        "seasonPadded": str(int(season)).zfill(2),
+        "episode": str(int(episode)),
+        "episodePadded": str(int(episode)).zfill(2),
+        "episodeName": episode_name
+    }
+
+    raw_path = Template(template_str).safe_substitute(substitutes)
+
+    # split on "/" so templates look identical on every OS
+    parts = []
+    for part in raw_path.split("/"):
+        if not part:
+            continue
+        parts.append(sanitize_destination_filename(part))
+
+    full_path = os.path.join(base_dir, *parts)
+
+    # Add extension if the user omitted it
+    if not full_path.lower().endswith(extension.lower()):
+        full_path = f"{full_path}{extension}"
+
+    return full_path
+
+def get_episode_file_path(queue, series_id, season_key, episode_key, base_dir, extension=".mkv"):
     # Get data from the queue.
     raw_series = queue[series_id]["series"]["series_name"]
     season = queue[series_id]["seasons"][season_key]["season_number"]
     episode = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_number"]
     raw_episode_name = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_name"]
 
-    clean_series = sanitize_destination_filename(raw_series)
-    clean_episode = sanitize_destination_filename(raw_episode_name)
-
-    # Generate the file name using the template.
-    file_name = get_episode_naming_template(clean_series, season, episode, clean_episode, extension)
-
-    # Build the season folder name (for folder organization, e.g., "S1")
-    season_folder = f"S{int(season)}"
+    # Build the folder structure and file name.
+    file_name = build_folder_structure(base_dir, raw_series, season, episode, raw_episode_name, extension)
 
     # Combine to form the full file path.
-    return os.path.join(base_dir, clean_series, season_folder, file_name)
-
-def get_episode_file_path_cr(queue, series_id, season_key, episode_key, base_dir, extension=".mkv"):
-    """
-    Constructs the full TEMP_DIR file path for an episode using the dynamic file naming.
-
-    The resulting path is base_dir then the episode file name:
-      {base_dir}/{file_name_cr}
-    """
-    raw_series = queue[series_id]["series"]["series_name"]
-    season = queue[series_id]["seasons"][season_key]["season_number"]
-    episode = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_number_CR"]
-    raw_episode_name = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_name"]
-
-    series_cr = sanitize_cr_filename(raw_series)
-    episode_cr = sanitize_cr_filename(raw_episode_name)
-
-    file_name_cr = get_episode_naming_template(series_cr, season, episode, episode_cr, extension)
-
-    return os.path.join(base_dir, file_name_cr)
-
-def get_temp_episode_file_path(queue, series_id, season_key, episode_key, temp_dir, extension=".mkv"):
-    raw_series = queue[series_id]["series"]["series_name"]
-    season = queue[series_id]["seasons"][season_key]["season_number"]
-    episode_number = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_number"]
-    episode_number_cr = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_number_CR"]
-    raw_episode_name = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_name"]
-
-    series = sanitize_cr_filename(raw_series)
-    episode_name = sanitize_cr_filename(raw_episode_name)
-
-    filename = get_episode_naming_template(series, season, episode_number, episode_name, extension)
-    filename_cr = get_episode_naming_template(series, season, episode_number_cr, episode_name, extension)
-
-    episode_path = os.path.join(temp_dir, filename)
-    episode_path_cr = os.path.join(temp_dir, filename_cr)
-
-    return (episode_path_cr, episode_path)
+    return file_name
 
 def get_episode_naming_template(series_title, season, episode, episode_name, extension):
     """
