@@ -25,9 +25,9 @@ class FileHandler:
         src_basename = os.path.basename(src_path)
 
         if not os.path.exists(src_path):
-            logger.error(f"[FileHandler] Expected CR file not found: {src_path}")
+            logger.error(f"[FileHandler] Downloaded file not found: {src_path}")
             return False
-        logger.info(f"[FileHandler] Found CR source: {src_path}")
+        logger.info(f"[FileHandler] Downloaded source: {src_path}")
 
         if not self.waitForReady(src_path):
             logger.warning(f"[FileHandler] '{src_basename}' not ready within {self.readyTimeout} seconds, skipping.")
@@ -35,8 +35,8 @@ class FileHandler:
 
         parts = dst_path.split(os.sep)
         sanitized = []
-        for p in parts:
-            if not p:
+        for part in parts:
+            if not part:
                 continue
             sanitized.append(sanitize_destination_filename(p))
 
