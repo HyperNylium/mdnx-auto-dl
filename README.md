@@ -147,7 +147,7 @@ That should be it!
 I plan to add the following features after i make sure this works on its own:
 - Somehow transcode the .mkv files from what they are to HEVC, or something else. Currently, every episode is ~1.2 - 1.5GB.
 - Add audio options using [mkv-auto](https://github.com/philiptn/mkv-auto) if you want to have [whatever CR auido is] -> EOS for example. Higher vocals, lower booms.
-- Add capability to set different `/data` folder structures. (done. Need to test and write docs)
+- Add capability to set different `/data` folder structures. (done as of v0.0.4. Need to test and write docs)
 - Add capability to rename seasons correctly. Sometimes, CR has season 66 or whatever for season 4. Wrong season number is also passed through multi-download-nx - which is expected. Maybe include seasons first and last episode in TVDB search and figure out what season it came from using said episode names.
 - I was not able to figure out a great way to download the [Bento4-SDK](https://www.bento4.com/downloads/) and [multi-download-nx](https://github.com/anidl/multi-downloader-nx/releases/latest) packages. \
     For now, both are download from my webserver. There are the URLs:
