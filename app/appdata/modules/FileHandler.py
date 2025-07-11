@@ -38,7 +38,7 @@ class FileHandler:
         for part in parts:
             if not part:
                 continue
-            sanitized.append(sanitize_destination_filename(p))
+            sanitized.append(sanitize_destination_filename(part))
 
         if dst_path.startswith(os.sep):
             parent = os.sep + os.path.join(*sanitized[:-1])
