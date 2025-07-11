@@ -6,7 +6,7 @@ import subprocess
 # Custom imports
 from .QueueManager import QueueManager
 from .Vars import logger, config
-from .Vars import sanitize_cr_filename
+from .Vars import sanitize
 
 
 
@@ -52,19 +52,22 @@ class MDNX_API:
             m = self.series_pattern.match(line)
             if m:
                 info = m.groupdict()
-                # add CR version of series_name
-                info["series_name_CR"] = sanitize_cr_filename(info["series_name"])
+
+                # sanitise illegal path characters
+                info["series_name"] = sanitize(info["series_name"])
+
                 current_series_id = info["series_id"]
-                tmp_dict[current_series_id] = { "series": info, "seasons": {} }
+                tmp_dict[current_series_id] = {"series": info, "seasons": {}}
                 continue
 
             # Check for season information.
             m = self.season_pattern.match(line)
             if m and current_series_id:
                 info = m.groupdict()
-                info["season_name_CR"] = sanitize_cr_filename(info["season_name"])
+                info["season_name"] = sanitize(info["season_name"])
+
                 season_key = f"S{info['season_number']}"
-                tmp_dict[current_series_id]["seasons"][season_key] = { **info, "episodes": {} }
+                tmp_dict[current_series_id]["seasons"][season_key] = {**info, "episodes": {}}
                 episode_counters[season_key] = 1
                 continue
 
@@ -72,6 +75,7 @@ class MDNX_API:
             m = self.episode_pattern.match(line)
             if m and current_series_id:
                 ep_info = m.groupdict()
+
                 # find season number in full line
                 sn = re.search(r'- Season (\d+) -', line)
                 if not sn:
@@ -84,38 +88,36 @@ class MDNX_API:
                     tmp_dict[current_series_id]["seasons"][season_key] = {
                         "season_id": None,
                         "season_name": None,
-                        "season_name_CR": None,
                         "season_number": sn.group(1),
                         "episodes": {}
                     }
                     episode_counters[season_key] = 1
 
-                # decide key & cleaned number based on ep_type
-                if ep_info["ep_type"] == "E":
+                # decide key and clean episode number
+                if ep_info["ep_type"] == "E": # normal episode
                     idx = episode_counters[season_key]
                     ep_key = f"E{idx}"
                     episode_number_clean = str(idx)
                     episode_counters[season_key] += 1
-                else:  # special episode
-                    # use the exact tag from the console, e.g. "S1", "S2", etc.
+                    episode_number_download = episode_number_clean
+                else: # special episode
                     ep_key = f"S{ep_info['episode_number']}"
                     episode_number_clean = ep_info["episode_number"]
+                    episode_number_download = f"S{episode_number_clean}"
 
-                # Clean episode title
+                # clean episode title
                 parts = ep_info["full_episode_name"].rsplit(" - ", 1)
                 if len(parts) > 1:
                     episode_title_clean = parts[-1]
                 else:
                     episode_title_clean = ep_info["full_episode_name"]
 
-                episode_number_cr = ep_info["episode_number"]
-                episode_title_cr = sanitize_cr_filename(episode_title_clean)
+                episode_title_clean = sanitize(episode_title_clean)
 
                 tmp_dict[current_series_id]["seasons"][season_key]["episodes"][ep_key] = {
                     "episode_number": episode_number_clean,
-                    "episode_number_CR": episode_number_cr,
+                    "episode_number_download": episode_number_download,
                     "episode_name": episode_title_clean,
-                    "episode_name_CR": episode_title_cr,
                     "episode_downloaded": False
                 }
                 continue
