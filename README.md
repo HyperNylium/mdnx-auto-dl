@@ -86,13 +86,14 @@ These are planned to later become variables you can put into the `docker-compose
         "LOG_FILE": "/app/appdata/logs/app.log",
         "DATA_DIR": "/data",
         "FOLDER_STRUCTURE": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
+        "SPECIAL_EPISODES_FOLDER_NAME": "Special",
         "MDNX_API_FORCE_REAUTH": false,
         "MDNX_API_SKIP_TEST": false,
         "MDNX_SERVICE_USERNAME": "",
         "MDNX_SERVICE_PASSWORD": "",
         "MAIN_LOOP_UPDATE_INTERVAL": 3600,
         "MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL": 20,
-        "MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES": true
+        "MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES": false
     },
     "mdnx": {
         "bin-path": {
@@ -136,7 +137,25 @@ MDNX_SERVICE_USERNAME
 MDNX_SERVICE_PASSWORD
 ```
 
-4. Start the container
+6. Get the series ID of the anime you want to monitor and put them into the `monitor-series-id` list in `config.json`. \
+Lets sat you want to monitor Kaiju No. 8. You would go to the anime's page on Crunchyroll and copy the series ID from the URL. \
+Example: \
+```
+https://www.crunchyroll.com/series/GG5H5XQ7D/kaiju-no-8
+```
+The series ID is `GG5H5XQ7D`.
+
+You would then put it into the `monitor-series-id` list in `config.json` like so:
+```json
+{
+    "monitor-series-id": [
+        "GG5H5XQ7D"
+    ],
+    ...
+}
+```
+
+7. Start the container
 ```
 docker compose up -d
 ```
