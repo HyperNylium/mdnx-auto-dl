@@ -164,11 +164,18 @@ And you are done! The application will now monitor the series you have specified
 
 # Future plans
 I plan to add the following features after i make sure this works on its own:
-- Somehow transcode the .mkv files from what they are to HEVC, or something else. Currently, every episode is ~1.2 - 1.5GB with movies being +6GB.
-- Add audio options using [mkv-auto](https://github.com/philiptn/mkv-auto) if you want to have [whatever CR auido is] -> EOS for example. Higher vocals, lower booms.
-- Add capability to set different `/data` folder structures. (done as of v0.0.4. Need to test and write docs)
-- [ ] Add capability to monitor dubs. Currently, it only monitors if new episodes are available and downloads them according to what you have set in `config["app"]["mdnx"]["cli-defaults"]`. In the future, i would like to add a way to monitor if a `jpn` only episode now has an `eng` dub available and download it, overwriting the episode already in `DATA_DIR`. the `jpn` and `eng` would be from `dubLang` in `config.json`, not hardcoded. (done as of v0.0.5. Need to test and write docs. Also monitors subs)
-- [x] Add capability to rename seasons correctly. Sometimes, CR has season 66 or whatever for season 4. Wrong season number is also passed through multi-download-nx - which is expected. Maybe include seasons first and last episode in TVDB search and figure out what season it came from using said episode names. (done as of v0.0.5. Need to test and write docs. Only does the season naming. Does not do TVDB search yet. The TVDB search is still a future feature to be added. Will update docs when i can)
+- [ ] Somehow transcode the .mkv files from what they are to HEVC, or something else. Currently, every episode is ~1.2 - 1.5GB with movies being +6GB.
+
+- [ ] Add audio options using [mkv-auto](https://github.com/philiptn/mkv-auto) if you want to have [whatever CR auido is] -> EOS for example. Higher vocals, lower booms.
+
+- [x] Add capability to set different `/data` folder structures. (done as of v0.0.4)
+
+- [x] Add capability to monitor dubs. Currently, it only monitors if new episodes are available and downloads them according to what you have set in `config["app"]["mdnx"]["cli-defaults"]`. In the future, i would like to add a way to monitor if a `jpn` only episode now has an `eng` dub available and download it, overwriting the episode already in `DATA_DIR`. the `jpn` and `eng` would be from `dubLang` in `config.json`, not hardcoded. (done as of v0.0.5. Also monitors subs)
+
+- [x] Add capability to rename seasons correctly. Sometimes, CR has season 66 or whatever for season 4. Wrong season number is also passed through multi-download-nx - which is expected. (done as of v0.0.5)
+
+- [ ] When downloading the episode is finished and `file_handler.transfer()` is called. Instead of just naming the file S01E01 or whatever i was able to guess from multi-download-nx's output, i would like to somehow get episode details from TheTVDB. The importence of this is not really the individual episode names, but more the episode codes. If we download a special episode, which then gets moved to `Specials/S00E01`, how do we know its actually `S00E01` and not `S00E03`? Plex may show the wrong metadata or not show the episode at all. Thats what i aim to solve with TheTVDB API searches. This would only really benefit special episodes and anime that has weird season naming. An example of that is the duke of death and his maid. Some DBs say it has 1 season, but CR says it has 3 season, each season having 12 episodes. Hopfully i can cook something up in the future to help with this episode naming stuff haha.
+
 - I was not able to figure out a great way to download the [Bento4-SDK](https://www.bento4.com/downloads/) and [multi-download-nx](https://github.com/anidl/multi-downloader-nx/releases/latest) packages. \
     For now, both are download from my webserver. There are the URLs:
     - https://cdn.hypernylium.com/mdnx-auto-dl/Bento4-SDK.zip
