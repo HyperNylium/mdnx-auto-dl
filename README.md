@@ -166,7 +166,7 @@ And you are done! The application will now monitor the series you have specified
 This is not the entire documentation that i want, but it will do for now. In the future, i will have a more detailed seperate documentation file with examples.
 
 | Config | Default value | Explanation |
-| :---------------- | :------: | ----: |
+| :---------------- | :------: | :---- |
 | `TEMP_DIR`                                |   `/app/appdata/temp`                                                             | Folder where `multi-download-nx` download the episode in the container |
 | `BIN_DIR`                                 |   `/app/appdata/bin`                                                              | Folder where Bento4-SDK and multi-download-nx binaries live in the container |
 | `LOG_FILE`                                |  `/app/appdata/logs/app.log`                                                      | `app.log` file location in the container |
