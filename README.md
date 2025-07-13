@@ -162,6 +162,43 @@ docker compose up -d
 
 And you are done! The application will now monitor the series you have specified in `config.json` and download new episodes as they become available!
 
+# Docs
+This is not the entire documentation that i want, but it will do for now. In the future, i will have a more detailed seperate documentation file with examples.
+
+| Config | Default value | Explanation |
+| :---------------- | :------: | ----: |
+| `TEMP_DIR`                                |   `/app/appdata/temp`                                                             | Folder where `multi-download-nx` download the episode in the container |
+| `BIN_DIR`                                 |   `/app/appdata/bin`                                                              | Folder where Bento4-SDK and multi-download-nx binaries live in the container |
+| `LOG_FILE`                                |  `/app/appdata/logs/app.log`                                                      | `app.log` file location in the container |
+| `DATA_DIR`                                |  `/data`                                                                          | Your media servers Anime folder, where the folder structure is in `FOLDER_STRUCTURE` variable format |
+| `FOLDER_STRUCTURE`                        |  `${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}`   | You media servers folder structure starting from the root and ending at the episode files |
+| `SPECIAL_EPISODES_FOLDER_NAME`            |  `Special`                                                                        | Name of folder where you store special episodes for each anime. They would have episode codes like `S00E01` |
+| `MDNX_API_FORCE_REAUTH`                   |  false                                                                            | Should we re-auth and write a new `cr_token.yml` file even though the token file exists? |
+| `MDNX_API_SKIP_TEST`                      |  false                                                                            | Do you want to skip the test to see if its able to access CR's API |
+| `MDNX_SERVICE_USERNAME`                   |  ""                                                                               | Your CR username |
+| `MDNX_SERVICE_PASSWORD`                   |  ""                                                                               | Your CR password |
+| `MAIN_LOOP_UPDATE_INTERVAL`               |  3600                                                                             | After new episode and dub/sub checks have completed, how much time in seconds do you want to wait before doing checks again? |
+| `MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL` |  20                                                                               | Seconds to wait after downloading an episode. Good to have if you are excountering API rate limiting |
+| `MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES`     |  false                                                                            | Should we download special episodes like `S01E10.5`? Keep in mind these can also be movies |
+
+
+"TEMP_DIR": "/app/appdata/temp",
+        "BIN_DIR": "/app/appdata/bin",
+        "LOG_FILE": "/app/appdata/logs/app.log",
+        "DATA_DIR": "/data",
+        "FOLDER_STRUCTURE": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
+        "SPECIAL_EPISODES_FOLDER_NAME": "Special",
+        "MDNX_API_FORCE_REAUTH": false,
+        "MDNX_API_SKIP_TEST": false,
+        "MDNX_SERVICE_USERNAME": "",
+        "MDNX_SERVICE_PASSWORD": "",
+        "MAIN_LOOP_UPDATE_INTERVAL": 3600,
+        "MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL": 20,
+        "MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES": false
+
+
+
+
 # Future plans
 I plan to add the following features after i make sure this works on its own:
 - [ ] Somehow transcode the .mkv files from what they are to HEVC, or something else. Currently, every episode is ~1.2 - 1.5GB with movies being +6GB.
@@ -170,7 +207,7 @@ I plan to add the following features after i make sure this works on its own:
 
 - [x] Add capability to set different `/data` folder structures. (done as of v0.0.4)
 
-- [x] Add capability to monitor dubs. Currently, it only monitors if new episodes are available and downloads them according to what you have set in `config["app"]["mdnx"]["cli-defaults"]`. In the future, i would like to add a way to monitor if a `jpn` only episode now has an `eng` dub available and download it, overwriting the episode already in `DATA_DIR`. the `jpn` and `eng` would be from `dubLang` in `config.json`, not hardcoded. (done as of v0.0.5. Also monitors subs)
+- [x] Add capability to monitor dubs. Currently, it only monitors if new episodes are available and downloads them according to what you have set in `config["app"]["mdnx"]["cli-defaults"]`. In the future, i would like to add a way to monitor if a `jpn` only episode now has an `eng` dub available and download it, overwriting the episode already in `DATA_DIR`. the `jpn` and `eng` would be from `dubLang` in `config.json`, not hardcoded. (done as of v0.0.5. Also monitors subs using whats set in `dlsubs`)
 
 - [x] Add capability to rename seasons correctly. Sometimes, CR has season 66 or whatever for season 4. Wrong season number is also passed through multi-download-nx - which is expected. (done as of v0.0.5)
 
