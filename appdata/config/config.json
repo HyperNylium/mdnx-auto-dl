@@ -6,6 +6,7 @@
         "LOG_FILE": "/app/appdata/logs/app.log",
         "DATA_DIR": "/data",
         "FOLDER_STRUCTURE": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
+        "SPECIAL_EPISODES_FOLDER_NAME": "Special",
         "MDNX_API_FORCE_REAUTH": false,
         "MDNX_API_SKIP_TEST": false,
         "MDNX_SERVICE_USERNAME": "",
