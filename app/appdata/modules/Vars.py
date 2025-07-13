@@ -285,6 +285,17 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
     for part in raw_path.split("/"):
         if not part:
             continue
+
+        # specials (Season 0) go in "/config["app"]["VARS_SPECIAL_EPISODES_FOLDER_NAME"]/..."
+        if int(season) == 0:
+            norm = sanitize(part).lower()
+            if norm in {
+                "0", "00", # ${season}, ${seasonPadded}
+                "s0", "s00", # S${season}, S${seasonPadded}
+                "season 0", "season 00",  # "Season ${seasonPadded}"
+            }:
+                part = config["app"]["VARS_SPECIAL_EPISODES_FOLDER_NAME"]
+
         parts.append(sanitize(part))
 
     full_path = os.path.join(base_dir, *parts)
@@ -301,6 +312,11 @@ def get_episode_file_path(queue, series_id, season_key, episode_key, base_dir, e
     season = queue[series_id]["seasons"][season_key]["season_number"]
     episode = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_number"]
     raw_episode_name = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_name"]
+
+    # Treat specials (queue key starts with "S") as season 0 so the
+    # build_folder_structure logic can detect them.
+    if episode_key.startswith("S"):
+        season = "0"
 
     # Build the folder structure and file name.
     file_name = build_folder_structure(base_dir, raw_series, season, episode, raw_episode_name, extension)
