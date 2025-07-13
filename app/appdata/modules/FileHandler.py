@@ -1,15 +1,18 @@
 import os
 import time
+import json
+import subprocess
 from shutil import move as shmove
 
 # Custom imports
-from .Vars import logger, config
+from .Vars import logger
+from .Vars import TEMP_DIR, DATA_DIR, CODE_TO_LOCALE
 from .Vars import sanitize
 
 class FileHandler:
     def __init__(self):
-        self.source = config["app"]["TEMP_DIR"]
-        self.dest   = config["app"]["DATA_DIR"]
+        self.source = TEMP_DIR
+        self.dest = DATA_DIR
         # These should be configurable from config.json in the future.
         self.readyCheckInterval = 1  # seconds between size checks
         self.readyStableSeconds = 5  # how long size must remain unchanged
@@ -96,3 +99,36 @@ class FileHandler:
                 logger.info(f"[FileHandler] Removed {path}")
             except Exception as e:
                 logger.error(f"[FileHandler] Error removing {path}: {e}")
+
+    def probe_streams(self, file_path: str):
+        cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", file_path]
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if result.returncode != 0:
+            logger.error(f"[FileHandler] ffprobe error on {file_path}: {result.stderr}")
+            return set(), set()
+
+        try:
+            data = json.loads(result.stdout)
+        except json.JSONDecodeError as e:
+            logger.error(f"[FileHandler] ffprobe JSON decode error on {file_path}: {e}")
+            return set(), set()
+
+        audio_langs = set()
+        sub_langs = set()
+
+        for stream in data.get("streams", []):
+            tags = stream.get("tags", {})
+            lang = str(tags.get("language", "None")).strip().lower()
+
+            if stream.get("codec_type") == "audio":
+                audio_langs.add(lang)
+
+            elif stream.get("codec_type") == "subtitle":
+                # map iso-639 code to locale if known
+                # Example, "eng" to "en", "jpn" to "ja"
+                if lang in CODE_TO_LOCALE:
+                    sub_langs.add(CODE_TO_LOCALE[lang])
+                else:
+                    sub_langs.add(lang)
+
+        return audio_langs, sub_langs
