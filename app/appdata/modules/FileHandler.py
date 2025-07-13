@@ -1,12 +1,10 @@
 import os
 import time
-import json
-import subprocess
 from shutil import move as shmove
 
 # Custom imports
 from .Vars import logger
-from .Vars import TEMP_DIR, DATA_DIR, CODE_TO_LOCALE
+from .Vars import TEMP_DIR, DATA_DIR
 from .Vars import sanitize
 
 class FileHandler:
@@ -22,7 +20,7 @@ class FileHandler:
 
         logger.info(f"[FileHandler] FileHandler initialized with: Source: {self.source} | Destination: {self.dest}")
 
-    def transfer(self, src_path: str, dst_path: str) -> bool:
+    def transfer(self, src_path: str, dst_path: str, overwrite: bool = False) -> bool:
         logger.info(f"[FileHandler] Starting transfer from '{src_path}' to '{dst_path}'")
 
         src_basename = os.path.basename(src_path)
@@ -55,6 +53,14 @@ class FileHandler:
         except Exception as e:
             logger.error(f"[FileHandler] Could not create directory {parent}: {e}")
             return False
+
+        if overwrite == True and os.path.exists(final_dst):
+            try:
+                os.remove(final_dst)
+                logger.info(f"[FileHandler] Removed existing file at destination: {final_dst}")
+            except Exception as e:
+                logger.error(f"[FileHandler] Could not remove existing file {final_dst}: {e}")
+                return False
 
         for attempt in range(1, self.moveRetries + 1):
             try:
@@ -99,36 +105,3 @@ class FileHandler:
                 logger.info(f"[FileHandler] Removed {path}")
             except Exception as e:
                 logger.error(f"[FileHandler] Error removing {path}: {e}")
-
-    def probe_streams(self, file_path: str):
-        cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", file_path]
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        if result.returncode != 0:
-            logger.error(f"[FileHandler] ffprobe error on {file_path}: {result.stderr}")
-            return set(), set()
-
-        try:
-            data = json.loads(result.stdout)
-        except json.JSONDecodeError as e:
-            logger.error(f"[FileHandler] ffprobe JSON decode error on {file_path}: {e}")
-            return set(), set()
-
-        audio_langs = set()
-        sub_langs = set()
-
-        for stream in data.get("streams", []):
-            tags = stream.get("tags", {})
-            lang = str(tags.get("language", "None")).strip().lower()
-
-            if stream.get("codec_type") == "audio":
-                audio_langs.add(lang)
-
-            elif stream.get("codec_type") == "subtitle":
-                # map iso-639 code to locale if known
-                # Example, "eng" to "en", "jpn" to "ja"
-                if lang in CODE_TO_LOCALE:
-                    sub_langs.add(CODE_TO_LOCALE[lang])
-                else:
-                    sub_langs.add(lang)
-
-        return audio_langs, sub_langs

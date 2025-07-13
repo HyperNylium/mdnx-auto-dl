@@ -6,7 +6,7 @@ import threading
 from .FileHandler import FileHandler
 from .Vars import logger, config
 from .Vars import TEMP_DIR, DATA_DIR
-from .Vars import get_episode_file_path, iter_episodes, log_manager, refresh_queue
+from .Vars import get_episode_file_path, iter_episodes, log_manager, refresh_queue, probe_streams
 
 # Only for syntax highlighting in VSCode - remove in prod
 from .MDNX_API import MDNX_API
@@ -61,6 +61,11 @@ class MainLoop:
                     logger.info(f"[MainLoop] Skipping special episode {episode_key} because MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES is False.")
                     continue
 
+                # Skip PV episodes
+                if episode_info["episode_name"].lower().startswith("pv"):
+                    logger.info(f"[MainLoop] Skipping PV episode {episode_key}")
+                    continue
+
                 # Should episode be downloaded logic
                 if episode_info["episode_downloaded"]:
                     logger.info(f"[MainLoop] Episode {episode_info['episode_number']} ({episode_info['episode_name']}) 'episode_downloaded' status is True. Skipping download.")
@@ -85,10 +90,10 @@ class MainLoop:
                             temp_path = os.path.join(TEMP_DIR, "output.mkv")
 
                             if self.file_handler.transfer(temp_path, file_path):
-                                logger.info(f"[MainLoop] Transfer complete.")
+                                logger.info("[MainLoop] Transfer complete.")
                                 self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
                             else:
-                                logger.error(f"[MainLoop] Transfer failed.")
+                                logger.error("[MainLoop] Transfer failed.")
                                 self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
 
                         else:
@@ -116,7 +121,7 @@ class MainLoop:
                 if not os.path.exists(file_path):
                     continue
 
-                local_dubs, local_subs = self.file_handler.probe_streams(file_path)
+                local_dubs, local_subs = probe_streams(file_path)
 
                 derived = set(local_subs)
                 for loc in list(local_subs):
@@ -124,31 +129,28 @@ class MainLoop:
                         derived.add(loc.split("-")[0]) # turn things like "en-in" to "en"
                 local_subs = derived
 
-                # remove
-                logger.info(f"[MainLoop] {os.path.basename(file_path)} has dubs: {local_dubs} and subs: {local_subs}.")
-
                 missing_dubs = wanted_dubs - local_dubs
                 missing_subs = wanted_subs - local_subs
-
-                # remove
-                logger.info(f"[MainLoop] {os.path.basename(file_path)} missing dubs: {missing_dubs} and subs: {missing_subs}.")
 
                 if not missing_dubs and not missing_subs:
                     logger.info(f"[MainLoop] {os.path.basename(file_path)} has all required dubs and subs. No action needed.")
                     continue
 
-                logger.info(f"[MainLoop] {os.path.basename(file_path)} lacks dubs {missing_dubs} or subs {missing_subs}. Re-downloading with full language set.")
+                # If we reach here, we have missing dubs or subs
+                logger.info(f"[MainLoop] {os.path.basename(file_path)} has missing dubs or subs. Missing dubs: {', '.join(missing_dubs)}. Missing subs: {', '.join(missing_subs)}.")
 
                 if self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"]):
                     temp_path = os.path.join(TEMP_DIR, "output.mkv")
-                    if self.file_handler.transfer(temp_path, file_path):
-                        logger.info(f"[MainLoop] Transfer complete.")
+                    if self.file_handler.transfer(temp_path, file_path, overwrite=True):
+                        logger.info("[MainLoop] Transfer complete.")
                     else:
-                        logger.info(f"[MainLoop] Failed complete.")
+                        logger.info("[MainLoop] Transfer failed")
                 else:
-                    logger.error("[MainLoop] Re-download failed. Keeping existing file.")
+                    logger.error("[MainLoop] Re-download failed; keeping existing file.")
 
                 self.file_handler.remove_temp_files()
+                logger.info(f"[MainLoop] Waiting for {config['app']['MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL']} seconds before next iteration.")
+                time.sleep(config["app"]["MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL"])
 
 
             # house-keeping and loop control

@@ -5,6 +5,7 @@ import pwd
 import grp
 import json
 import logging
+import subprocess
 from string import Template
 from io import TextIOWrapper
 
@@ -100,6 +101,39 @@ def handle_exception(exc_type, exc_value, exc_traceback):
         return
 
     logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+def probe_streams(file_path: str):
+    cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", file_path]
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if result.returncode != 0:
+        logger.error(f"[FileHandler] ffprobe error on {file_path}: {result.stderr}")
+        return set(), set()
+
+    try:
+        data = json.loads(result.stdout)
+    except json.JSONDecodeError as e:
+        logger.error(f"[FileHandler] ffprobe JSON decode error on {file_path}: {e}")
+        return set(), set()
+
+    audio_langs = set()
+    sub_langs = set()
+
+    for stream in data.get("streams", []):
+        tags = stream.get("tags", {})
+        lang = str(tags.get("language", "None")).strip().lower()
+
+        if stream.get("codec_type") == "audio":
+            audio_langs.add(lang)
+
+        elif stream.get("codec_type") == "subtitle":
+            # map iso-639 code to locale if known
+            # Example, "eng" to "en", "jpn" to "ja"
+            if lang in CODE_TO_LOCALE:
+                sub_langs.add(CODE_TO_LOCALE[lang])
+            else:
+                sub_langs.add(lang)
+
+    return audio_langs, sub_langs
 
 def refresh_queue(mdnx_api):
     logger.info("[Vars] Getting the current queue IDs...")
