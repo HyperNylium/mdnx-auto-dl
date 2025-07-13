@@ -167,11 +167,11 @@ This is not the entire documentation that i want, but it will do for now. In the
 
 | Config | Default value | Explanation |
 | :---------------- | :------: | :---- |
-| `TEMP_DIR`                                |   `/app/appdata/temp`                                                             | Folder where `multi-download-nx` download the episode in the container |
-| `BIN_DIR`                                 |   `/app/appdata/bin`                                                              | Folder where Bento4-SDK and multi-download-nx binaries live in the container |
+| `TEMP_DIR`                                |   `/app/appdata/temp`                                                             | Folder where `multi-download-nx` downloads the episode in the container |
+| `BIN_DIR`                                 |   `/app/appdata/bin`                                                              | Folder where `Bento4-SDK` and `multi-download-nx` binaries live in the container |
 | `LOG_FILE`                                |  `/app/appdata/logs/app.log`                                                      | `app.log` file location in the container |
-| `DATA_DIR`                                |  `/data`                                                                          | Your media servers Anime folder, where the folder structure is in `FOLDER_STRUCTURE` variable format |
-| `FOLDER_STRUCTURE`                        |  `${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}`   | You media servers folder structure starting from the root and ending at the episode files |
+| `DATA_DIR`                                |  `/data`                                                                          | Your media servers Anime folder, where the folder structure is in the format of `FOLDER_STRUCTURE` variable |
+| `FOLDER_STRUCTURE`                        |  `${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}`   | Your media servers folder structure starting from the root and ending at the episode files |
 | `SPECIAL_EPISODES_FOLDER_NAME`            |  `Special`                                                                        | Name of folder where you store special episodes for each anime. They would have episode codes like `S00E01` |
 | `MDNX_API_FORCE_REAUTH`                   |  false                                                                            | Should we re-auth and write a new `cr_token.yml` file even though the token file exists? |
 | `MDNX_API_SKIP_TEST`                      |  false                                                                            | Do you want to skip the test to see if its able to access CR's API |
@@ -182,19 +182,7 @@ This is not the entire documentation that i want, but it will do for now. In the
 | `MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES`     |  false                                                                            | Should we download special episodes like `S01E10.5`? Keep in mind these can also be movies |
 
 
-"TEMP_DIR": "/app/appdata/temp",
-        "BIN_DIR": "/app/appdata/bin",
-        "LOG_FILE": "/app/appdata/logs/app.log",
-        "DATA_DIR": "/data",
-        "FOLDER_STRUCTURE": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
-        "SPECIAL_EPISODES_FOLDER_NAME": "Special",
-        "MDNX_API_FORCE_REAUTH": false,
-        "MDNX_API_SKIP_TEST": false,
-        "MDNX_SERVICE_USERNAME": "",
-        "MDNX_SERVICE_PASSWORD": "",
-        "MAIN_LOOP_UPDATE_INTERVAL": 3600,
-        "MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL": 20,
-        "MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES": false
+
 
 
 
