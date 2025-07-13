@@ -162,13 +162,58 @@ docker compose up -d
 
 And you are done! The application will now monitor the series you have specified in `config.json` and download new episodes as they become available!
 
+# Docs
+This is not the entire documentation that i want, but it will do for now. In the future, i will have a more detailed seperate documentation file with examples.
+
+| Config                                   | Default value                                 | Explanation |
+| :--------------------------------------- | :-------------------------------------------: | :---------- |
+| `TEMP_DIR`                               | `/app/appdata/temp`                           | Temporary staging directory. `multi-download-nx` writes the raw download here before it is moved to your library. |
+| `BIN_DIR`                                | `/app/appdata/bin`                            | Path that contains the bundled binaries (e.g. `multi-download-nx`, `Bento4-SDK`) inside the container. |
+| `LOG_FILE`                               | `/app/appdata/logs/app.log`                   | Absolute path of the application log file in the container. |
+| `DATA_DIR`                               | `/data`                                       | Root of your anime library on the host. Finished files are organised here according to `FOLDER_STRUCTURE`. |
+| `FOLDER_STRUCTURE`                       | `${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}` | Template describing how seasons and episodes are laid out under `DATA_DIR`. |
+| `SPECIAL_EPISODES_FOLDER_NAME`           | `Special`                                     | Folder name (inside each series) that stores special episodes, whose episode codes look like `S00EXX`. |
+| `MDNX_API_FORCE_REAUTH`                  | `false`                                       | When `true`, always perform a fresh Crunchyroll login and overwrite `cr_token.yml` even if it already exists. After re-authing, it will mark this back to `false` so in the future it uses the same `cr_token.yml` |
+| `MDNX_API_SKIP_TEST`                     | `false`                                       | When `true`, skip the startup self test that probes the Crunchyroll API. |
+| `MDNX_SERVICE_USERNAME`                  | `""`                                          | Crunchyroll username for authentication. |
+| `MDNX_SERVICE_PASSWORD`                  | `""`                                          | Crunchyroll password for authentication. |
+| `MAIN_LOOP_UPDATE_INTERVAL`              | `3600`                                        | Seconds to wait between complete scans for new episodes or missing dub/sub tracks. |
+| `MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL`| `20`                                          | Delay in seconds to wait after each episode download to reduce the chance of API rate-limiting. |
+| `MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES`    | `false`                                       | If `true`, download specials (e.g. `S01E10.5`, possibly movies). If `false`, ignore them. |
+
+Options for `FOLDER_STRUCTURE`  
+| Variable           | Example value                | Explanation |
+| :----------------- | :--------------------------: | :---------- |
+| `${seriesTitle}`   | `Kaiju No. 8`                | Sanitised series title (filesystem-unsafe characters replaced). |
+| `${season}`        | `1`                          | Season number, no leading zeros. |
+| `${seasonPadded}`  | `01`                         | Season number padded to two digits. |
+| `${episode}`       | `1`                          | Episode number, no leading zeros. |
+| `${episodePadded}` | `01`                         | Episode number padded to two digits. |
+| `${episodeName}`   | `The Man Who Became a Kaiju` | Sanitised episode title. |
+
+Example of `FOLDER_STRUCTURE` with the above variables:
+```
+${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}
+```
+This would result in the following folder structure:
+```
+Kaiju No. 8/S1/Kaiju No. 8 - S01E01
+```
+
 # Future plans
 I plan to add the following features after i make sure this works on its own:
-- Somehow transcode the .mkv files from what they are to HEVC, or something else. Currently, every episode is ~1.2 - 1.5GB.
-- Add audio options using [mkv-auto](https://github.com/philiptn/mkv-auto) if you want to have [whatever CR auido is] -> EOS for example. Higher vocals, lower booms.
-- Add capability to set different `/data` folder structures. (done as of v0.0.4. Need to test and write docs)
-- Add capability to monitor dubs. Currently, it only monitors if new episodes are available and downloads them according to what you have set in `config["app"]["mdnx"]["cli-defaults"]`. In the future, i would like to add a way to monitor if a `jpn` only episode now has an `eng` dub available and download it, overwriting the episode already in `DATA_DIR`. the `jpn` and `eng` would be from `dubLang` in `config.json`, not hardcoded. (done as of v0.0.5. Need to test and write docs. Also monitors subs)
-- Add capability to rename seasons correctly. Sometimes, CR has season 66 or whatever for season 4. Wrong season number is also passed through multi-download-nx - which is expected. Maybe include seasons first and last episode in TVDB search and figure out what season it came from using said episode names. (done as of v0.0.5. Need to test and write docs. Only does the season naming. Does not do TVDB search yet. The TVDB search is still a future feature to be added. Will update docs when i can)
+- [ ] Somehow transcode the .mkv files from what they are to HEVC, or something else. Currently, every episode is ~1.2 - 1.5GB with movies being +6GB.
+
+- [ ] Add audio options using [mkv-auto](https://github.com/philiptn/mkv-auto) if you want to have [whatever CR auido is] -> EOS for example. Higher vocals, lower booms.
+
+- [x] Add capability to set different `/data` folder structures. (done as of v0.0.4)
+
+- [x] Add capability to monitor dubs. Currently, it only monitors if new episodes are available and downloads them according to what you have set in `config["app"]["mdnx"]["cli-defaults"]`. In the future, i would like to add a way to monitor if a `jpn` only episode now has an `eng` dub available and download it, overwriting the episode already in `DATA_DIR`. the `jpn` and `eng` would be from `dubLang` in `config.json`, not hardcoded. (done as of v0.0.5. Also monitors subs using whats set in `dlsubs`)
+
+- [x] Add capability to rename seasons correctly. Sometimes, CR has season 66 or whatever for season 4. Wrong season number is also passed through multi-download-nx - which is expected. (done as of v0.0.5)
+
+- [ ] When downloading the episode is finished and `file_handler.transfer()` is called. Instead of just naming the file S01E01 or whatever i was able to guess from multi-download-nx's output, i would like to somehow get episode details from TheTVDB. The importence of this is not really the individual episode names, but more the episode codes. If we download a special episode, which then gets moved to `Specials/S00E01`, how do we know its actually `S00E01` and not `S00E03`? Plex may show the wrong metadata or not show the episode at all. Thats what i aim to solve with TheTVDB API searches. This would only really benefit special episodes and anime that has weird season naming. An example of that is the duke of death and his maid. Some DBs say it has 1 season, but CR says it has 3 season, each season having 12 episodes. Hopfully i can cook something up in the future to help with this episode naming stuff haha.
+
 - I was not able to figure out a great way to download the [Bento4-SDK](https://www.bento4.com/downloads/) and [multi-download-nx](https://github.com/anidl/multi-downloader-nx/releases/latest) packages. \
     For now, both are download from my webserver. There are the URLs:
     - https://cdn.hypernylium.com/mdnx-auto-dl/Bento4-SDK.zip
