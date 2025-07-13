@@ -165,27 +165,31 @@ And you are done! The application will now monitor the series you have specified
 # Docs
 This is not the entire documentation that i want, but it will do for now. In the future, i will have a more detailed seperate documentation file with examples.
 
-| Config | Default value | Explanation |
-| :---------------- | :------: | :---- |
-| `TEMP_DIR`                                |   `/app/appdata/temp`                                                             | Folder where `multi-download-nx` downloads the episode in the container |
-| `BIN_DIR`                                 |   `/app/appdata/bin`                                                              | Folder where `Bento4-SDK` and `multi-download-nx` binaries live in the container |
-| `LOG_FILE`                                |  `/app/appdata/logs/app.log`                                                      | `app.log` file location in the container |
-| `DATA_DIR`                                |  `/data`                                                                          | Your media servers Anime folder, where the folder structure is in the format of `FOLDER_STRUCTURE` variable |
-| `FOLDER_STRUCTURE`                        |  `${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}`   | Your media servers folder structure starting from the root and ending at the episode files |
-| `SPECIAL_EPISODES_FOLDER_NAME`            |  `Special`                                                                        | Name of folder where you store special episodes for each anime. They would have episode codes like `S00E01` |
-| `MDNX_API_FORCE_REAUTH`                   |  false                                                                            | Should we re-auth and write a new `cr_token.yml` file even though the token file exists? |
-| `MDNX_API_SKIP_TEST`                      |  false                                                                            | Do you want to skip the test to see if its able to access CR's API |
-| `MDNX_SERVICE_USERNAME`                   |  ""                                                                               | Your CR username |
-| `MDNX_SERVICE_PASSWORD`                   |  ""                                                                               | Your CR password |
-| `MAIN_LOOP_UPDATE_INTERVAL`               |  3600                                                                             | After new episode and dub/sub checks have completed, how much time in seconds do you want to wait before doing checks again? |
-| `MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL` |  20                                                                               | Seconds to wait after downloading an episode. Good to have if you are excountering API rate limiting |
-| `MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES`     |  false                                                                            | Should we download special episodes like `S01E10.5`? Keep in mind these can also be movies |
+| Config                                   | Default value                                 | Explanation |
+| :--------------------------------------- | :-------------------------------------------: | :---------- |
+| `TEMP_DIR`                               | `/app/appdata/temp`                           | Temporary staging directory. `multi-download-nx` writes the raw download here before it is moved to your library. |
+| `BIN_DIR`                                | `/app/appdata/bin`                            | Path that contains the bundled binaries (e.g. `multi-download-nx`, `Bento4-SDK`) inside the container. |
+| `LOG_FILE`                               | `/app/appdata/logs/app.log`                   | Absolute path of the application log file in the container. |
+| `DATA_DIR`                               | `/data`                                       | Root of your anime library on the host. Finished files are organised here according to `FOLDER_STRUCTURE`. |
+| `FOLDER_STRUCTURE`                       | `${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}` | Template describing how seasons and episodes are laid out under `DATA_DIR`. |
+| `SPECIAL_EPISODES_FOLDER_NAME`           | `Special`                                     | Folder name (inside each series) that stores special episodes, whose episode codes look like `S00EXX`. |
+| `MDNX_API_FORCE_REAUTH`                  | `false`                                       | When `true`, always perform a fresh Crunchyroll login and overwrite `cr_token.yml` even if it already exists. After re-authing, it will mark this back to `false` so in the future it uses the same `cr_token.yml` |
+| `MDNX_API_SKIP_TEST`                     | `false`                                       | When `true`, skip the startup self test that probes the Crunchyroll API. |
+| `MDNX_SERVICE_USERNAME`                  | `""`                                          | Crunchyroll username for authentication. |
+| `MDNX_SERVICE_PASSWORD`                  | `""`                                          | Crunchyroll password for authentication. |
+| `MAIN_LOOP_UPDATE_INTERVAL`              | `3600`                                        | Seconds to wait between complete scans for new episodes or missing dub/sub tracks. |
+| `MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL`| `20`                                          | Delay in seconds to wait after each episode download to reduce the chance of API rate-limiting. |
+| `MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES`    | `false`                                       | If `true`, download specials (e.g. `S01E10.5`, possibly movies). If `false`, ignore them. |
 
-
-
-
-
-
+Options for `FOLDER_STRUCTURE`  
+| Variable           | Example value                | Explanation |
+| :----------------- | :--------------------------: | :---------- |
+| `${seriesTitle}`   | `Kaiju No. 8`                | Sanitised series title (filesystem-unsafe characters replaced). |
+| `${season}`        | `1`                          | Season number, no leading zeros. |
+| `${seasonPadded}`  | `01`                         | Season number padded to two digits. |
+| `${episode}`       | `1`                          | Episode number, no leading zeros. |
+| `${episodePadded}` | `01`                         | Episode number padded to two digits. |
+| `${episodeName}`   | `The Man Who Became a Kaiju` | Sanitised episode title. |
 
 # Future plans
 I plan to add the following features after i make sure this works on its own:
