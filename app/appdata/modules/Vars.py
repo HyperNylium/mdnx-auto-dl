@@ -20,6 +20,7 @@ with open(CONFIG_PATH, 'r') as config_file:
 # App settings
 LOG_FILE = config["app"]["LOG_FILE"]
 TEMP_DIR = config["app"]["TEMP_DIR"]
+DATA_DIR = config["app"]["DATA_DIR"]
 BIN_DIR = config["app"]["BIN_DIR"]
 
 # MDNX config settings
@@ -32,6 +33,50 @@ MDNX_SERVICE_CR_TOKEN_PATH = os.path.join(BIN_DIR, "mdnx", "config", "cr_token.y
 # Regular expression to match invalid characters in filenames
 INVALID_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1F]')
 
+# Language mapping for MDNX
+LANG_MAP = {
+    "English": ["eng", "en"],
+    "English (India)": ["eng", "en-IN"],
+    "Spanish": ["spa", "es-419"],
+    "Castilian": ["spa-ES", "es-ES"],
+    "Portuguese": ["por", "pt-BR"],
+    "Portuguese (Portugal)": ["por", "pt-PT"],
+    "French": ["fra", "fr"],
+    "German": ["deu", "de"],
+    "Arabic": ["ara-ME", "ar"],
+    "Arabic (Saudi Arabia)": ["ara", "ar"],
+    "Italian": ["ita", "it"],
+    "Russian": ["rus", "ru"],
+    "Turkish": ["tur", "tr"],
+    "Hindi": ["hin", "hi"],
+    "Chinese (Mandarin, PRC)": ["cmn", "zh"],
+    "Chinese (Mainland China)": ["zho", "zh-CN"],
+    "Chinese (Taiwan)": ["chi", "zh-TW"],
+    "Chinese (Hong-Kong)": ["zh-HK", "zh-HK"],
+    "Korean": ["kor", "ko"],
+    "Catalan": ["cat", "ca-ES"],
+    "Polish": ["pol", "pl-PL"],
+    "Thai": ["tha", "th-TH"],
+    "Tamil (India)": ["tam", "ta-IN"],
+    "Malay (Malaysia)": ["may", "ms-MY"],
+    "Vietnamese": ["vie", "vi-VN"],
+    "Indonesian": ["ind", "id-ID"],
+    "Telugu (India)": ["tel", "te-IN"],
+    "Japanese": ["jpn", "ja"],
+}
+
+NAME_TO_CODE = {}
+for name, vals in LANG_MAP.items():
+    NAME_TO_CODE[name] = vals[0] # vals[0] is the code
+
+VALID_LOCALES = set()
+for vals in LANG_MAP.values():
+    VALID_LOCALES.add(vals[1]) # vals[1] is the locale
+
+CODE_TO_LOCALE = {}
+for name, vals in LANG_MAP.items():
+    code, loc = vals[0].lower(), vals[1].lower()
+    CODE_TO_LOCALE[code] = loc
 
 # Set up logging
 logging.basicConfig(
