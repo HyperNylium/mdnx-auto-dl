@@ -6,6 +6,7 @@ import subprocess
 # Custom imports
 from .QueueManager import QueueManager
 from .Vars import logger, config
+from .Vars import VALID_LOCALES, NAME_TO_CODE
 from .Vars import sanitize
 
 
@@ -18,15 +19,24 @@ class MDNX_API:
         self.password = str(config["app"]["MDNX_SERVICE_PASSWORD"])
         self.queue_manager = QueueManager()
 
+        # Series: lines starting with [Z...]
         self.series_pattern = re.compile(
             r'^\[Z:(?P<series_id>\w+)\]\s+(?P<series_name>.+?)\s+\(Seasons:\s*(?P<seasons_count>\d+),\s*EPs:\s*(?P<eps_count>\d+)\)'
         )
+
+        # Seasons: lines starting with [S...]
         self.season_pattern = re.compile(
             r'^\[S:(?P<season_id>\w+)\]\s+(?P<season_name>.+?)\s+\(Season:\s*(?P<season_number>\d+)\)'
         )
+
         # Episodes: lines starting with [E...] or [S...] (without the colon after S)
         self.episode_pattern = re.compile(
             r'^\[(?P<ep_type>E|S)(?P<episode_number>\d+)\]\s+(?P<full_episode_name>.+?)\s+\['
+        )
+
+        # Subtitles: lines starting with - Subtitles:
+        self.subtitles_pattern = re.compile(
+            r'-\s*Subtitles:\s*(.+)'
         )
 
         logger.info(f"[MDNX_API] MDNX API initialized with: Path: {mdnx_path} | Service: {mdnx_service}")
@@ -41,7 +51,9 @@ class MDNX_API:
         logger.info("[MDNX_API] Processing console output...")
         tmp_dict = {}
         episode_counters = {} # maps season key ("S1", "S2", etc) to episode counter
+        season_num_map = {}
         current_series_id = None
+        active_season_key = None
 
         for line in output.splitlines():
             line = line.strip()
@@ -58,6 +70,9 @@ class MDNX_API:
 
                 current_series_id = info["series_id"]
                 tmp_dict[current_series_id] = {"series": info, "seasons": {}}
+                season_num_map.clear()
+                episode_counters.clear()
+                active_season_key = None
                 continue
 
             # Check for season information.
@@ -66,9 +81,36 @@ class MDNX_API:
                 info = m.groupdict()
                 info["season_name"] = sanitize(info["season_name"])
 
-                season_key = f"S{info['season_number']}"
-                tmp_dict[current_series_id]["seasons"][season_key] = {**info, "episodes": {}}
+                orig_num = int(info["season_number"])
+                if orig_num not in season_num_map:
+                    season_num_map[orig_num] = len(season_num_map) + 1
+                mapped_num = season_num_map[orig_num]
+
+                season_key = f"S{mapped_num}"
+                active_season_key = season_key
+                info["season_number"] = str(mapped_num)
+
+                tmp_dict[current_series_id]["seasons"][season_key] = {
+                    **info,
+                    "available_subs": [],
+                    "episodes": {}
+                }
                 episode_counters[season_key] = 1
+                continue
+
+            # Check for subtitles line.
+            m = self.subtitles_pattern.match(line)
+            if m and current_series_id and active_season_key:
+                raw_locales = []
+                for tok in m.group(1).split(','):
+                    raw_locales.append(tok.strip())
+
+                subs_locales = []
+                for loc in raw_locales:
+                    if loc in VALID_LOCALES:
+                        subs_locales.append(loc)
+
+                tmp_dict[current_series_id]["seasons"][active_season_key]["available_subs"] = subs_locales
                 continue
 
             # Check for episode information.
@@ -77,47 +119,60 @@ class MDNX_API:
                 ep_info = m.groupdict()
 
                 # find season number in full line
-                sn = re.search(r'- Season (\d+) -', line)
-                if not sn:
+                season_num = re.search(r'- Season (\d+) -', line)
+                if not season_num:
                     logger.warning(f"[MDNX_API] Season not found in line: {line}")
                     continue
-                season_key = f"S{sn.group(1)}"
+                orig_label = int(season_num.group(1))
+                if orig_label not in season_num_map:
+                    season_num_map[orig_label] = len(season_num_map) + 1
+                mapped_num = season_num_map[orig_label]
+                season_key = f"S{mapped_num}"
 
-                # init season if missing
                 if season_key not in tmp_dict[current_series_id]["seasons"]:
                     tmp_dict[current_series_id]["seasons"][season_key] = {
                         "season_id": None,
                         "season_name": None,
-                        "season_number": sn.group(1),
+                        "season_number": str(mapped_num),
+                        "available_subs": [],
                         "episodes": {}
                     }
                     episode_counters[season_key] = 1
 
-                # decide key and clean episode number
-                if ep_info["ep_type"] == "E": # normal episode
+                dubs_match = re.search(r'\[([^\]]+)\]\s*$', line)
+                dub_codes = []
+                if dubs_match:
+                    for lang in dubs_match.group(1).split(','):
+                        lang = lang.strip().lstrip('☆').strip()
+                        if lang in NAME_TO_CODE:
+                            dub_codes.append(NAME_TO_CODE[lang])
+
+                subs_locales = tmp_dict[current_series_id]["seasons"][season_key]["available_subs"]
+
+                if ep_info["ep_type"] == "E":
                     idx = episode_counters[season_key]
                     ep_key = f"E{idx}"
                     episode_number_clean = str(idx)
                     episode_counters[season_key] += 1
                     episode_number_download = episode_number_clean
-                else: # special episode
+                else:
                     ep_key = f"S{ep_info['episode_number']}"
                     episode_number_clean = ep_info["episode_number"]
                     episode_number_download = f"S{episode_number_clean}"
 
-                # clean episode title
                 parts = ep_info["full_episode_name"].rsplit(" - ", 1)
                 if len(parts) > 1:
                     episode_title_clean = parts[-1]
                 else:
                     episode_title_clean = ep_info["full_episode_name"]
-
                 episode_title_clean = sanitize(episode_title_clean)
 
                 tmp_dict[current_series_id]["seasons"][season_key]["episodes"][ep_key] = {
                     "episode_number": episode_number_clean,
                     "episode_number_download": episode_number_download,
                     "episode_name": episode_title_clean,
+                    "available_dubs": dub_codes,
+                    "available_subs": subs_locales,
                     "episode_downloaded": False
                 }
                 continue
