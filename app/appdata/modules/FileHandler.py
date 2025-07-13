@@ -3,13 +3,14 @@ import time
 from shutil import move as shmove
 
 # Custom imports
-from .Vars import logger, config
+from .Vars import logger
+from .Vars import TEMP_DIR, DATA_DIR
 from .Vars import sanitize
 
 class FileHandler:
     def __init__(self):
-        self.source = config["app"]["TEMP_DIR"]
-        self.dest   = config["app"]["DATA_DIR"]
+        self.source = TEMP_DIR
+        self.dest = DATA_DIR
         # These should be configurable from config.json in the future.
         self.readyCheckInterval = 1  # seconds between size checks
         self.readyStableSeconds = 5  # how long size must remain unchanged
@@ -19,7 +20,7 @@ class FileHandler:
 
         logger.info(f"[FileHandler] FileHandler initialized with: Source: {self.source} | Destination: {self.dest}")
 
-    def transfer(self, src_path: str, dst_path: str) -> bool:
+    def transfer(self, src_path: str, dst_path: str, overwrite: bool = False) -> bool:
         logger.info(f"[FileHandler] Starting transfer from '{src_path}' to '{dst_path}'")
 
         src_basename = os.path.basename(src_path)
@@ -52,6 +53,14 @@ class FileHandler:
         except Exception as e:
             logger.error(f"[FileHandler] Could not create directory {parent}: {e}")
             return False
+
+        if overwrite == True and os.path.exists(final_dst):
+            try:
+                os.remove(final_dst)
+                logger.info(f"[FileHandler] Removed existing file at destination: {final_dst}")
+            except Exception as e:
+                logger.error(f"[FileHandler] Could not remove existing file {final_dst}: {e}")
+                return False
 
         for attempt in range(1, self.moveRetries + 1):
             try:

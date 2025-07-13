@@ -5,6 +5,7 @@ import pwd
 import grp
 import json
 import logging
+import subprocess
 from string import Template
 from io import TextIOWrapper
 
@@ -20,6 +21,7 @@ with open(CONFIG_PATH, 'r') as config_file:
 # App settings
 LOG_FILE = config["app"]["LOG_FILE"]
 TEMP_DIR = config["app"]["TEMP_DIR"]
+DATA_DIR = config["app"]["DATA_DIR"]
 BIN_DIR = config["app"]["BIN_DIR"]
 
 # MDNX config settings
@@ -32,6 +34,50 @@ MDNX_SERVICE_CR_TOKEN_PATH = os.path.join(BIN_DIR, "mdnx", "config", "cr_token.y
 # Regular expression to match invalid characters in filenames
 INVALID_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1F]')
 
+# Language mapping for MDNX
+LANG_MAP = {
+    "English": ["eng", "en"],
+    "English (India)": ["eng", "en-IN"],
+    "Spanish": ["spa", "es-419"],
+    "Castilian": ["spa-ES", "es-ES"],
+    "Portuguese": ["por", "pt-BR"],
+    "Portuguese (Portugal)": ["por", "pt-PT"],
+    "French": ["fra", "fr"],
+    "German": ["deu", "de"],
+    "Arabic": ["ara-ME", "ar"],
+    "Arabic (Saudi Arabia)": ["ara", "ar"],
+    "Italian": ["ita", "it"],
+    "Russian": ["rus", "ru"],
+    "Turkish": ["tur", "tr"],
+    "Hindi": ["hin", "hi"],
+    "Chinese (Mandarin, PRC)": ["cmn", "zh"],
+    "Chinese (Mainland China)": ["zho", "zh-CN"],
+    "Chinese (Taiwan)": ["chi", "zh-TW"],
+    "Chinese (Hong-Kong)": ["zh-HK", "zh-HK"],
+    "Korean": ["kor", "ko"],
+    "Catalan": ["cat", "ca-ES"],
+    "Polish": ["pol", "pl-PL"],
+    "Thai": ["tha", "th-TH"],
+    "Tamil (India)": ["tam", "ta-IN"],
+    "Malay (Malaysia)": ["may", "ms-MY"],
+    "Vietnamese": ["vie", "vi-VN"],
+    "Indonesian": ["ind", "id-ID"],
+    "Telugu (India)": ["tel", "te-IN"],
+    "Japanese": ["jpn", "ja"],
+}
+
+NAME_TO_CODE = {}
+for name, vals in LANG_MAP.items():
+    NAME_TO_CODE[name] = vals[0] # vals[0] is the code
+
+VALID_LOCALES = set()
+for vals in LANG_MAP.values():
+    VALID_LOCALES.add(vals[1]) # vals[1] is the locale
+
+CODE_TO_LOCALE = {}
+for name, vals in LANG_MAP.items():
+    code, loc = vals[0].lower(), vals[1].lower()
+    CODE_TO_LOCALE[code] = loc
 
 # Set up logging
 logging.basicConfig(
@@ -55,6 +101,39 @@ def handle_exception(exc_type, exc_value, exc_traceback):
         return
 
     logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+def probe_streams(file_path: str):
+    cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", file_path]
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if result.returncode != 0:
+        logger.error(f"[FileHandler] ffprobe error on {file_path}: {result.stderr}")
+        return set(), set()
+
+    try:
+        data = json.loads(result.stdout)
+    except json.JSONDecodeError as e:
+        logger.error(f"[FileHandler] ffprobe JSON decode error on {file_path}: {e}")
+        return set(), set()
+
+    audio_langs = set()
+    sub_langs = set()
+
+    for stream in data.get("streams", []):
+        tags = stream.get("tags", {})
+        lang = str(tags.get("language", "None")).strip().lower()
+
+        if stream.get("codec_type") == "audio":
+            audio_langs.add(lang)
+
+        elif stream.get("codec_type") == "subtitle":
+            # map iso-639 code to locale if known
+            # Example, "eng" to "en", "jpn" to "ja"
+            if lang in CODE_TO_LOCALE:
+                sub_langs.add(CODE_TO_LOCALE[lang])
+            else:
+                sub_langs.add(lang)
+
+    return audio_langs, sub_langs
 
 def refresh_queue(mdnx_api):
     logger.info("[Vars] Getting the current queue IDs...")
@@ -206,6 +285,17 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
     for part in raw_path.split("/"):
         if not part:
             continue
+
+        # specials (Season 0) go in "/config["app"]["VARS_SPECIAL_EPISODES_FOLDER_NAME"]/..."
+        if int(season) == 0:
+            norm = sanitize(part).lower()
+            if norm in {
+                "0", "00", # ${season}, ${seasonPadded}
+                "s0", "s00", # S${season}, S${seasonPadded}
+                "season 0", "season 00",  # "Season ${seasonPadded}"
+            }:
+                part = config["app"]["VARS_SPECIAL_EPISODES_FOLDER_NAME"]
+
         parts.append(sanitize(part))
 
     full_path = os.path.join(base_dir, *parts)
@@ -222,6 +312,11 @@ def get_episode_file_path(queue, series_id, season_key, episode_key, base_dir, e
     season = queue[series_id]["seasons"][season_key]["season_number"]
     episode = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_number"]
     raw_episode_name = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_name"]
+
+    # Treat specials (queue key starts with "S") as season 0 so the
+    # build_folder_structure logic can detect them.
+    if episode_key.startswith("S"):
+        season = "0"
 
     # Build the folder structure and file name.
     file_name = build_folder_structure(base_dir, raw_series, season, episode, raw_episode_name, extension)
