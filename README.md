@@ -139,7 +139,7 @@ MDNX_SERVICE_PASSWORD
 
 6. Get the series ID of the anime you want to monitor and put them into the `monitor-series-id` list in `config.json`. \
 Lets sat you want to monitor Kaiju No. 8. You would go to the anime's page on Crunchyroll and copy the series ID from the URL. \
-Example: \
+Example:
 ```
 https://www.crunchyroll.com/series/GG5H5XQ7D/kaiju-no-8
 ```
@@ -160,7 +160,7 @@ You would then put it into the `monitor-series-id` list in `config.json` like so
 docker compose up -d
 ```
 
-That should be it!
+And you are done! The application will now monitor the series you have specified in `config.json` and download new episodes as they become available!
 
 # Future plans
 I plan to add the following features after i make sure this works on its own:
