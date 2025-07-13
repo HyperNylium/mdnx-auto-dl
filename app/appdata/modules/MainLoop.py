@@ -5,7 +5,8 @@ import threading
 # Custom imports
 from .FileHandler import FileHandler
 from .Vars import logger, config
-from .Vars import get_episode_file_path, iter_episodes, log_manager, refresh_queue
+from .Vars import TEMP_DIR, DATA_DIR
+from .Vars import get_episode_file_path, iter_episodes, log_manager, refresh_queue, probe_streams
 
 # Only for syntax highlighting in VSCode - remove in prod
 # from .MDNX_API import MDNX_API
@@ -50,12 +51,19 @@ class MainLoop:
             refresh_queue(self.mdnx_api)
             current_queue = self.mdnx_api.queue_manager.output()
 
+
+            # download any missing / not yet downloaded episodes
             logger.info("[MainLoop] Checking for episodes to download.")
             for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(current_queue):
 
-                # Optionally skip non-standard (special) episode keys (e.g., if key starts with "S")
+                # Skip special episode keys (for example, if the episode key starts with "S")
                 if episode_key.startswith("S") and config["app"]["MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES"] == False:
                     logger.info(f"[MainLoop] Skipping special episode {episode_key} because MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES is False.")
+                    continue
+
+                # Skip PV episodes
+                if episode_info["episode_name"].lower().startswith("pv"):
+                    logger.info(f"[MainLoop] Skipping PV episode {episode_key}")
                     continue
 
                 # Should episode be downloaded logic
@@ -66,7 +74,7 @@ class MainLoop:
                     logger.info(f"[MainLoop] Episode {episode_info['episode_number']} ({episode_info['episode_name']}) 'episode_downloaded' status is False. Checking file path to make sure file actually does not exist...")
 
                     # Construct the expected file path using the dynamic template.
-                    file_path = get_episode_file_path(current_queue, series_id, season_key, episode_key, config["app"]["DATA_DIR"])
+                    file_path = get_episode_file_path(current_queue, series_id, season_key, episode_key, DATA_DIR)
                     logger.info(f"[MainLoop] Checking for episode at {file_path}.")
 
                     if os.path.exists(file_path):
@@ -79,13 +87,13 @@ class MainLoop:
                         if download_successful:
                             logger.info(f"[MainLoop] Episode downloaded successfully.")
 
-                            temp_path = os.path.join(config["app"]["TEMP_DIR"], "output.mkv")
+                            temp_path = os.path.join(TEMP_DIR, "output.mkv")
 
                             if self.file_handler.transfer(temp_path, file_path):
-                                logger.info(f"[MainLoop] Transfer complete.")
+                                logger.info("[MainLoop] Transfer complete.")
                                 self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
                             else:
-                                logger.error(f"[MainLoop] Transfer failed.")
+                                logger.error("[MainLoop] Transfer failed.")
                                 self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
 
                         else:
@@ -96,11 +104,61 @@ class MainLoop:
                         logger.info(f"[MainLoop] Waiting for {config['app']['MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL']} seconds before next iteration.")
                         time.sleep(config["app"]["MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL"])  # sleep to avoid API rate limits
 
+
+            # verify language tracks against user wishes
+            wanted_dubs = set()
+            for lang in config["mdnx"]["cli-defaults"]["dubLang"]:
+                wanted_dubs.add(lang.lower())
+
+            wanted_subs = set()
+            for lang in config["mdnx"]["cli-defaults"]["dlsubs"]:
+                wanted_subs.add(lang.lower())
+
+            logger.info("[MainLoop] Verifying language tracks in downloaded files.")
+            for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(current_queue):
+
+                file_path = get_episode_file_path(current_queue, series_id, season_key, episode_key, DATA_DIR)
+                if not os.path.exists(file_path):
+                    continue
+
+                local_dubs, local_subs = probe_streams(file_path)
+
+                derived = set(local_subs)
+                for loc in list(local_subs):
+                    if "-" in loc:
+                        derived.add(loc.split("-")[0]) # turn things like "en-in" to "en"
+                local_subs = derived
+
+                missing_dubs = wanted_dubs - local_dubs
+                missing_subs = wanted_subs - local_subs
+
+                if not missing_dubs and not missing_subs:
+                    logger.info(f"[MainLoop] {os.path.basename(file_path)} has all required dubs and subs. No action needed.")
+                    continue
+
+                # If we reach here, we have missing dubs or subs
+                logger.info(f"[MainLoop] {os.path.basename(file_path)} has missing dubs or subs. Missing dubs: {', '.join(missing_dubs)}. Missing subs: {', '.join(missing_subs)}.")
+
+                if self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"]):
+                    temp_path = os.path.join(TEMP_DIR, "output.mkv")
+                    if self.file_handler.transfer(temp_path, file_path, overwrite=True):
+                        logger.info("[MainLoop] Transfer complete.")
+                    else:
+                        logger.info("[MainLoop] Transfer failed")
+                else:
+                    logger.error("[MainLoop] Re-download failed; keeping existing file.")
+
+                self.file_handler.remove_temp_files()
+                logger.info(f"[MainLoop] Waiting for {config['app']['MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL']} seconds before next iteration.")
+                time.sleep(config["app"]["MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL"])
+
+
+            # house-keeping and loop control
             self.mainloop_iter += 1
             logger.info(f"[MainLoop] Current main loop iteration: {self.mainloop_iter}")
 
-            # Perform housekeeping tasks every 30 iterations.
-            if self.mainloop_iter == 30:
+            # Perform housekeeping tasks every 10 iterations.
+            if self.mainloop_iter == 10:
                 logger.info("[MainLoop] Truncating log file.")
                 log_manager()
                 logger.info("[MainLoop] Truncated log file.")
