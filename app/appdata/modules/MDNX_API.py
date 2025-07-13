@@ -6,6 +6,7 @@ import subprocess
 # Custom imports
 from .QueueManager import QueueManager
 from .Vars import logger, config
+from .Vars import VALID_LOCALES, NAME_TO_CODE
 from .Vars import sanitize
 
 
@@ -36,44 +37,6 @@ class MDNX_API:
         self.subtitles_pattern = re.compile(
             r'-\s*Subtitles:\s*(.+)'
         )
-
-        self.LANG_MAP = {
-            "English": ["eng", "en"],
-            "English (India)": ["eng", "en-IN"],
-            "Spanish": ["spa", "es-419"],
-            "Castilian": ["spa-ES", "es-ES"],
-            "Portuguese": ["por", "pt-BR"],
-            "Portuguese (Portugal)": ["por", "pt-PT"],
-            "French": ["fra", "fr"],
-            "German": ["deu", "de"],
-            "Arabic": ["ara-ME", "ar"],
-            "Arabic (Saudi Arabia)": ["ara", "ar"],
-            "Italian": ["ita", "it"],
-            "Russian": ["rus", "ru"],
-            "Turkish": ["tur", "tr"],
-            "Hindi": ["hin", "hi"],
-            "Chinese (Mandarin, PRC)": ["cmn", "zh"],
-            "Chinese (Mainland China)": ["zho", "zh-CN"],
-            "Chinese (Taiwan)": ["chi", "zh-TW"],
-            "Chinese (Hong-Kong)": ["zh-HK", "zh-HK"],
-            "Korean": ["kor", "ko"],
-            "Catalan": ["cat", "ca-ES"],
-            "Polish": ["pol", "pl-PL"],
-            "Thai": ["tha", "th-TH"],
-            "Tamil (India)": ["tam", "ta-IN"],
-            "Malay (Malaysia)": ["may", "ms-MY"],
-            "Vietnamese": ["vie", "vi-VN"],
-            "Indonesian": ["ind", "id-ID"],
-            "Telugu (India)": ["tel", "te-IN"],
-            "Japanese": ["jpn", "ja"],
-        }
-
-        self.NAME_TO_CODE = {}
-        for name, vals in self.LANG_MAP.items():
-            self.NAME_TO_CODE[name] = vals[0] # vals[0] is the code
-        self.VALID_LOCALES = set()
-        for vals in self.LANG_MAP.values():
-            self.VALID_LOCALES.add(vals[1]) # vals[1] is the locale
 
         logger.info(f"[MDNX_API] MDNX API initialized with: Path: {mdnx_path} | Service: {mdnx_service}")
 
@@ -143,7 +106,7 @@ class MDNX_API:
 
                 subs_locales = []
                 for loc in raw_locales:
-                    if loc in self.VALID_LOCALES:
+                    if loc in VALID_LOCALES:
                         subs_locales.append(loc)
 
                 tmp_dict[current_series_id]["seasons"][active_season_key]["available_subs"] = subs_locales
@@ -180,8 +143,8 @@ class MDNX_API:
                 if dubs_match:
                     for lang in dubs_match.group(1).split(','):
                         lang = lang.strip().lstrip('☆').strip()
-                        if lang in self.NAME_TO_CODE:
-                            dub_codes.append(self.NAME_TO_CODE[lang])
+                        if lang in NAME_TO_CODE:
+                            dub_codes.append(NAME_TO_CODE[lang])
 
                 subs_locales = tmp_dict[current_series_id]["seasons"][season_key]["available_subs"]
 
