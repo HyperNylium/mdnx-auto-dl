@@ -9,7 +9,7 @@ This application only supports downloads from Crunchyroll at the moment even tho
 
 # Get started
 1. Save the `docker-compose.yaml` file to your server.
-```
+```yaml
 services:
   mdnx-auto-dl:
     ### Build image locally if you want.
