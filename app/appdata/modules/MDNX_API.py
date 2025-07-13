@@ -28,6 +28,7 @@ class MDNX_API:
         self.season_pattern = re.compile(
             r'^\[S:(?P<season_id>\w+)\]\s+(?P<season_name>.+?)\s+\(Season:\s*(?P<season_number>\d+)\)'
         )
+
         # Episodes: lines starting with [E...] or [S...] (without the colon after S)
         self.episode_pattern = re.compile(
             r'^\[(?P<ep_type>E|S)(?P<episode_number>\d+)\]\s+(?P<full_episode_name>.+?)\s+\['
@@ -91,8 +92,8 @@ class MDNX_API:
 
                 tmp_dict[current_series_id]["seasons"][season_key] = {
                     **info,
-                    "episodes": {},
-                    "available_subs": []
+                    "available_subs": [],
+                    "episodes": {}
                 }
                 episode_counters[season_key] = 1
                 continue
@@ -133,8 +134,8 @@ class MDNX_API:
                         "season_id": None,
                         "season_name": None,
                         "season_number": str(mapped_num),
-                        "episodes": {},
-                        "available_subs": []
+                        "available_subs": [],
+                        "episodes": {}
                     }
                     episode_counters[season_key] = 1
 
