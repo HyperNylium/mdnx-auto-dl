@@ -191,6 +191,15 @@ Options for `FOLDER_STRUCTURE`
 | `${episodePadded}` | `01`                         | Episode number padded to two digits. |
 | `${episodeName}`   | `The Man Who Became a Kaiju` | Sanitised episode title. |
 
+Example of `FOLDER_STRUCTURE` with the above variables:
+```
+${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}
+```
+This would result in the following folder structure:
+```
+Kaiju No. 8/S1/Kaiju No. 8 - S01E01
+```
+
 # Future plans
 I plan to add the following features after i make sure this works on its own:
 - [ ] Somehow transcode the .mkv files from what they are to HEVC, or something else. Currently, every episode is ~1.2 - 1.5GB with movies being +6GB.
