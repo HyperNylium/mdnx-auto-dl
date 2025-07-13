@@ -9,13 +9,13 @@ from .Vars import TEMP_DIR, DATA_DIR
 from .Vars import get_episode_file_path, iter_episodes, log_manager, refresh_queue, probe_streams
 
 # Only for syntax highlighting in VSCode - remove in prod
-from .MDNX_API import MDNX_API
+# from .MDNX_API import MDNX_API
 
 
 
 class MainLoop:
-    def __init__(self, mdnx_api: MDNX_API, config=config) -> None:
-    # def __init__(self, mdnx_api, config=config) -> None:
+    # def __init__(self, mdnx_api: MDNX_API, config=config) -> None:
+    def __init__(self, mdnx_api, config=config) -> None:
         self.mdnx_api = mdnx_api
         self.config = config
         self.timeout = int(config["app"]["MAIN_LOOP_UPDATE_INTERVAL"])
@@ -56,7 +56,7 @@ class MainLoop:
             logger.info("[MainLoop] Checking for episodes to download.")
             for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(current_queue):
 
-                # Optionally skip non-standard (special) episode keys (e.g., if key starts with "S")
+                # Skip special episode keys (for example, if the episode key starts with "S")
                 if episode_key.startswith("S") and config["app"]["MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES"] == False:
                     logger.info(f"[MainLoop] Skipping special episode {episode_key} because MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES is False.")
                     continue
