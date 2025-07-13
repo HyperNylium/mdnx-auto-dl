@@ -286,7 +286,7 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
         if not part:
             continue
 
-        # specials (Season 0) go in "/config["app"]["VARS_SPECIAL_EPISODES_FOLDER_NAME"]/..."
+        # specials (Season 0) go in "/config["app"]["SPECIAL_EPISODES_FOLDER_NAME"]/..."
         if int(season) == 0:
             norm = sanitize(part).lower()
             if norm in {
@@ -294,7 +294,7 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
                 "s0", "s00", # S${season}, S${seasonPadded}
                 "season 0", "season 00",  # "Season ${seasonPadded}"
             }:
-                part = config["app"]["VARS_SPECIAL_EPISODES_FOLDER_NAME"]
+                part = config["app"]["SPECIAL_EPISODES_FOLDER_NAME"]
 
         parts.append(sanitize(part))
 
