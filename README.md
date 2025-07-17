@@ -165,21 +165,25 @@ And you are done! The application will now monitor the series you have specified
 # Docs
 This is not the entire documentation that i want, but it will do for now. In the future, i will have a more detailed seperate documentation file with examples.
 
-| Config                                   | Default value                                 | Explanation |
-| :--------------------------------------- | :-------------------------------------------: | :---------- |
-| `TEMP_DIR`                               | `/app/appdata/temp`                           | Temporary staging directory. `multi-download-nx` writes the raw download here before it is moved to your library. |
-| `BIN_DIR`                                | `/app/appdata/bin`                            | Path that contains the bundled binaries (e.g. `multi-download-nx`, `Bento4-SDK`) inside the container. |
-| `LOG_FILE`                               | `/app/appdata/logs/app.log`                   | Absolute path of the application log file in the container. |
-| `DATA_DIR`                               | `/data`                                       | Root of your anime library on the host. Finished files are organised here according to `FOLDER_STRUCTURE`. |
-| `FOLDER_STRUCTURE`                       | `${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}` | Template describing how seasons and episodes are laid out under `DATA_DIR`. |
-| `SPECIAL_EPISODES_FOLDER_NAME`           | `Special`                                     | Folder name (inside each series) that stores special episodes, whose episode codes look like `S00EXX`. |
-| `MDNX_API_FORCE_REAUTH`                  | `false`                                       | When `true`, always perform a fresh Crunchyroll login and overwrite `cr_token.yml` even if it already exists. After re-authing, it will mark this back to `false` so in the future it uses the same `cr_token.yml` |
-| `MDNX_API_SKIP_TEST`                     | `false`                                       | When `true`, skip the startup self test that probes the Crunchyroll API. |
-| `MDNX_SERVICE_USERNAME`                  | `""`                                          | Crunchyroll username for authentication. |
-| `MDNX_SERVICE_PASSWORD`                  | `""`                                          | Crunchyroll password for authentication. |
-| `MAIN_LOOP_UPDATE_INTERVAL`              | `3600`                                        | Seconds to wait between complete scans for new episodes or missing dub/sub tracks. |
-| `MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL`| `20`                                          | Delay in seconds to wait after each episode download to reduce the chance of API rate-limiting. |
-| `MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES`    | `false`                                       | If `true`, download specials (e.g. `S01E10.5`, possibly movies). If `false`, ignore them. |
+| Config                             | Default value                                                                 | Explanation                                                                                                    |
+| :--------------------------------- | :---------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------- |
+| `monitor-series-id`                | `[]`                                                                          | List of Crunchyroll series IDs to watch for new episodes.                                                      |
+| `TEMP_DIR`                         | `/app/appdata/temp`                                                           | Temporary staging directory. Raw downloads are written here before moving into your library.                   |
+| `BIN_DIR`                          | `/app/appdata/bin`                                                            | Path containing bundled binaries (e.g. `multi-download-nx`, `Bento4-SDK`) inside the container.                |
+| `LOG_FILE`                         | `/app/appdata/logs/app.log`                                                   | Absolute path of the application log file in the container.                                                    |
+| `DATA_DIR`                         | `/data`                                                                       | Root of your anime library on the host. Finished files are organized here according to `FOLDER_STRUCTURE`.     |
+| `CR_USERNAME`                      | `""`                                                                          | Crunchyroll username for authentication.                                                                       |
+| `CR_PASSWORD`                      | `""`                                                                          | Crunchyroll password for authentication.                                                                       |
+| `FOLDER_STRUCTURE`                 | `${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}`| Template for how seasons and episodes are laid out under `DATA_DIR`.                                           |
+| `DOWNLOAD_SPECIAL_EPISODES`        | `false`                                                                       | If `true`, download special episodes (e.g. `S00EXX`, movies); if `false`, ignore them.                         |
+| `SPECIAL_EPISODES_FOLDER_NAME`     | `Special`                                                                     | Folder name (inside each series) that stores special episodes.                                                 |
+| `CHECK_MISSING_DUB_SUB`            | `true`                                                                        | When `true`, detect and report episodes missing dub or subtitle tracks.                                        |
+| `CHECK_MISSING_DUB_SUB_TIMEOUT`    | `300`                                                                         | Seconds to wait before timing out when checking for missing dubs/subs on a file.                               |
+| `CHECK_FOR_UPDATES_INTERVAL`       | `3600`                                                                        | Seconds to wait between complete library scans for new episodes or missing tracks.                             |
+| `BETWEEN_EPISODE_DL_WAIT_INTERVAL` | `30`                                                                          | Delay in seconds after each episode download to reduce API rate‑limiting.                                      |
+| `CR_FORCE_REAUTH`                  | `false`                                                                       | When `true`, always perform a fresh Crunchyroll login and overwrite `cr_token.yml`, then reset to `false`.     |
+| `CR_SKIP_API_TEST`                 | `false`                                                                       | When `true`, skip the startup self‑test that probes the Crunchyroll API.                                       |
+
 
 Options for `FOLDER_STRUCTURE`  
 | Variable           | Example value                | Explanation |
