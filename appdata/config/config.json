@@ -11,8 +11,9 @@
         "DOWNLOAD_SPECIAL_EPISODES": false,
         "SPECIAL_EPISODES_FOLDER_NAME": "Special",
         "CHECK_MISSING_DUB_SUB": true,
+        "CHECK_MISSING_DUB_SUB_TIMEOUT": 300,
         "CHECK_FOR_UPDATES_INTERVAL": 3600,
-        "BETWEEN_EPISODE_DL_WAIT_INTERVAL": 20,
+        "BETWEEN_EPISODE_DL_WAIT_INTERVAL": 30,
         "CR_FORCE_REAUTH": false,
         "CR_SKIP_API_TEST": false
     },
@@ -43,7 +44,8 @@
             "mp4": false,
             "nocleanup": false,
             "dlVideoOnce": false,
-            "keepAllVideos": false
+            "keepAllVideos": false,
+            "skipUpdate": true
         },
         "dir-path": {
             "content": "/app/appdata/temp",
