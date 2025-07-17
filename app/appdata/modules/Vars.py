@@ -102,17 +102,22 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 
     logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
 
-def probe_streams(file_path: str):
+def probe_streams(file_path: str, timeout: int):
     cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", file_path]
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    if result.returncode != 0:
-        logger.error(f"[FileHandler] ffprobe error on {file_path}: {result.stderr}")
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        logger.error(f"[Vars] ffprobe timed out after {timeout}s on {file_path}")
         return set(), set()
 
     try:
         data = json.loads(result.stdout)
     except json.JSONDecodeError as e:
-        logger.error(f"[FileHandler] ffprobe JSON decode error on {file_path}: {e}")
+        logger.error(f"[Vars] ffprobe JSON decode error on {file_path}: {e}")
+        return set(), set()
+
+    if data == {}: # no streams found
+        logger.error(f"[Vars] ffprobe found no dubs/subs for {file_path}")
         return set(), set()
 
     audio_langs = set()
