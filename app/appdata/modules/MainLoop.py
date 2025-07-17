@@ -122,7 +122,7 @@ class MainLoop:
                     if not os.path.exists(file_path):
                         continue
 
-                    local_dubs, local_subs = probe_streams(file_path)
+                    local_dubs, local_subs = probe_streams(file_path, config["app"]["CHECK_MISSING_DUB_SUB_TIMEOUT"])
 
                     derived = set(local_subs)
                     for loc in list(local_subs):
@@ -138,7 +138,7 @@ class MainLoop:
                         continue
 
                     # If we reach here, we have missing dubs or subs
-                    logger.info(f"[MainLoop] {os.path.basename(file_path)} has missing dubs or subs. Missing dubs: {', '.join(missing_dubs)}. Missing subs: {', '.join(missing_subs)}.")
+                    logger.info(f"[MainLoop] {os.path.basename(file_path)} has missing dubs or subs. Missing dubs: {', '.join(missing_dubs) if missing_dubs else 'None'}. Missing subs: {', '.join(missing_subs)if missing_subs else 'None'}.")
 
                     if self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"]):
                         temp_path = os.path.join(TEMP_DIR, config["mdnx"]["cli-defaults"]["fileName"])
@@ -147,7 +147,7 @@ class MainLoop:
                         else:
                             logger.info("[MainLoop] Transfer failed")
                     else:
-                        logger.error("[MainLoop] Re-download failed; keeping existing file.")
+                        logger.error("[MainLoop] Re-download failed. Keeping existing file.")
 
                     self.file_handler.remove_temp_files()
                     logger.info(f"[MainLoop] Waiting for {config['app']['BETWEEN_EPISODE_DL_WAIT_INTERVAL']} seconds before next iteration.")
