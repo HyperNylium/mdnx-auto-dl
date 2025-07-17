@@ -15,8 +15,8 @@ class MDNX_API:
     def __init__(self, mdnx_path, config=config, mdnx_service="crunchy") -> None:
         self.mdnx_path = mdnx_path
         self.mdnx_service = mdnx_service
-        self.username = str(config["app"]["MDNX_SERVICE_USERNAME"])
-        self.password = str(config["app"]["MDNX_SERVICE_PASSWORD"])
+        self.username = str(config["app"]["CR_USERNAME"])
+        self.password = str(config["app"]["CR_PASSWORD"])
         self.queue_manager = QueueManager()
 
         # Series: lines starting with [Z...]
@@ -41,11 +41,11 @@ class MDNX_API:
 
         logger.info(f"[MDNX_API] MDNX API initialized with: Path: {mdnx_path} | Service: {mdnx_service}")
 
-        # Skip MDNX API test if user wants to
-        if config["app"]["MDNX_API_SKIP_TEST"] == False:
+        # Skip API test if user wants to
+        if config["app"]["CR_SKIP_API_TEST"] == False:
             self.test()
         else:
-            logger.info("[MDNX_API] MDNX API test skipped by user.")
+            logger.info("[MDNX_API] API test skipped by user.")
 
     def process_console_output(self, output: str, add2queue: bool = True):
         logger.info("[MDNX_API] Processing console output...")
@@ -205,7 +205,7 @@ class MDNX_API:
         logger.info(f"[MDNX_API] Authenticating with {self.mdnx_service}...")
 
         if not self.username or not self.password:
-            logger.error("[MDNX_API] MDNX service username or password not found.\nPlease check the config.json file and enter your credentials in the following keys:\nMDNX_SERVICE_USERNAME\nMDNX_SERVICE_PASSWORD\nExiting...")
+            logger.error("[MDNX_API] MDNX service username or password not found.\nPlease check the config.json file and enter your credentials in the following keys:\nCR_USERNAME\nCR_PASSWORD\nExiting...")
             sys.exit(1)
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--auth", "--username", self.username, "--password", self.password, "--silentAuth"]

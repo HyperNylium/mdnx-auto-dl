@@ -18,13 +18,13 @@ def app():
 
     # Authenticate with MDNX service if needed or force auth if user wants to
     logger.info("[app] Checking to see if user is authenticated with MDNX service (cr_token.yml exists?)...")
-    if not os.path.exists(MDNX_SERVICE_CR_TOKEN_PATH) or config["app"]["MDNX_API_FORCE_REAUTH"] == True:
+    if not os.path.exists(MDNX_SERVICE_CR_TOKEN_PATH) or config["app"]["CR_FORCE_REAUTH"] == True:
         mdnx_api.auth()
 
-        # Update the "MDNX_API_FORCE_REAUTH" config to False if needed
+        # Update the "CR_FORCE_REAUTH" config to False if needed
         logger.info("[app] Checking to see if user wants to force re-auth with MDNX service...")
-        if config["app"]["MDNX_API_FORCE_REAUTH"] == True:
-            update_app_config("MDNX_API_FORCE_REAUTH", False)
+        if config["app"]["CR_FORCE_REAUTH"] == True:
+            update_app_config("CR_FORCE_REAUTH", False)
         else:
             logger.info("[app] User does not want to force re-auth with MDNX service.")
     else:
