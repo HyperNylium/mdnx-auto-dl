@@ -135,10 +135,20 @@ These are planned to later become variables you can put into the `docker-compose
 }
 ```
 
-5. Put in your Crunchyroll username and password into the following key-value pairs in `config.json`
+5. Put in your Crunchyroll username and password into the following key-value pairs in `config.json`. You will be putting then in the `""` quotes. \
 ```
 CR_USERNAME
 CR_PASSWORD
+```
+Example:
+```json
+{
+    "app": {
+        "CR_USERNAME": "itsamemario@myemailprovider.com",
+        "CR_PASSWORD": "thisismypassword123",
+        ...
+    }
+}
 ```
 
 6. Get the series ID of the anime you want to monitor and put them into the `monitor-series-id` list in `config.json`. \
