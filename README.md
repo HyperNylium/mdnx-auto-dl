@@ -85,15 +85,17 @@ These are planned to later become variables you can put into the `docker-compose
         "BIN_DIR": "/app/appdata/bin",
         "LOG_FILE": "/app/appdata/logs/app.log",
         "DATA_DIR": "/data",
+        "CR_USERNAME": "",
+        "CR_PASSWORD": "",
         "FOLDER_STRUCTURE": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
+        "DOWNLOAD_SPECIAL_EPISODES": false,
         "SPECIAL_EPISODES_FOLDER_NAME": "Special",
-        "MDNX_API_FORCE_REAUTH": false,
-        "MDNX_API_SKIP_TEST": false,
-        "MDNX_SERVICE_USERNAME": "",
-        "MDNX_SERVICE_PASSWORD": "",
-        "MAIN_LOOP_UPDATE_INTERVAL": 3600,
-        "MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL": 20,
-        "MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES": false
+        "CHECK_MISSING_DUB_SUB": true,
+        "CHECK_MISSING_DUB_SUB_TIMEOUT": 300,
+        "CHECK_FOR_UPDATES_INTERVAL": 3600,
+        "BETWEEN_EPISODE_DL_WAIT_INTERVAL": 30,
+        "CR_FORCE_REAUTH": false,
+        "CR_SKIP_API_TEST": false
     },
     "mdnx": {
         "bin-path": {
@@ -109,19 +111,21 @@ These are planned to later become variables you can put into the `docker-compose
             "partsize": 3,
             "fileName": "output",
             "dubLang": [
-                "eng",
-                "jpn"
+                "jpn",
+                "eng"
             ],
             "dlsubs": [
                 "en"
             ],
             "defaultAudio": "jpn",
+            "defaultSub": "eng",
             "timeout": 30000,
             "waittime": 3000,
             "mp4": false,
             "nocleanup": false,
             "dlVideoOnce": false,
-            "keepAllVideos": false
+            "keepAllVideos": false,
+            "skipUpdate": true
         },
         "dir-path": {
             "content": "/app/appdata/temp",
