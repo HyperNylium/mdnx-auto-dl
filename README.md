@@ -220,7 +220,7 @@ Kaiju No. 8/S1/Kaiju No. 8 - S01E01
 ```
 
 # Future plans
-I plan to add the following features after i make sure this works on its own:
+I plan to add the following features after i get the basics working:
 - [ ] Somehow transcode the .mkv files from what they are to HEVC, or something else. Currently, every episode is ~1.2 - 1.5GB with movies being +6GB.
 
 - [ ] Add audio options using [mkv-auto](https://github.com/philiptn/mkv-auto) if you want to have [whatever CR auido is] -> EOS for example. Higher vocals, lower booms.
