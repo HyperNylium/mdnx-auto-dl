@@ -18,7 +18,7 @@ class MainLoop:
     def __init__(self, mdnx_api, config=config) -> None:
         self.mdnx_api = mdnx_api
         self.config = config
-        self.timeout = int(config["app"]["MAIN_LOOP_UPDATE_INTERVAL"])
+        self.timeout = int(config["app"]["CHECK_FOR_UPDATES_INTERVAL"])
         self.mainloop_iter = 0
 
         logger.info(f"[MainLoop] MainLoop initialized.")
@@ -57,8 +57,8 @@ class MainLoop:
             for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(current_queue):
 
                 # Skip special episode keys (for example, if the episode key starts with "S")
-                if episode_key.startswith("S") and config["app"]["MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES"] == False:
-                    logger.info(f"[MainLoop] Skipping special episode {episode_key} because MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES is False.")
+                if episode_key.startswith("S") and config["app"]["DOWNLOAD_SPECIAL_EPISODES"] == False:
+                    logger.info(f"[MainLoop] Skipping special episode {episode_key} because DOWNLOAD_SPECIAL_EPISODES is False.")
                     continue
 
                 # Skip PV episodes
@@ -87,7 +87,7 @@ class MainLoop:
                         if download_successful:
                             logger.info(f"[MainLoop] Episode downloaded successfully.")
 
-                            temp_path = os.path.join(TEMP_DIR, "output.mkv")
+                            temp_path = os.path.join(TEMP_DIR, config["mdnx"]["cli-defaults"]["fileName"])
 
                             if self.file_handler.transfer(temp_path, file_path):
                                 logger.info("[MainLoop] Transfer complete.")
@@ -101,11 +101,11 @@ class MainLoop:
                             self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
 
                         self.file_handler.remove_temp_files()
-                        logger.info(f"[MainLoop] Waiting for {config['app']['MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL']} seconds before next iteration.")
-                        time.sleep(config["app"]["MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL"])  # sleep to avoid API rate limits
+                        logger.info(f"[MainLoop] Waiting for {config['app']['BETWEEN_EPISODE_DL_WAIT_INTERVAL']} seconds before next iteration.")
+                        time.sleep(config["app"]["BETWEEN_EPISODE_DL_WAIT_INTERVAL"])  # sleep to avoid API rate limits
 
 
-            # verify language tracks against user wishes
+            # verify language tracks against user config
             wanted_dubs = set()
             for lang in config["mdnx"]["cli-defaults"]["dubLang"]:
                 wanted_dubs.add(lang.lower())
@@ -140,7 +140,7 @@ class MainLoop:
                 logger.info(f"[MainLoop] {os.path.basename(file_path)} has missing dubs or subs. Missing dubs: {', '.join(missing_dubs)}. Missing subs: {', '.join(missing_subs)}.")
 
                 if self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"]):
-                    temp_path = os.path.join(TEMP_DIR, "output.mkv")
+                    temp_path = os.path.join(TEMP_DIR, config["mdnx"]["cli-defaults"]["fileName"])
                     if self.file_handler.transfer(temp_path, file_path, overwrite=True):
                         logger.info("[MainLoop] Transfer complete.")
                     else:
@@ -149,8 +149,8 @@ class MainLoop:
                     logger.error("[MainLoop] Re-download failed; keeping existing file.")
 
                 self.file_handler.remove_temp_files()
-                logger.info(f"[MainLoop] Waiting for {config['app']['MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL']} seconds before next iteration.")
-                time.sleep(config["app"]["MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL"])
+                logger.info(f"[MainLoop] Waiting for {config['app']['BETWEEN_EPISODE_DL_WAIT_INTERVAL']} seconds before next iteration.")
+                time.sleep(config["app"]["BETWEEN_EPISODE_DL_WAIT_INTERVAL"])
 
 
             # house-keeping and loop control
