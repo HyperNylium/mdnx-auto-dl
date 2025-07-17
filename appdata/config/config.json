@@ -10,6 +10,7 @@
         "FOLDER_STRUCTURE": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
         "DOWNLOAD_SPECIAL_EPISODES": false,
         "SPECIAL_EPISODES_FOLDER_NAME": "Special",
+        "CHECK_MISSING_DUB_SUB": true,
         "CHECK_FOR_UPDATES_INTERVAL": 3600,
         "BETWEEN_EPISODE_DL_WAIT_INTERVAL": 20,
         "CR_FORCE_REAUTH": false,
