@@ -137,8 +137,8 @@ These are planned to later become variables you can put into the `docker-compose
 
 5. Put in your Crunchyroll username and password into the following key-value pairs in `config.json`
 ```
-MDNX_SERVICE_USERNAME
-MDNX_SERVICE_PASSWORD
+CR_USERNAME
+CR_PASSWORD
 ```
 
 6. Get the series ID of the anime you want to monitor and put them into the `monitor-series-id` list in `config.json`. \
@@ -167,7 +167,8 @@ docker compose up -d
 And you are done! The application will now monitor the series you have specified in `config.json` and download new episodes as they become available!
 
 # Docs
-This is not the entire documentation that i want, but it will do for now. In the future, i will have a more detailed seperate documentation file with examples.
+This is not the entire documentation that i want, but it will do for now. In the future, i will have a more detailed seperate documentation file with examples. \
+If you have any questions, please open an issue and i will try to help you :)
 
 | Config                             | Default value                                                                 | Explanation                                                                                                    |
 | :--------------------------------- | :---------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------- |
