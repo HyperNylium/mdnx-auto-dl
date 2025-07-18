@@ -85,15 +85,17 @@ These are planned to later become variables you can put into the `docker-compose
         "BIN_DIR": "/app/appdata/bin",
         "LOG_FILE": "/app/appdata/logs/app.log",
         "DATA_DIR": "/data",
+        "CR_USERNAME": "",
+        "CR_PASSWORD": "",
         "FOLDER_STRUCTURE": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
+        "DOWNLOAD_SPECIAL_EPISODES": false,
         "SPECIAL_EPISODES_FOLDER_NAME": "Special",
-        "MDNX_API_FORCE_REAUTH": false,
-        "MDNX_API_SKIP_TEST": false,
-        "MDNX_SERVICE_USERNAME": "",
-        "MDNX_SERVICE_PASSWORD": "",
-        "MAIN_LOOP_UPDATE_INTERVAL": 3600,
-        "MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL": 20,
-        "MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES": false
+        "CHECK_MISSING_DUB_SUB": true,
+        "CHECK_MISSING_DUB_SUB_TIMEOUT": 300,
+        "CHECK_FOR_UPDATES_INTERVAL": 3600,
+        "BETWEEN_EPISODE_DL_WAIT_INTERVAL": 30,
+        "CR_FORCE_REAUTH": false,
+        "CR_SKIP_API_TEST": false
     },
     "mdnx": {
         "bin-path": {
@@ -109,19 +111,21 @@ These are planned to later become variables you can put into the `docker-compose
             "partsize": 3,
             "fileName": "output",
             "dubLang": [
-                "eng",
-                "jpn"
+                "jpn",
+                "eng"
             ],
             "dlsubs": [
                 "en"
             ],
             "defaultAudio": "jpn",
+            "defaultSub": "eng",
             "timeout": 30000,
             "waittime": 3000,
             "mp4": false,
             "nocleanup": false,
             "dlVideoOnce": false,
-            "keepAllVideos": false
+            "keepAllVideos": false,
+            "skipUpdate": true
         },
         "dir-path": {
             "content": "/app/appdata/temp",
@@ -131,10 +135,20 @@ These are planned to later become variables you can put into the `docker-compose
 }
 ```
 
-5. Put in your Crunchyroll username and password into the following key-value pairs in `config.json`
+5. Put in your Crunchyroll username and password into the following key-value pairs in `config.json`. You will be putting then in the `""` quotes. \
 ```
-MDNX_SERVICE_USERNAME
-MDNX_SERVICE_PASSWORD
+CR_USERNAME
+CR_PASSWORD
+```
+Example:
+```json
+{
+    "app": {
+        "CR_USERNAME": "itsamemario@myemailprovider.com",
+        "CR_PASSWORD": "thisismypassword123",
+        ...
+    }
+}
 ```
 
 6. Get the series ID of the anime you want to monitor and put them into the `monitor-series-id` list in `config.json`. \
@@ -163,23 +177,28 @@ docker compose up -d
 And you are done! The application will now monitor the series you have specified in `config.json` and download new episodes as they become available!
 
 # Docs
-This is not the entire documentation that i want, but it will do for now. In the future, i will have a more detailed seperate documentation file with examples.
+This is not the entire documentation that i want, but it will do for now. In the future, i will have a more detailed seperate documentation file with examples. \
+If you have any questions, please open an issue and i will try to help you :)
 
-| Config                                   | Default value                                 | Explanation |
-| :--------------------------------------- | :-------------------------------------------: | :---------- |
-| `TEMP_DIR`                               | `/app/appdata/temp`                           | Temporary staging directory. `multi-download-nx` writes the raw download here before it is moved to your library. |
-| `BIN_DIR`                                | `/app/appdata/bin`                            | Path that contains the bundled binaries (e.g. `multi-download-nx`, `Bento4-SDK`) inside the container. |
-| `LOG_FILE`                               | `/app/appdata/logs/app.log`                   | Absolute path of the application log file in the container. |
-| `DATA_DIR`                               | `/data`                                       | Root of your anime library on the host. Finished files are organised here according to `FOLDER_STRUCTURE`. |
-| `FOLDER_STRUCTURE`                       | `${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}` | Template describing how seasons and episodes are laid out under `DATA_DIR`. |
-| `SPECIAL_EPISODES_FOLDER_NAME`           | `Special`                                     | Folder name (inside each series) that stores special episodes, whose episode codes look like `S00EXX`. |
-| `MDNX_API_FORCE_REAUTH`                  | `false`                                       | When `true`, always perform a fresh Crunchyroll login and overwrite `cr_token.yml` even if it already exists. After re-authing, it will mark this back to `false` so in the future it uses the same `cr_token.yml` |
-| `MDNX_API_SKIP_TEST`                     | `false`                                       | When `true`, skip the startup self test that probes the Crunchyroll API. |
-| `MDNX_SERVICE_USERNAME`                  | `""`                                          | Crunchyroll username for authentication. |
-| `MDNX_SERVICE_PASSWORD`                  | `""`                                          | Crunchyroll password for authentication. |
-| `MAIN_LOOP_UPDATE_INTERVAL`              | `3600`                                        | Seconds to wait between complete scans for new episodes or missing dub/sub tracks. |
-| `MAIN_LOOP_BETWEEN_EPISODE_WAIT_INTERVAL`| `20`                                          | Delay in seconds to wait after each episode download to reduce the chance of API rate-limiting. |
-| `MAIN_LOOP_DOWNLOAD_SPECIAL_EPISODES`    | `false`                                       | If `true`, download specials (e.g. `S01E10.5`, possibly movies). If `false`, ignore them. |
+| Config                             | Default value                                                                 | Explanation                                                                                                    |
+| :--------------------------------- | :---------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------- |
+| `monitor-series-id`                | `[]`                                                                          | List of Crunchyroll series IDs to watch for new episodes.                                                      |
+| `TEMP_DIR`                         | `/app/appdata/temp`                                                           | Temporary staging directory. Raw downloads are written here before moving into your library.                   |
+| `BIN_DIR`                          | `/app/appdata/bin`                                                            | Path containing bundled binaries (e.g. `multi-download-nx`, `Bento4-SDK`) inside the container.                |
+| `LOG_FILE`                         | `/app/appdata/logs/app.log`                                                   | Absolute path of the application log file in the container.                                                    |
+| `DATA_DIR`                         | `/data`                                                                       | Root of your anime library on the host. Finished files are organized here according to `FOLDER_STRUCTURE`.     |
+| `CR_USERNAME`                      | `""`                                                                          | Crunchyroll username for authentication.                                                                       |
+| `CR_PASSWORD`                      | `""`                                                                          | Crunchyroll password for authentication.                                                                       |
+| `FOLDER_STRUCTURE`                 | `${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}`| Template for how seasons and episodes are laid out under `DATA_DIR`.                                           |
+| `DOWNLOAD_SPECIAL_EPISODES`        | `false`                                                                       | If `true`, download special episodes (e.g. `S00EXX`, movies); if `false`, ignore them.                         |
+| `SPECIAL_EPISODES_FOLDER_NAME`     | `Special`                                                                     | Folder name (inside each series) that stores special episodes.                                                 |
+| `CHECK_MISSING_DUB_SUB`            | `true`                                                                        | When `true`, detect and report episodes missing dub or subtitle tracks.                                        |
+| `CHECK_MISSING_DUB_SUB_TIMEOUT`    | `300`                                                                         | Seconds to wait before timing out when checking for missing dubs/subs on a file.                               |
+| `CHECK_FOR_UPDATES_INTERVAL`       | `3600`                                                                        | Seconds to wait between complete library scans for new episodes or missing tracks.                             |
+| `BETWEEN_EPISODE_DL_WAIT_INTERVAL` | `30`                                                                          | Delay in seconds after each episode download to reduce API rate‑limiting.                                      |
+| `CR_FORCE_REAUTH`                  | `false`                                                                       | When `true`, always perform a fresh Crunchyroll login and overwrite `cr_token.yml`, then reset to `false`.     |
+| `CR_SKIP_API_TEST`                 | `false`                                                                       | When `true`, skip the startup self‑test that probes the Crunchyroll API.                                       |
+
 
 Options for `FOLDER_STRUCTURE`  
 | Variable           | Example value                | Explanation |
@@ -201,7 +220,7 @@ Kaiju No. 8/S1/Kaiju No. 8 - S01E01
 ```
 
 # Future plans
-I plan to add the following features after i make sure this works on its own:
+I plan to add the following features after i get the basics working:
 - [ ] Somehow transcode the .mkv files from what they are to HEVC, or something else. Currently, every episode is ~1.2 - 1.5GB with movies being +6GB.
 
 - [ ] Add audio options using [mkv-auto](https://github.com/philiptn/mkv-auto) if you want to have [whatever CR auido is] -> EOS for example. Higher vocals, lower booms.
@@ -214,13 +233,7 @@ I plan to add the following features after i make sure this works on its own:
 
 - [ ] When downloading the episode is finished and `file_handler.transfer()` is called. Instead of just naming the file S01E01 or whatever i was able to guess from multi-download-nx's output, i would like to somehow get episode details from TheTVDB. The importence of this is not really the individual episode names, but more the episode codes. If we download a special episode, which then gets moved to `Specials/S00E01`, how do we know its actually `S00E01` and not `S00E03`? Plex may show the wrong metadata or not show the episode at all. Thats what i aim to solve with TheTVDB API searches. This would only really benefit special episodes and anime that has weird season naming. An example of that is the duke of death and his maid. Some DBs say it has 1 season, but CR says it has 3 season, each season having 12 episodes. Hopfully i can cook something up in the future to help with this episode naming stuff haha.
 
-- I was not able to figure out a great way to download the [Bento4-SDK](https://www.bento4.com/downloads/) and [multi-download-nx](https://github.com/anidl/multi-downloader-nx/releases/latest) packages. \
-    For now, both are download from my webserver. There are the URLs:
-    - https://cdn.hypernylium.com/mdnx-auto-dl/Bento4-SDK.zip
-    - https://cdn.hypernylium.com/mdnx-auto-dl/mdnx.zip \
-Every dependency is included in the image (ffmpeg and mkvmerge) and downloaded/installed from debian repositories (apt install). \
-If you find a better way to do this (and it actually works), please open a PR. I would happily accept it! \
-Preferably, the Bento4-SDK and multi-download-nx packages should be downloaded from their respective websites and using the `entrypoint.sh` script to install them.
+- [x] Add dependencies in the container itself, no downloading from my webserver.
 
 # Acknowledgments
 **This project would not be possible without the following third-party tools/packages:**
