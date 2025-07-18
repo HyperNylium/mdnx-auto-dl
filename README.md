@@ -233,13 +233,7 @@ I plan to add the following features after i get the basics working:
 
 - [ ] When downloading the episode is finished and `file_handler.transfer()` is called. Instead of just naming the file S01E01 or whatever i was able to guess from multi-download-nx's output, i would like to somehow get episode details from TheTVDB. The importence of this is not really the individual episode names, but more the episode codes. If we download a special episode, which then gets moved to `Specials/S00E01`, how do we know its actually `S00E01` and not `S00E03`? Plex may show the wrong metadata or not show the episode at all. Thats what i aim to solve with TheTVDB API searches. This would only really benefit special episodes and anime that has weird season naming. An example of that is the duke of death and his maid. Some DBs say it has 1 season, but CR says it has 3 season, each season having 12 episodes. Hopfully i can cook something up in the future to help with this episode naming stuff haha.
 
-- I was not able to figure out a great way to download the [Bento4-SDK](https://www.bento4.com/downloads/) and [multi-download-nx](https://github.com/anidl/multi-downloader-nx/releases/latest) packages. \
-    For now, both are download from my webserver. There are the URLs:
-    - https://cdn.hypernylium.com/mdnx-auto-dl/Bento4-SDK.zip
-    - https://cdn.hypernylium.com/mdnx-auto-dl/mdnx.zip \
-Every dependency is included in the image (ffmpeg and mkvmerge) and downloaded/installed from debian repositories (apt install). \
-If you find a better way to do this (and it actually works), please open a PR. I would happily accept it! \
-Preferably, the Bento4-SDK and multi-download-nx packages should be downloaded from their respective websites and using the `entrypoint.sh` script to install them.
+- [x] Add dependencies in the container itself, no downloading from my webserver.
 
 # Acknowledgments
 **This project would not be possible without the following third-party tools/packages:**
