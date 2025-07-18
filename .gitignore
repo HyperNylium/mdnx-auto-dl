@@ -162,6 +162,9 @@ cython_debug/
 # Custom test file
 app/test.py
 
+appdata/mdnx/bin/*
+!appdata/mdnx/bin/Bento4-SDK.zip
+!appdata/mdnx/bin/mdnx.zip
 appdata/mdnx/config/*
 appdata/mdnx/widevine/*
 !appdata/mdnx/config/.gitkeep
