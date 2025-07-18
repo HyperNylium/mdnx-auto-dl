@@ -30,17 +30,14 @@ echo "[entrypoint] Using CONFIG_FILE=$CONFIG_FILE"
 echo "[entrypoint] Using BIN_DIR=$BIN_DIR"
 mkdir -p "$BIN_DIR"
 
-# Download Bento4 SDK
-echo "[entrypoint] Fetching Bento4 SDK..."
-curl -L -o /tmp/Bento4-SDK.zip https://cdn.hypernylium.com/mdnx-auto-dl/Bento4-SDK.zip
-unzip -oq /tmp/Bento4-SDK.zip -d "$BIN_DIR"
-rm -f /tmp/Bento4-SDK.zip
+# Extract deps
+echo "[entrypoint] Extracting Bento4 SDK from $BIN_DIR/Bento4-SDK.zip..."
+unzip -oq "$BIN_DIR/Bento4-SDK.zip" -d "$BIN_DIR"
+rm -f "$BIN_DIR/Bento4-SDK.zip"
 
-# Download MDNX CLI
-echo "[entrypoint] Fetching MDNX CLI..."
-curl -L -o /tmp/mdnx.zip https://cdn.hypernylium.com/mdnx-auto-dl/mdnx.zip
-unzip -oq /tmp/mdnx.zip -d "$BIN_DIR"
-rm -f /tmp/mdnx.zip
+echo "[entrypoint] Extracting MDNX CLI from $BIN_DIR/mdnx.zip..."
+unzip -oq "$BIN_DIR/mdnx.zip" -d "$BIN_DIR"
+rm -f "$BIN_DIR/mdnx.zip"
 
 # Create non-root user and start app with said user
 if grep -qEi 'microsoft|wsl' /proc/version 2>/dev/null; then
