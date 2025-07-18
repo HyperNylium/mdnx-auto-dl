@@ -87,7 +87,7 @@ class MainLoop:
                         if download_successful:
                             logger.info(f"[MainLoop] Episode downloaded successfully.")
 
-                            temp_path = os.path.join(TEMP_DIR, config["mdnx"]["cli-defaults"]["fileName"])
+                            temp_path = os.path.join(TEMP_DIR, config["mdnx"]["cli-defaults"]["fileName"] + ".mkv")
 
                             if self.file_handler.transfer(temp_path, file_path):
                                 logger.info("[MainLoop] Transfer complete.")
@@ -141,7 +141,7 @@ class MainLoop:
                     logger.info(f"[MainLoop] {os.path.basename(file_path)} has missing dubs or subs. Missing dubs: {', '.join(missing_dubs) if missing_dubs else 'None'}. Missing subs: {', '.join(missing_subs)if missing_subs else 'None'}.")
 
                     if self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"]):
-                        temp_path = os.path.join(TEMP_DIR, config["mdnx"]["cli-defaults"]["fileName"])
+                        temp_path = os.path.join(TEMP_DIR, config["mdnx"]["cli-defaults"]["fileName"] + ".mkv")
                         if self.file_handler.transfer(temp_path, file_path, overwrite=True):
                             logger.info("[MainLoop] Transfer complete.")
                         else:
