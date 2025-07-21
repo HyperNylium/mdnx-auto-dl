@@ -220,7 +220,6 @@ class MDNX_API:
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
-        logger.info(f"[MDNX_API] Console output for start_monitor process:\n{result.stdout}")
 
         self.process_console_output(result.stdout)
 
@@ -240,7 +239,6 @@ class MDNX_API:
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
-        logger.info(f"[MDNX_API] Console output for update_monitor process:\n{result.stdout}")
 
         self.process_console_output(result.stdout)
 
