@@ -125,18 +125,37 @@ def probe_streams(file_path: str, timeout: int):
 
     for stream in data.get("streams", []):
         tags = stream.get("tags", {})
-        lang = str(tags.get("language", "None")).strip().lower()
+        raw_lang = str(tags.get("language", "")).strip().lower()
+        title = tags.get("title", "").strip()
+
+        mapped_audio = None
+        mapped_sub   = None
+
+        # if the title matches one of the LANG_MAP keys, get its dub and sub codes
+        if title in LANG_MAP:
+            # LANG_MAP[title] == ["dub_code", "sub_code"]
+            mapped_audio = LANG_MAP[title][0].lower()
+            mapped_sub = LANG_MAP[title][1].lower()
 
         if stream.get("codec_type") == "audio":
+            if mapped_audio is not None:
+                lang = mapped_audio
+            else:
+                lang = raw_lang
+
             audio_langs.add(lang)
 
         elif stream.get("codec_type") == "subtitle":
-            # map iso-639 code to locale if known
-            # Example, "eng" to "en", "jpn" to "ja"
-            if lang in CODE_TO_LOCALE:
-                sub_langs.add(CODE_TO_LOCALE[lang])
+            if mapped_sub is not None:
+                lang = mapped_sub
+
+            elif raw_lang in CODE_TO_LOCALE:
+                lang = CODE_TO_LOCALE[raw_lang]
+
             else:
-                sub_langs.add(lang)
+                lang = raw_lang
+
+            sub_langs.add(lang)
 
     return audio_langs, sub_langs
 
