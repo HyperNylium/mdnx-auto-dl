@@ -137,8 +137,43 @@ class MainLoop:
                         logger.info(f"[MainLoop] {os.path.basename(file_path)} has all required dubs and subs. No action needed.")
                         continue
 
-                    # If we reach here, we have missing dubs or subs
-                    logger.info(f"[MainLoop] {os.path.basename(file_path)} has missing dubs or subs. Missing dubs: {', '.join(missing_dubs) if missing_dubs else 'None'}. Missing subs: {', '.join(missing_subs)if missing_subs else 'None'}.")
+                    avail_dubs = set()
+                    for dub in episode_info.get("available_dubs", []):
+                        avail_dubs.add(dub.lower())
+
+                    avail_subs = set()
+                    for sub in episode_info.get("available_subs", []):
+                        avail_subs.add(sub.lower())
+
+                    # only consider missing tracks that CR can actually provide
+                    effective_missing_dubs = set()
+                    for dub in missing_dubs:
+                        if dub in avail_dubs:
+                            effective_missing_dubs.add(dub)
+
+                    effective_missing_subs = set()
+                    for sub in missing_subs:
+                        if sub in avail_subs:
+                            effective_missing_subs.add(sub)
+
+                    skip_download = False
+                    if not effective_missing_dubs and not effective_missing_subs:
+                        skip_download = True
+
+                    logger.info(
+                        f"[MainLoop] {os.path.basename(file_path)}\ndubs: "
+                        f"wanted={','.join(wanted_dubs) or 'None'} "
+                        f"present={','.join(local_dubs) or 'None'} "
+                        f"available={','.join(avail_dubs) or 'None'} "
+                        f"downloading={','.join(effective_missing_dubs) or 'None'}\n"
+                        f"subs: wanted={','.join(wanted_subs) or 'None'} "
+                        f"present={','.join(local_subs) or 'None'} "
+                        f"available={','.join(avail_subs) or 'None'} "
+                        f"downloading={','.join(effective_missing_subs) or 'None'}\n"
+                    )
+
+                    if skip_download:
+                        continue
 
                     if self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"]):
                         temp_path = os.path.join(TEMP_DIR, config["mdnx"]["cli-defaults"]["fileName"] + ".mkv")
