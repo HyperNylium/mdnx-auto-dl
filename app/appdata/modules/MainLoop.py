@@ -6,7 +6,7 @@ import threading
 from .FileHandler import FileHandler
 from .Vars import logger, config
 from .Vars import TEMP_DIR, DATA_DIR
-from .Vars import get_episode_file_path, iter_episodes, log_manager, refresh_queue, probe_streams
+from .Vars import get_episode_file_path, iter_episodes, log_manager, refresh_queue, probe_streams, select_dubs
 
 # Only for syntax highlighting in VSCode - remove in prod
 # from .MDNX_API import MDNX_API
@@ -72,7 +72,10 @@ class MainLoop:
                         continue
                     else:
                         logger.info(f"[MainLoop] Episode not found at {file_path} and 'episode_downloaded' status is False. Initiating download.")
-                        download_successful = self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"])
+
+                        dub_override = select_dubs(episode_info)
+
+                        download_successful = self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override)
                         if download_successful:
                             logger.info(f"[MainLoop] Episode downloaded successfully.")
 
@@ -165,7 +168,9 @@ class MainLoop:
                         logger.info(f"[MainLoop] Skipping download for {os.path.basename(file_path)} as all required dubs and subs are present.")
                         continue
 
-                    if self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"]):
+                    dub_override = select_dubs(episode_info)
+
+                    if self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override):
                         temp_path = os.path.join(TEMP_DIR, config["mdnx"]["cli-defaults"]["fileName"] + ".mkv")
                         if self.file_handler.transfer(temp_path, file_path, overwrite=True):
                             logger.info("[MainLoop] Transfer complete.")
