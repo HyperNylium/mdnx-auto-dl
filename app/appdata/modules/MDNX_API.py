@@ -52,6 +52,7 @@ class MDNX_API:
         tmp_dict = {}
         episode_counters = {} # maps season key ("S1", "S2", etc) to episode counter
         season_num_map = {}
+        season_subs = {} # maps (series_id, season_key) to list of subtitles
         current_series_id = None
         active_season_key = None
 
@@ -61,9 +62,9 @@ class MDNX_API:
                 continue
 
             # Check for series information.
-            m = self.series_pattern.match(line)
-            if m:
-                info = m.groupdict()
+            match = self.series_pattern.match(line)
+            if match:
+                info = match.groupdict()
 
                 # sanitise illegal path characters
                 info["series_name"] = sanitize(info["series_name"])
@@ -76,9 +77,9 @@ class MDNX_API:
                 continue
 
             # Check for season information.
-            m = self.season_pattern.match(line)
-            if m and current_series_id:
-                info = m.groupdict()
+            match = self.season_pattern.match(line)
+            if match and current_series_id:
+                info = match.groupdict()
                 info["season_name"] = sanitize(info["season_name"])
 
                 # turn Crunchyrolls season number into our own
@@ -94,31 +95,30 @@ class MDNX_API:
 
                 tmp_dict[current_series_id]["seasons"][season_key] = {
                     **info,
-                    "available_subs": [],
                     "episodes": {}
                 }
                 episode_counters[season_key] = 1
                 continue
 
             # Check for subtitles line.
-            m = self.subtitles_pattern.match(line)
-            if m and current_series_id and active_season_key:
-                raw_locales = []
-                for tok in m.group(1).split(','):
-                    raw_locales.append(tok.strip())
-
-                subs_locales = []
-                for loc in raw_locales:
-                    if loc in VALID_LOCALES:
-                        subs_locales.append(loc)
-
-                tmp_dict[current_series_id]["seasons"][active_season_key]["available_subs"] = subs_locales
+            match = self.subtitles_pattern.match(line)
+            if match and current_series_id:
+                # If we are inside a season, store its subtitle list
+                if active_season_key:
+                    subs_locales = []
+                    for raw_locale in match.group(1).split(','):
+                        locale = raw_locale.strip()
+                        if locale in VALID_LOCALES:
+                            subs_locales.append(locale)
+                    season_subs[(current_series_id, active_season_key)] = subs_locales
+                # If we are at series level, ignore the list.
+                # Do not want to store series subtitles, as they are not used.
                 continue
 
             # Check for episode information.
-            m = self.episode_pattern.match(line)
-            if m and current_series_id:
-                ep_info = m.groupdict()
+            match = self.episode_pattern.match(line)
+            if match and current_series_id:
+                ep_info = match.groupdict()
 
                 # skip special episodes (This would include OVAs, "Ex-" episodes, movies (maybe), etc.)
                 if ep_info["ep_type"] == "S":
@@ -145,7 +145,6 @@ class MDNX_API:
                         "season_id": None,
                         "season_name": None,
                         "season_number": str(mapped_num),
-                        "available_subs": [],
                         "episodes": {}
                     }
                     episode_counters[season_key] = 1
@@ -159,7 +158,8 @@ class MDNX_API:
                         if lang in NAME_TO_CODE:
                             dub_codes.append(NAME_TO_CODE[lang])
 
-                subs_locales = tmp_dict[current_series_id]["seasons"][season_key]["available_subs"]
+                # get subtitle list for this season
+                subs_locales = season_subs.get((current_series_id, season_key), [])
 
                 # assign contiguous episode index inside the mapped season
                 idx = episode_counters[season_key]
@@ -206,6 +206,7 @@ class MDNX_API:
                 if new_key != old_key:
                     logger.info(f"[MDNX_API] Renaming season {old_key} to {new_key} in series {series_id}")
                 season_info["season_number"] = str(new_idx)
+                season_info["eps_count"] = str(len(season_info["episodes"]))
                 new_seasons[new_key] = season_info
                 new_idx += 1
 
