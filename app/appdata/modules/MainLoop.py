@@ -6,7 +6,7 @@ import threading
 from .FileHandler import FileHandler
 from .Vars import logger, config
 from .Vars import TEMP_DIR, DATA_DIR
-from .Vars import get_episode_file_path, iter_episodes, log_manager, refresh_queue, probe_streams
+from .Vars import get_episode_file_path, iter_episodes, log_manager, refresh_queue, probe_streams, select_dubs
 
 # Only for syntax highlighting in VSCode - remove in prod
 # from .MDNX_API import MDNX_API
@@ -51,22 +51,11 @@ class MainLoop:
             refresh_queue(self.mdnx_api)
             current_queue = self.mdnx_api.queue_manager.output()
 
-
             # download any missing / not yet downloaded episodes
             logger.info("[MainLoop] Checking for episodes to download.")
             for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(current_queue):
 
-                # Skip special episode keys (for example, if the episode key starts with "S")
-                if episode_key.startswith("S") and config["app"]["DOWNLOAD_SPECIAL_EPISODES"] == False:
-                    logger.info(f"[MainLoop] Skipping special episode {episode_key} because DOWNLOAD_SPECIAL_EPISODES is False.")
-                    continue
-
-                # Skip PV episodes
-                if episode_info["episode_name"].lower().startswith("pv"):
-                    logger.info(f"[MainLoop] Skipping PV episode {episode_key}")
-                    continue
-
-                # Should episode be downloaded logic
+                # Should episode be downloaded?
                 if episode_info["episode_downloaded"]:
                     logger.info(f"[MainLoop] Episode {episode_info['episode_number']} ({episode_info['episode_name']}) 'episode_downloaded' status is True. Skipping download.")
                     continue
@@ -83,7 +72,10 @@ class MainLoop:
                         continue
                     else:
                         logger.info(f"[MainLoop] Episode not found at {file_path} and 'episode_downloaded' status is False. Initiating download.")
-                        download_successful = self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"])
+
+                        dub_override = select_dubs(episode_info)
+
+                        download_successful = self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override)
                         if download_successful:
                             logger.info(f"[MainLoop] Episode downloaded successfully.")
 
@@ -173,9 +165,12 @@ class MainLoop:
                     )
 
                     if skip_download:
+                        logger.info(f"[MainLoop] Skipping download for {os.path.basename(file_path)} as all required dubs and subs are present.")
                         continue
 
-                    if self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"]):
+                    dub_override = select_dubs(episode_info)
+
+                    if self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override):
                         temp_path = os.path.join(TEMP_DIR, config["mdnx"]["cli-defaults"]["fileName"] + ".mkv")
                         if self.file_handler.transfer(temp_path, file_path, overwrite=True):
                             logger.info("[MainLoop] Transfer complete.")
