@@ -51,22 +51,11 @@ class MainLoop:
             refresh_queue(self.mdnx_api)
             current_queue = self.mdnx_api.queue_manager.output()
 
-
             # download any missing / not yet downloaded episodes
             logger.info("[MainLoop] Checking for episodes to download.")
             for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(current_queue):
 
-                # Skip special episode keys (for example, if the episode key starts with "S")
-                if episode_key.startswith("S") and config["app"]["DOWNLOAD_SPECIAL_EPISODES"] == False:
-                    logger.info(f"[MainLoop] Skipping special episode {episode_key} because DOWNLOAD_SPECIAL_EPISODES is False.")
-                    continue
-
-                # Skip PV episodes
-                if episode_info["episode_name"].lower().startswith("pv"):
-                    logger.info(f"[MainLoop] Skipping PV episode {episode_key}")
-                    continue
-
-                # Should episode be downloaded logic
+                # Should episode be downloaded?
                 if episode_info["episode_downloaded"]:
                     logger.info(f"[MainLoop] Episode {episode_info['episode_number']} ({episode_info['episode_name']}) 'episode_downloaded' status is True. Skipping download.")
                     continue
@@ -173,6 +162,7 @@ class MainLoop:
                     )
 
                     if skip_download:
+                        logger.info(f"[MainLoop] Skipping download for {os.path.basename(file_path)} as all required dubs and subs are present.")
                         continue
 
                     if self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"]):

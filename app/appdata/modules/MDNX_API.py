@@ -81,6 +81,8 @@ class MDNX_API:
                 info = m.groupdict()
                 info["season_name"] = sanitize(info["season_name"])
 
+                # turn Crunchyrolls season number into our own
+                # so we dont get S02E13. We would get S02E01.
                 orig_num = int(info["season_number"])
                 if orig_num not in season_num_map:
                     season_num_map[orig_num] = len(season_num_map) + 1
@@ -118,6 +120,14 @@ class MDNX_API:
             if m and current_series_id:
                 ep_info = m.groupdict()
 
+                # skip special episodes (This would include OVAs, "Ex-" episodes, movies (maybe), etc.)
+                if ep_info["ep_type"] == "S":
+                    continue
+
+                # skip PV / trailer episodes
+                if ep_info["full_episode_name"].lstrip().lower().startswith("pv"):
+                    continue
+
                 # find season number in full line
                 season_num = re.search(r'- Season (\d+) -', line)
                 if not season_num:
@@ -129,6 +139,7 @@ class MDNX_API:
                 mapped_num = season_num_map[orig_label]
                 season_key = f"S{mapped_num}"
 
+                # season line was missing, so create an empty season entry
                 if season_key not in tmp_dict[current_series_id]["seasons"]:
                     tmp_dict[current_series_id]["seasons"][season_key] = {
                         "season_id": None,
@@ -139,6 +150,7 @@ class MDNX_API:
                     }
                     episode_counters[season_key] = 1
 
+                # extract dubs that CR can provide for this episode
                 dubs_match = re.search(r'\[([^\]]+)\]\s*$', line)
                 dub_codes = []
                 if dubs_match:
@@ -149,16 +161,12 @@ class MDNX_API:
 
                 subs_locales = tmp_dict[current_series_id]["seasons"][season_key]["available_subs"]
 
-                if ep_info["ep_type"] == "E":
-                    idx = episode_counters[season_key]
-                    ep_key = f"E{idx}"
-                    episode_number_clean = str(idx)
-                    episode_counters[season_key] += 1
-                    episode_number_download = episode_number_clean
-                else:
-                    ep_key = f"S{ep_info['episode_number']}"
-                    episode_number_clean = ep_info["episode_number"]
-                    episode_number_download = f"S{episode_number_clean}"
+                # assign contiguous episode index inside the mapped season
+                idx = episode_counters[season_key]
+                ep_key = f"E{idx}"
+                episode_number_clean = str(idx)
+                episode_counters[season_key] += 1
+                episode_number_download = episode_number_clean
 
                 parts = ep_info["full_episode_name"].rsplit(" - ", 1)
                 if len(parts) > 1:
@@ -176,6 +184,32 @@ class MDNX_API:
                     "episode_downloaded": False
                 }
                 continue
+
+        # Remove seasons that ended up empty and reorder them.
+        # So, if there were 3 seasons, but only S1 and S3 had episodes,
+        # we would end up with S1 and S2, not S1 and S3.
+        for series_id, series_info in tmp_dict.items():
+            seasons = series_info["seasons"]
+
+            kept_seasons = []
+            for key, val in seasons.items():
+                if val["episodes"]: # keep seasons that have at least one episode
+                    kept_seasons.append((key, val))
+
+            # sort kept_seasons by the original season_number (as integers)
+            kept_seasons.sort(key=lambda item: int(item[1]["season_number"]))
+
+            new_seasons = {}
+            new_idx = 1
+            for old_key, season_info in kept_seasons:
+                new_key = f"S{new_idx}"
+                if new_key != old_key:
+                    logger.info(f"[MDNX_API] Renaming season {old_key} to {new_key} in series {series_id}")
+                season_info["season_number"] = str(new_idx)
+                new_seasons[new_key] = season_info
+                new_idx += 1
+
+            series_info["seasons"] = new_seasons
 
         logger.info("[MDNX_API] Console output processed.")
         if add2queue:
