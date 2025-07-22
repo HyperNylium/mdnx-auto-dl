@@ -76,7 +76,8 @@ for vals in LANG_MAP.values():
 
 CODE_TO_LOCALE = {}
 for name, vals in LANG_MAP.items():
-    code, loc = vals[0].lower(), vals[1].lower()
+    code = vals[0].lower()
+    loc = vals[1].lower()
     CODE_TO_LOCALE[code] = loc
 
 # Set up logging
