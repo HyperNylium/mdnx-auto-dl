@@ -39,6 +39,13 @@ class MDNX_API:
             r'-\s*Subtitles:\s*(.+)'
         )
 
+        if os.path.exists("/usr/bin/stdbuf"):
+            self.stdbuf_exists = True
+            logger.info("[MDNX_API] Using stdbuf to ensure live output streaming.")
+        else:
+            self.stdbuf_exists = False
+            logger.info("[MDNX_API] stdbuf not found, using default command without buffering.")
+
         logger.info(f"[MDNX_API] MDNX API initialized with: Path: {mdnx_path} | Service: {mdnx_service}")
 
         # Skip API test if user wants to
@@ -280,15 +287,22 @@ class MDNX_API:
         logger.info(f"[MDNX_API] Updating monitor for series with ID: {series_id} complete.")
         return result.stdout
 
-    def download_episode(self, series_id: str, season_id: str, episode_number: str) -> bool:
+    def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list = None) -> bool:
         logger.info(f"[MDNX_API] Downloading episode {episode_number} for series {series_id} season {season_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id, "-s", season_id, "-e", episode_number]
-        if os.path.exists("/usr/bin/stdbuf"):
-            logger.info("[MDNX_API] Using stdbuf to ensure live output streaming.")
+
+        if dub_override is False:
+            logger.info("[MDNX_API] No dubs were found for this episode, skipping download.")
+            return False
+
+        if dub_override:
+            tmp_cmd += ["--dubLang", *dub_override]
+            logger.info(f"[MDNX_API] Using dubLang override: {' '.join(dub_override)}")
+
+        if self.stdbuf_exists:
             cmd = ["stdbuf", "-oL", "-eL", *tmp_cmd]
         else:
-            logger.info("[MDNX_API] stdbuf not found, using default command without buffering.")
             cmd = tmp_cmd
 
         logger.info(f"[MDNX_API] Executing command: {' '.join(cmd)}")
