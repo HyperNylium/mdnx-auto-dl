@@ -136,7 +136,7 @@ These are planned to later become variables you can put into the `docker-compose
 }
 ```
 
-5. Put in your Crunchyroll username and password into the following key-value pairs in `config.json`. You will be putting then in the `""` quotes. \
+5. Put in your Crunchyroll username and password into the following key-value pairs in `config.json`. You will be putting then in the `""` quotes.
 ```
 CR_USERNAME
 CR_PASSWORD
