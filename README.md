@@ -74,8 +74,6 @@ nano config.json
 And paste in the following. These are defaults. Feel free to change what you like. \
 All settings under "mdnx" refer to that services settings. \
 For example, the key-vaule pairs under "bin-path" will modify multi-download-nx's `bin-path.yml` file. \
-In `app`, things are a little different. Anything that is by itself, for example, `TEMP_DIR` are global variables (all modules can use said variable).\
-Anything that has a module name before it, for example, `MDNX_API_FORCE_REAUTH`, will modify the `FORCE_REAUTH` option for the `MDNX_API.py` module. \
 These are planned to later become variables you can put into the `docker-compose.yaml` environment section. But thats in the future, not right now :)
 ```json
 {
