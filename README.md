@@ -87,6 +87,7 @@ These are planned to later become variables you can put into the `docker-compose
         "DATA_DIR": "/data",
         "CR_USERNAME": "",
         "CR_PASSWORD": "",
+        "BACKUP_DUBS": ["zho"],
         "FOLDER_STRUCTURE": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
         "DOWNLOAD_SPECIAL_EPISODES": false,
         "SPECIAL_EPISODES_FOLDER_NAME": "Special",
@@ -135,7 +136,7 @@ These are planned to later become variables you can put into the `docker-compose
 }
 ```
 
-5. Put in your Crunchyroll username and password into the following key-value pairs in `config.json`. You will be putting then in the `""` quotes. \
+5. Put in your Crunchyroll username and password into the following key-value pairs in `config.json`. You will be putting then in the `""` quotes.
 ```
 CR_USERNAME
 CR_PASSWORD
@@ -189,6 +190,7 @@ If you have any questions, please open an issue and i will try to help you :)
 | `DATA_DIR`                         | `/data`                                                                       | Root of your anime library on the host. Finished files are organized here according to `FOLDER_STRUCTURE`.     |
 | `CR_USERNAME`                      | `""`                                                                          | Crunchyroll username for authentication.                                                                       |
 | `CR_PASSWORD`                      | `""`                                                                          | Crunchyroll password for authentication.                                                                       |
+| `BACKUP_DUBS`                      | `["zho"]`                                                                     | List of backup dubs to download if the primary dubs are not available.                                         |
 | `FOLDER_STRUCTURE`                 | `${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}`| Template for how seasons and episodes are laid out under `DATA_DIR`.                                           |
 | `DOWNLOAD_SPECIAL_EPISODES`        | `false`                                                                       | If `true`, download special episodes (e.g. `S00EXX`, movies); if `false`, ignore them.                         |
 | `SPECIAL_EPISODES_FOLDER_NAME`     | `Special`                                                                     | Folder name (inside each series) that stores special episodes.                                                 |

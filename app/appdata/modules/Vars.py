@@ -76,7 +76,8 @@ for vals in LANG_MAP.values():
 
 CODE_TO_LOCALE = {}
 for name, vals in LANG_MAP.items():
-    code, loc = vals[0].lower(), vals[1].lower()
+    code = vals[0].lower()
+    loc = vals[1].lower()
     CODE_TO_LOCALE[code] = loc
 
 # Set up logging
@@ -101,6 +102,37 @@ def handle_exception(exc_type, exc_value, exc_traceback):
         return
 
     logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+def select_dubs(episode_info: dict):
+    desired_dubs = set()
+    for lang in config["mdnx"]["cli-defaults"]["dubLang"]:
+        desired_dubs.add(lang)
+
+    backup_dubs = set()
+    for lang in config["app"]["BACKUP_DUBS"]:
+        backup_dubs.add(lang)
+
+    available_dubs = set()
+    for dub in episode_info["available_dubs"]:
+        available_dubs.add(dub)
+
+    # If desired dub is available, use the default already present.
+    if desired_dubs & available_dubs:
+        return None
+
+    # If backups are available but not the desired dubs, override with that intersection.
+    if backup_dubs & available_dubs:
+        return list(backup_dubs & available_dubs)
+
+    # Otherwise fall back to the alphabetically first available dub.
+    if available_dubs:
+        first_dub = next(iter(sorted(available_dubs)))
+        return [first_dub]
+
+    # No dubs at all, which is unexpected tbh.
+    # But, you never know with Crunchyroll...
+    # Will skip the episode.
+    return False
 
 def probe_streams(file_path: str, timeout: int):
     cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", file_path]
