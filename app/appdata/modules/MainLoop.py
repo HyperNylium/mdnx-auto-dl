@@ -14,9 +14,10 @@ from .Vars import get_episode_file_path, iter_episodes, log_manager, refresh_que
 
 
 class MainLoop:
-    # def __init__(self, mdnx_api: MDNX_API, config=config) -> None:
-    def __init__(self, mdnx_api, config=config) -> None:
+    # def __init__(self, mdnx_api: MDNX_API, notifier, config=config) -> None:
+    def __init__(self, mdnx_api, notifier, config=config) -> None:
         self.mdnx_api = mdnx_api
+        self.notifier = notifier
         self.config = config
         self.timeout = int(config["app"]["CHECK_FOR_UPDATES_INTERVAL"])
         self.mainloop_iter = 0
@@ -84,10 +85,12 @@ class MainLoop:
                             if self.file_handler.transfer(temp_path, file_path):
                                 logger.info("[MainLoop] Transfer complete.")
                                 self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
+                                if self.notifier is not None:
+                                    logger.info("[MainLoop] Notifying user of successful download.")
+                                    self.notifier.notify(subject="New episode downloaded!", message=f"Episode {episode_info['episode_number']} of {season_info['season_name']} ({episode_info['episode_name']}) downloaded successfully.")
                             else:
                                 logger.error("[MainLoop] Transfer failed.")
                                 self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
-
                         else:
                             logger.error(f"[MainLoop] Episode download failed for {series_id} season {season_key} - {episode_key}.")
                             self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
@@ -174,6 +177,9 @@ class MainLoop:
                         temp_path = os.path.join(TEMP_DIR, config["mdnx"]["cli-defaults"]["fileName"] + ".mkv")
                         if self.file_handler.transfer(temp_path, file_path, overwrite=True):
                             logger.info("[MainLoop] Transfer complete.")
+                            if self.notifier is not None:
+                                logger.info("[MainLoop] Notifying user of successful download.")
+                                self.notifier.notify(subject="New dub/sub downloaded!", message=f"Episode {episode_info['episode_number']} of {season_info['season_name']} ({episode_info['episode_name']}) had a new dub/sub which was downloaded successfully.")
                         else:
                             logger.info("[MainLoop] Transfer failed")
                     else:
