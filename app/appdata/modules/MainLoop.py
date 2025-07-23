@@ -87,11 +87,10 @@ class MainLoop:
                                 self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
                                 if self.notifier is not None:
                                     logger.info("[MainLoop] Notifying user of successful download.")
-                                    self.notifier.notify(f"Episode {episode_info['episode_number']} of {season_info['season_name']} ({episode_info['episode_name']}) downloaded successfully.")
+                                    self.notifier.notify(subject="New episode downloaded!", message=f"Episode {episode_info['episode_number']} of {season_info['season_name']} ({episode_info['episode_name']}) downloaded successfully.")
                             else:
                                 logger.error("[MainLoop] Transfer failed.")
                                 self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
-
                         else:
                             logger.error(f"[MainLoop] Episode download failed for {series_id} season {season_key} - {episode_key}.")
                             self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
@@ -180,7 +179,7 @@ class MainLoop:
                             logger.info("[MainLoop] Transfer complete.")
                             if self.notifier is not None:
                                 logger.info("[MainLoop] Notifying user of successful download.")
-                                self.notifier.notify(f"Episode {episode_info['episode_number']} of {season_info['season_name']} ({episode_info['episode_name']}) downloaded successfully.")
+                                self.notifier.notify(subject="New dub/sub downloaded!", message=f"Episode {episode_info['episode_number']} of {season_info['season_name']} ({episode_info['episode_name']}) had a new dub/sub which was downloaded successfully.")
                         else:
                             logger.info("[MainLoop] Transfer failed")
                     else:
