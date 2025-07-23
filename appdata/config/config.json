@@ -16,7 +16,8 @@
         "CHECK_FOR_UPDATES_INTERVAL": 3600,
         "BETWEEN_EPISODE_DL_WAIT_INTERVAL": 30,
         "CR_FORCE_REAUTH": false,
-        "CR_SKIP_API_TEST": false
+        "CR_SKIP_API_TEST": false,
+        "NOTIFICATION_PREFERENCE": "none"
     },
     "mdnx": {
         "bin-path": {

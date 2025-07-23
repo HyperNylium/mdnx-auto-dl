@@ -57,6 +57,15 @@ if [ "$IS_LINUX" = true ]; then
     chmod -R 775 /app
 fi
 
+NTFY_SCRIPT_PATH="$(jq -er '.app.NTFY_SCRIPT_PATH // ""' "$CONFIG_FILE")"
+
+if [[ -n "$NTFY_SCRIPT_PATH" && -f "$NTFY_SCRIPT_PATH" ]]; then
+  echo "[entrypoint] Found ntfy script at $NTFY_SCRIPT_PATH. Making it executable..."
+  chmod +x "$NTFY_SCRIPT_PATH"
+else
+  echo "[entrypoint] No ntfy script at $NTFY_SCRIPT_PATH. Skipping chmod."
+fi
+
 # Run as non-root user
 echo "[entrypoint] Starting app.py as $USER_ID:$GROUP_ID"
 exec gosu "$USER_ID:$GROUP_ID" bash -c "python /app/app.py"
