@@ -1,5 +1,8 @@
 
 import subprocess
+import smtplib
+
+# Custom imports
 from .Vars import logger, config
 
 
@@ -17,33 +20,26 @@ class ntfy:
             return False
         return True
 
+class SMTP:
+    def __init__(self):
+        self.SMTP_FROM = config["app"]["SMTP_FROM"]
+        self.SMTP_TO = config["app"]["SMTP_TO"]
+        self.SMTP_HOST = config["app"]["SMTP_HOST"]
+        self.SMTP_USERNAME = config["app"]["SMTP_USERNAME"]
+        self.SMTP_PASSWORD = config["app"]["SMTP_PASSWORD"]
+        self.SMTP_PORT = config["app"]["SMTP_PORT"]
+        self.SMTP_TLS = config["app"]["SMTP_TLS"]
 
-
-
-
-
-
-
-# import smtplib
-# class Notification:
-#     def __init__(self, email, password, smtp_server, smtp_port, smtp_tls=True, smtp_ssl=False):
-#         self.email = email
-#         self.password = password
-#         self.smtp_server = smtp_server
-#         self.smtp_port = smtp_port
-#         self.smtp_tls = smtp_tls
-#         self.smtp_ssl = smtp_ssl
-    
-#     def send_email(self, to, subject, body):
-#         try:
-#             server = smtplib.SMTP(self.smtp_server, self.smtp_port)
-#             if self.smtp_tls:
-#                 server.starttls()
-#             if self.smtp_ssl:
-#                 server.login(self.email, self.password)
-#             server.sendmail(self.email, to, f"Subject: {subject}\n\n{body}")
-#             server.quit()
-#         except Exception as e:
-#             logger.info(f"[Notification] Error sending email: {e}")
-#             return False
-#         return True
+    def notify(self, body):
+        try:
+            print(f"[Notification][SMTP] Sending email notification to {self.SMTP_TO}...")
+            server = smtplib.SMTP(self.SMTP_HOST, self.SMTP_PORT)
+            if self.SMTP_TLS:
+                server.starttls()
+            server.login(self.SMTP_USERNAME, self.SMTP_PASSWORD)
+            server.sendmail(self.SMTP_FROM, self.SMTP_TO, f"Subject: New episode downloaded!\n\n{body}")
+            server.quit()
+        except Exception as e:
+            print(f"[Notification][SMTP] Error sending email: {e}")
+            return False
+        return True
