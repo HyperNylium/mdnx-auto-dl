@@ -94,7 +94,8 @@ These are planned to later become variables you can put into the `docker-compose
         "CHECK_FOR_UPDATES_INTERVAL": 3600,
         "BETWEEN_EPISODE_DL_WAIT_INTERVAL": 30,
         "CR_FORCE_REAUTH": false,
-        "CR_SKIP_API_TEST": false
+        "CR_SKIP_API_TEST": false,
+        "NOTIFICATION_PREFERENCE": "none"
     },
     "mdnx": {
         "bin-path": {
@@ -198,6 +199,7 @@ If you have any questions, please open an issue and i will try to help you :)
 | `BETWEEN_EPISODE_DL_WAIT_INTERVAL` | `30`                                                                          | Delay in seconds after each episode download to reduce API rate‑limiting.                                      |
 | `CR_FORCE_REAUTH`                  | `false`                                                                       | When `true`, always perform a fresh Crunchyroll login and overwrite `cr_token.yml`, then reset to `false`.     |
 | `CR_SKIP_API_TEST`                 | `false`                                                                       | When `true`, skip the startup self‑test that probes the Crunchyroll API.                                       |
+| `NOTIFICATION_PREFERENCE`          | `none`                                                                        | Set what service you want to use to receive notifications. Options: `none`, `smtp`,`ntfy`.                     |
 
 
 Options for `FOLDER_STRUCTURE`  
@@ -219,6 +221,34 @@ This would result in the following folder structure:
 Kaiju No. 8/S1/Kaiju No. 8 - S01E01
 ```
 
+Options for `NOTIFICATION_PREFERENCE`
+| Option | Explanation |
+| :----- | :---------- |
+| `none` | No notifications will be sent. |
+| `smtp` | Send notifications via SMTP email. Requires additional configuration in `config.json`.
+| `ntfy` | Send notifications via ntfy.sh. Requires additional configuration in `config.json` and `app/appdata/config/ntfy.sh` |
+
+For `smtp`, the the following key-value pairs to `config.json` right under the `NOTIFICATION_PREFERENCE` key:
+```json
+"NOTIFICATION_PREFERENCE": "smtp",
+"SMTP_FROM": "who we sending as?",
+"SMTP_TO": "who we sending to?",
+"SMTP_HOST": "smtp.gmail.com, or whatever your email provider is",
+"SMTP_USERNAME": "your username. For gmail, this is your email address",
+"SMTP_PASSWORD": "your password. For gmail, this is your app password",
+"SMTP_PORT": 587,
+"SMTP_STARTTLS": true
+```
+
+For `ntfy`, the following key-value pairs to `config.json` right under the `NOTIFICATION_PREFERENCE` key:
+```json
+"NOTIFICATION_PREFERENCE": "ntfy",
+"NTFY_SCRIPT_PATH": "/app/appdata/config/ntfy.sh"
+```
+Make sure to set `NTFY_URL` in `app/appdata/config/ntfy.sh` to the URL of your ntfy server. \
+To modify things like tags and such, you can modify the `ntfy.sh` script.
+
+
 # Future plans
 I plan to add the following features after i get the basics working:
 - [ ] Somehow transcode the .mkv files from what they are to HEVC, or something else. Currently, every episode is ~1.2 - 1.5GB with movies being +6GB.
@@ -234,6 +264,8 @@ I plan to add the following features after i get the basics working:
 - [ ] When downloading the episode is finished and `file_handler.transfer()` is called. Instead of just naming the file S01E01 or whatever i was able to guess from multi-download-nx's output, i would like to somehow get episode details from TheTVDB. The importence of this is not really the individual episode names, but more the episode codes. If we download a special episode, which then gets moved to `Specials/S00E01`, how do we know its actually `S00E01` and not `S00E03`? Plex may show the wrong metadata or not show the episode at all. Thats what i aim to solve with TheTVDB API searches. This would only really benefit special episodes and anime that has weird season naming. An example of that is the duke of death and his maid. Some DBs say it has 1 season, but CR says it has 3 season, each season having 12 episodes. Hopfully i can cook something up in the future to help with this episode naming stuff haha.
 
 - [x] Add dependencies in the container itself, no downloading from my webserver.
+
+- [x] Add notification support for at least SMTP. (done as of 0.0.9)
 
 # Acknowledgments
 **This project would not be possible without the following third-party tools/packages:**
