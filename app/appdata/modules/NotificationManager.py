@@ -11,10 +11,10 @@ class ntfy:
     def __init__(self):
         self.ntfy_script_path = config["app"]["NTFY_SCRIPT_PATH"]
 
-    def notify(self, message):
+    def notify(self, subject, message):
         try:
-            logger.info(f"[Notification][ntfy] Sending notification: {message}")
-            subprocess.run([self.ntfy_script_path, message], check=True)
+            logger.info(f"[Notification][ntfy] Sending ntfy notification...")
+            subprocess.run([self.ntfy_script_path, subject, message], check=True)
         except Exception as e:
             logger.info(f"[Notification][ntfy] Error sending notification: {e}")
             return False
@@ -28,16 +28,16 @@ class SMTP:
         self.SMTP_USERNAME = config["app"]["SMTP_USERNAME"]
         self.SMTP_PASSWORD = config["app"]["SMTP_PASSWORD"]
         self.SMTP_PORT = config["app"]["SMTP_PORT"]
-        self.SMTP_TLS = config["app"]["SMTP_TLS"]
+        self.SMTP_STARTTLS = config["app"]["SMTP_STARTTLS"]
 
-    def notify(self, body):
+    def notify(self, subject, message):
         try:
             print(f"[Notification][SMTP] Sending email notification to {self.SMTP_TO}...")
             server = smtplib.SMTP(self.SMTP_HOST, self.SMTP_PORT)
-            if self.SMTP_TLS:
+            if self.SMTP_STARTTLS:
                 server.starttls()
             server.login(self.SMTP_USERNAME, self.SMTP_PASSWORD)
-            server.sendmail(self.SMTP_FROM, self.SMTP_TO, f"Subject: New episode downloaded!\n\n{body}")
+            server.sendmail(self.SMTP_FROM, self.SMTP_TO, f"Subject: {subject}\n\n{message}")
             server.quit()
         except Exception as e:
             print(f"[Notification][SMTP] Error sending email: {e}")
