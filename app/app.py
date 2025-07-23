@@ -41,7 +41,7 @@ def app():
         notifier = ntfy()
     elif config["app"]["NOTIFICATION_PREFERENCE"] == "smtp":
         logger.info("[app] User prefers SMTP notifications. Configuring SMTP settings...")
-        if not all(key in config["app"] for key in ["SMTP_FROM", "SMTP_TO", "SMTP_HOST", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_PORT", "SMTP_TLS"]):
+        if not all(key in config["app"] for key in ["SMTP_FROM", "SMTP_TO", "SMTP_HOST", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_PORT", "SMTP_STARTTLS"]):
             logger.error("[app] Missing SMTP configuration parameters. Please check your configuration.")
             sys.exit(1)
         notifier = SMTP()
