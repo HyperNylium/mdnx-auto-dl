@@ -228,7 +228,7 @@ Options for `NOTIFICATION_PREFERENCE`
 | `smtp` | Send notifications via SMTP email. Requires additional configuration in `config.json`.
 | `ntfy` | Send notifications via ntfy.sh. Requires additional configuration in `config.json` and `app/appdata/config/ntfy.sh` |
 
-For `smtp`, the the following key-value pairs to `config.json` right under the `NOTIFICATION_PREFERENCE` key:
+For `smtp`, add the the following key-value pairs to `config.json` right under the `NOTIFICATION_PREFERENCE` key:
 ```json
 "NOTIFICATION_PREFERENCE": "smtp",
 "SMTP_FROM": "who we sending as?",
