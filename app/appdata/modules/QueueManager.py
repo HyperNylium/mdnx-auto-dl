@@ -15,10 +15,10 @@ class QueueManager:
     def load_queue(self) -> dict:
         if os.path.exists(self.queue_path):
             try:
-                logger.info(f"[QueueManager] Loading queue from {self.queue_path}.")
+                logger.debug(f"[QueueManager] Loading queue from {self.queue_path}.")
                 with open(self.queue_path, "r", encoding="utf-8") as data:
                     queue_data = json.load(data)
-                    logger.info(f"[QueueManager] Queue loaded from {self.queue_path}.")
+                    logger.debug(f"[QueueManager] Queue loaded from {self.queue_path}.")
                     return queue_data
             except json.JSONDecodeError:
                 logger.error("[QueueManager] Malformed JSON in queue file. Starting with an empty queue.")
@@ -34,13 +34,13 @@ class QueueManager:
         return {}
 
     def save_queue(self) -> None:
-        logger.info("[QueueManager] Saving queue.")
+        logger.debug("[QueueManager] Saving queue.")
         with open(self.queue_path, "w", encoding="utf-8") as f:
             json.dump(self.queue_data, f, indent=4, ensure_ascii=False)
-        logger.info(f"[QueueManager] Queue saved to {self.queue_path}.")
+        logger.debug(f"[QueueManager] Queue saved to {self.queue_path}.")
 
     def add(self, new_data: dict):
-        logger.info("[QueueManager] Adding series to the queue.")
+        logger.debug("[QueueManager] Adding series to the queue.")
         for series_id, series_info in new_data.items():
             if series_id not in self.queue_data:
                 # new series just gets copied and makes sure every ep has the flag
@@ -78,7 +78,7 @@ class QueueManager:
         self.save_queue()
 
     def remove(self, series_id: str) -> None:
-        logger.info(f"[QueueManager] Removing series {series_id} from the queue.")
+        logger.debug(f"[QueueManager] Removing series {series_id} from the queue.")
         if series_id in self.queue_data:
             del self.queue_data[series_id]
             self.save_queue()
