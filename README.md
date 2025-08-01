@@ -1,10 +1,5 @@
 # MDNX-auto-dl
 
-## Note (8/1/2025)
-I am aware a new version of multi-download-nx (5.4.10) is released. \
-I am going to be updating that, as well as some other bug fixes over the weekend. \
-Just wanted to give a heads up :)
-
 ## Legal Warning
 This application is not endorsed by or affiliated with Crunchyroll, Hidive, AnimeOnegai, or AnimationDigitalNetwork. This application enables you to download videos for offline viewing which may be forbidden by law in your country. The usage of this application may also cause a violation of the Terms of Service between you and the stream provider. This tool is not responsible for your actions; please make an informed decision before using this application.
 
