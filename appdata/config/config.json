@@ -48,7 +48,9 @@
             "nocleanup": false,
             "dlVideoOnce": false,
             "keepAllVideos": false,
-            "skipUpdate": true
+            "skipUpdate": true,
+            "vstream": "samsungtv",
+            "astream": "android"
         },
         "dir-path": {
             "content": "/app/appdata/temp",
