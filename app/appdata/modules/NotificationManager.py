@@ -1,4 +1,5 @@
 
+from email.message import EmailMessage
 import subprocess
 import smtplib
 
@@ -33,13 +34,20 @@ class SMTP:
     def notify(self, subject, message):
         try:
             logger.info(f"[Notification][SMTP] Sending email notification to {self.SMTP_TO}...")
-            server = smtplib.SMTP(self.SMTP_HOST, self.SMTP_PORT)
-            if self.SMTP_STARTTLS:
-                server.starttls()
-            server.login(self.SMTP_USERNAME, self.SMTP_PASSWORD)
-            server.sendmail(self.SMTP_FROM, self.SMTP_TO, f"Subject: {subject}\n\n{message}")
-            server.quit()
+            msg = EmailMessage()
+            msg["Subject"] = subject
+            msg["From"] = self.SMTP_FROM
+            msg["To"] = self.SMTP_TO
+            msg.set_content(message, charset="utf-8")
+
+            with smtplib.SMTP(self.SMTP_HOST, self.SMTP_PORT) as server:
+                if self.SMTP_STARTTLS:
+                    server.starttls()
+                server.login(self.SMTP_USERNAME, self.SMTP_PASSWORD)
+                server.send_message(msg)
+
         except Exception as e:
-            logger.info(f"[Notification][SMTP] Error sending email: {e}")
+            logger.error(f"[Notification][SMTP] Error sending email: {e}")
             return False
+
         return True
