@@ -8,13 +8,9 @@ from .Vars import logger, config
 from .Vars import TEMP_DIR, DATA_DIR
 from .Vars import get_episode_file_path, iter_episodes, log_manager, refresh_queue, probe_streams, select_dubs
 
-# Only for syntax highlighting in VSCode - remove in prod
-# from .MDNX_API import MDNX_API
-
 
 
 class MainLoop:
-    # def __init__(self, mdnx_api: MDNX_API, notifier, config=config) -> None:
     def __init__(self, mdnx_api, notifier, config=config) -> None:
         self.mdnx_api = mdnx_api
         self.notifier = notifier
@@ -22,7 +18,7 @@ class MainLoop:
         self.timeout = int(config["app"]["CHECK_FOR_UPDATES_INTERVAL"])
         self.mainloop_iter = 0
 
-        logger.info(f"[MainLoop] MainLoop initialized.")
+        logger.debug(f"[MainLoop] MainLoop initialized.")
 
         # Initialize FileHandler
         self.file_handler = FileHandler()
@@ -48,7 +44,7 @@ class MainLoop:
 
     def mainloop(self) -> None:
         while not self.stop_event.is_set():
-            logger.info("[MainLoop] Executing main loop task.")
+            logger.debug("[MainLoop] Executing main loop task.")
             refresh_queue(self.mdnx_api)
             current_queue = self.mdnx_api.queue_manager.output()
 
@@ -201,8 +197,6 @@ class MainLoop:
                 log_manager()
                 logger.info("[MainLoop] Truncated log file.")
                 self.mainloop_iter = 0
-
-            logger.info(f"[MainLoop] Task executed at: {time.ctime()}")
 
             # Wait for self.timeout seconds or exit early if stop_event is set.
             if self.stop_event.wait(timeout=self.timeout):

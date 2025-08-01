@@ -41,10 +41,10 @@ class MDNX_API:
 
         if os.path.exists("/usr/bin/stdbuf"):
             self.stdbuf_exists = True
-            logger.info("[MDNX_API] Using stdbuf to ensure live output streaming.")
+            logger.debug("[MDNX_API] Using stdbuf to ensure live output streaming.")
         else:
             self.stdbuf_exists = False
-            logger.info("[MDNX_API] stdbuf not found, using default command without buffering.")
+            logger.debug("[MDNX_API] stdbuf not found, using default command without buffering.")
 
         logger.info(f"[MDNX_API] MDNX API initialized with: Path: {mdnx_path} | Service: {mdnx_service}")
 
@@ -55,7 +55,7 @@ class MDNX_API:
             logger.info("[MDNX_API] API test skipped by user.")
 
     def process_console_output(self, output: str, add2queue: bool = True):
-        logger.info("[MDNX_API] Processing console output...")
+        logger.debug("[MDNX_API] Processing console output...")
         tmp_dict = {}
         episode_counters = {} # maps season key ("S1", "S2", etc) to episode counter
         season_num_map = {}
@@ -219,7 +219,7 @@ class MDNX_API:
 
             series_info["seasons"] = new_seasons
 
-        logger.info("[MDNX_API] Console output processed.")
+        logger.debug("[MDNX_API] Console output processed.")
         if add2queue:
             self.queue_manager.add(tmp_dict)
         return tmp_dict
@@ -292,13 +292,12 @@ class MDNX_API:
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id, "-s", season_id, "-e", episode_number]
 
-        if dub_override is False:
-            logger.info("[MDNX_API] No dubs were found for this episode, skipping download.")
-            return False
-
-        if dub_override:
+        if dub_override is not False:
             tmp_cmd += ["--dubLang", *dub_override]
             logger.info(f"[MDNX_API] Using dubLang override: {' '.join(dub_override)}")
+        else:
+            logger.info("[MDNX_API] No dubs were found for this episode, skipping download.")
+            return False
 
         if self.stdbuf_exists:
             cmd = ["stdbuf", "-oL", "-eL", *tmp_cmd]
@@ -311,7 +310,7 @@ class MDNX_API:
         with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
             for line in proc.stdout:
                 cleaned = line.rstrip()
-                logger.info(f"[MDNX_API][multidownload-nx] {cleaned}")
+                logger.info(f"[MDNX_API][multi-download-nx] {cleaned}")
 
                 if "[mkvmerge Done]" in cleaned:
                     success = True

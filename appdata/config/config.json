@@ -17,7 +17,8 @@
         "BETWEEN_EPISODE_DL_WAIT_INTERVAL": 30,
         "CR_FORCE_REAUTH": false,
         "CR_SKIP_API_TEST": false,
-        "NOTIFICATION_PREFERENCE": "none"
+        "NOTIFICATION_PREFERENCE": "none",
+        "LOG_LEVEL": "info"
     },
     "mdnx": {
         "bin-path": {
