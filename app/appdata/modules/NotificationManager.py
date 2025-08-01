@@ -32,7 +32,7 @@ class SMTP:
 
     def notify(self, subject, message):
         try:
-            print(f"[Notification][SMTP] Sending email notification to {self.SMTP_TO}...")
+            logger.info(f"[Notification][SMTP] Sending email notification to {self.SMTP_TO}...")
             server = smtplib.SMTP(self.SMTP_HOST, self.SMTP_PORT)
             if self.SMTP_STARTTLS:
                 server.starttls()
@@ -40,6 +40,6 @@ class SMTP:
             server.sendmail(self.SMTP_FROM, self.SMTP_TO, f"Subject: {subject}\n\n{message}")
             server.quit()
         except Exception as e:
-            print(f"[Notification][SMTP] Error sending email: {e}")
+            logger.info(f"[Notification][SMTP] Error sending email: {e}")
             return False
         return True
