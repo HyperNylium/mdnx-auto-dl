@@ -7,6 +7,8 @@ from .Vars import logger
 from .Vars import TEMP_DIR, DATA_DIR
 from .Vars import sanitize
 
+
+
 class FileHandler:
     def __init__(self):
         self.source = TEMP_DIR
