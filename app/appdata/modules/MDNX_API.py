@@ -54,6 +54,12 @@ class MDNX_API:
         else:
             logger.info("[MDNX_API] API test skipped by user.")
 
+        # Set --tsd param if user wants to
+        self.REMOVE_ALL_ACTIVE_STREAMS = False
+        if config["app"]["REMOVE_ALL_ACTIVE_STREAMS"] == True:
+            self.REMOVE_ALL_ACTIVE_STREAMS = True
+            logger.info("[MDNX_API] User requested to remove all active streams when downloading. Setting --tsd parameter to true.")
+
     def process_console_output(self, output: str, add2queue: bool = True):
         logger.debug("[MDNX_API] Processing console output...")
         tmp_dict = {}
@@ -299,6 +305,9 @@ class MDNX_API:
         if dub_override:
             tmp_cmd += ["--dubLang", *dub_override]
             logger.info(f"[MDNX_API] Using dubLang override: {' '.join(dub_override)}")
+
+        if self.REMOVE_ALL_ACTIVE_STREAMS:
+            tmp_cmd += ["--tsd", "true"]
 
         if self.stdbuf_exists:
             cmd = ["stdbuf", "-oL", "-eL", *tmp_cmd]
