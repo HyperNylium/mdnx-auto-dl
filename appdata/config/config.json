@@ -18,6 +18,7 @@
         "CR_FORCE_REAUTH": false,
         "CR_SKIP_API_TEST": false,
         "NOTIFICATION_PREFERENCE": "none",
+        "REMOVE_ALL_ACTIVE_STREAMS": false,
         "LOG_LEVEL": "info"
     },
     "mdnx": {
