@@ -7,6 +7,8 @@ from .Vars import logger
 from .Vars import TEMP_DIR, DATA_DIR
 from .Vars import sanitize
 
+
+
 class FileHandler:
     def __init__(self):
         self.source = TEMP_DIR
@@ -49,7 +51,7 @@ class FileHandler:
 
         try:
             os.makedirs(parent, exist_ok=True)
-            logger.info(f"[FileHandler] Ensured directory exists: {parent}")
+            logger.debug(f"[FileHandler] Ensured directory exists: {parent}")
         except Exception as e:
             logger.error(f"[FileHandler] Could not create directory {parent}: {e}")
             return False
@@ -88,20 +90,28 @@ class FileHandler:
 
             if size == lastSize:
                 stableTime += self.readyCheckInterval
+                logger.debug(f"[FileHandler] Size unchanged for {stableTime} seconds (size={size} bytes)")
                 if stableTime >= self.readyStableSeconds:
+                    logger.debug(f"[FileHandler] File '{path}' deemed ready after {stableTime} seconds of stability.")
                     return True
             else:
+                logger.debug(f"[FileHandler] Size changed: {lastSize} → {size} bytes")
                 stableTime = 0
                 lastSize = size
 
             time.sleep(self.readyCheckInterval)
+        logger.warning(f"[FileHandler] File '{path}' not ready within {self.readyTimeout} seconds timeout.")
         return False
 
     def remove_temp_files(self):
         for name in os.listdir(self.source):
             path = os.path.join(self.source, name)
+            logger.debug(f"[FileHandler] removing {path}")
             try:
                 os.remove(path)
-                logger.info(f"[FileHandler] Removed {path}")
+                logger.debug(f"[FileHandler] Removed {path}")
             except Exception as e:
                 logger.error(f"[FileHandler] Error removing {path}: {e}")
+
+        logger.info(f"[FileHandler] Temporary files in {self.source} removed.")
+        return True
