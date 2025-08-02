@@ -12,17 +12,6 @@ This application only supports downloads from Crunchyroll at the moment even tho
 ```yaml
 services:
   mdnx-auto-dl:
-    ### Build image locally if you want.
-    ### Requires all files from repo to be present.
-    ### run "git clone https://github.com/HyperNylium/mdnx-auto-dl.git && cd mdnx-auto-dl" to get started
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile
-
-    ### Use local image if you manually ran "docker build -t mdnx-auto-dl:latest ."
-    # image: mdnx-auto-dl:latest
-
-    ### Use public image (recommended).
     image: ghcr.io/hypernylium/mdnx-auto-dl:latest
     container_name: mdnx-auto-dl
     restart: unless-stopped
@@ -95,7 +84,8 @@ These are planned to later become variables you can put into the `docker-compose
         "BETWEEN_EPISODE_DL_WAIT_INTERVAL": 30,
         "CR_FORCE_REAUTH": false,
         "CR_SKIP_API_TEST": false,
-        "NOTIFICATION_PREFERENCE": "none"
+        "NOTIFICATION_PREFERENCE": "none",
+        "LOG_LEVEL": "info"
     },
     "mdnx": {
         "bin-path": {
@@ -125,7 +115,9 @@ These are planned to later become variables you can put into the `docker-compose
             "nocleanup": false,
             "dlVideoOnce": false,
             "keepAllVideos": false,
-            "skipUpdate": true
+            "skipUpdate": true,
+            "vstream": "samsungtv",
+            "astream": "android"
         },
         "dir-path": {
             "content": "/app/appdata/temp",
@@ -200,6 +192,7 @@ If you have any questions, please open an issue and i will try to help you :)
 | `CR_FORCE_REAUTH`                  | `false`                                                                       | When `true`, always perform a fresh Crunchyroll login and overwrite `cr_token.yml`, then reset to `false`.     |
 | `CR_SKIP_API_TEST`                 | `false`                                                                       | When `true`, skip the startup self‑test that probes the Crunchyroll API.                                       |
 | `NOTIFICATION_PREFERENCE`          | `none`                                                                        | Set what service you want to use to receive notifications. Options: `none`, `smtp`,`ntfy`.                     |
+| `LOG_LEVEL`                        | `info`                                                                        | Set the logging level. Options: `debug`, `info`, `warning`, `error`, `critical`.                               |
 
 
 Options for `FOLDER_STRUCTURE`  
