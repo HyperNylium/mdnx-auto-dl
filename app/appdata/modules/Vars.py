@@ -81,8 +81,17 @@ for name, vals in LANG_MAP.items():
     CODE_TO_LOCALE[code] = loc
 
 # Set up logging
+LEVEL_MAP = {
+    "CRITICAL": logging.CRITICAL,
+    "ERROR": logging.ERROR,
+    "WARNING": logging.WARNING,
+    "INFO": logging.INFO,
+    "DEBUG": logging.DEBUG,
+}
+LOG_LEVEL = LEVEL_MAP.get(config["app"]["LOG_LEVEL"].upper(), "INFO")
+
 logging.basicConfig(
-    level=logging.INFO,
+    level=LOG_LEVEL,
     format='[%(asctime)s] %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
     handlers=[

@@ -41,10 +41,10 @@ class MDNX_API:
 
         if os.path.exists("/usr/bin/stdbuf"):
             self.stdbuf_exists = True
-            logger.info("[MDNX_API] Using stdbuf to ensure live output streaming.")
+            logger.debug("[MDNX_API] Using stdbuf to ensure live output streaming.")
         else:
             self.stdbuf_exists = False
-            logger.info("[MDNX_API] stdbuf not found, using default command without buffering.")
+            logger.debug("[MDNX_API] stdbuf not found, using default command without buffering.")
 
         logger.info(f"[MDNX_API] MDNX API initialized with: Path: {mdnx_path} | Service: {mdnx_service}")
 
@@ -55,7 +55,7 @@ class MDNX_API:
             logger.info("[MDNX_API] API test skipped by user.")
 
     def process_console_output(self, output: str, add2queue: bool = True):
-        logger.info("[MDNX_API] Processing console output...")
+        logger.debug("[MDNX_API] Processing console output...")
         tmp_dict = {}
         episode_counters = {} # maps season key ("S1", "S2", etc) to episode counter
         season_num_map = {}
@@ -219,7 +219,7 @@ class MDNX_API:
 
             series_info["seasons"] = new_seasons
 
-        logger.info("[MDNX_API] Console output processed.")
+        logger.debug("[MDNX_API] Console output processed.")
         if add2queue:
             self.queue_manager.add(tmp_dict)
         return tmp_dict
@@ -311,7 +311,7 @@ class MDNX_API:
         with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
             for line in proc.stdout:
                 cleaned = line.rstrip()
-                logger.info(f"[MDNX_API][multidownload-nx] {cleaned}")
+                logger.info(f"[MDNX_API][multi-download-nx] {cleaned}")
 
                 if "[mkvmerge Done]" in cleaned:
                     success = True
