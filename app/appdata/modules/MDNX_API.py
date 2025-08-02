@@ -292,12 +292,13 @@ class MDNX_API:
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id, "-s", season_id, "-e", episode_number]
 
-        if dub_override is not False:
-            tmp_cmd += ["--dubLang", *dub_override]
-            logger.info(f"[MDNX_API] Using dubLang override: {' '.join(dub_override)}")
-        else:
+        if dub_override is False:
             logger.info("[MDNX_API] No dubs were found for this episode, skipping download.")
             return False
+
+        if dub_override:
+            tmp_cmd += ["--dubLang", *dub_override]
+            logger.info(f"[MDNX_API] Using dubLang override: {' '.join(dub_override)}")
 
         if self.stdbuf_exists:
             cmd = ["stdbuf", "-oL", "-eL", *tmp_cmd]
