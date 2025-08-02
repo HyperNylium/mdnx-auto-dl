@@ -84,6 +84,7 @@ These are planned to later become variables you can put into the `docker-compose
         "CR_FORCE_REAUTH": false,
         "CR_SKIP_API_TEST": false,
         "NOTIFICATION_PREFERENCE": "none",
+        "REMOVE_ALL_ACTIVE_STREAMS": false,
         "LOG_LEVEL": "info"
     },
     "mdnx": {
@@ -192,6 +193,7 @@ If you have any questions, please open an issue and i will try to help you :)
 | `CR_SKIP_API_TEST`                 | `false`                                                                       | When `true`, skip the startup self‑test that probes the Crunchyroll API.                                       |
 | `NOTIFICATION_PREFERENCE`          | `none`                                                                        | Set what service you want to use to receive notifications. Options: `none`, `smtp`,`ntfy`.                     |
 | `LOG_LEVEL`                        | `info`                                                                        | Set the logging level. Options: `debug`, `info`, `warning`, `error`, `critical`.                               |
+| `REMOVE_ALL_ACTIVE_STREAMS`        | `false`                                                                       | When `true`, remove all active streams before starting a new download. Sets `--tsd` to `true` in mdnx          |
 
 
 Options for `FOLDER_STRUCTURE`  
