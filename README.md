@@ -29,10 +29,9 @@ services:
       - ./appdata/mdnx/config:/app/appdata/bin/mdnx/config:rw
 
       # plex/jellyfin/emby anime storage location.
-      # I suggest to make a separate "active-anime" library and mount that here.
-      # Only modify the left side ("./appdata/data") not the right.
+      # Only modify the left side ("./appdata/data"), not the right.
       # Example:
-      #- /mnt/plexdata/active-anime:/data:rw
+      #- /mnt/plexdata/Anime:/data:rw
       - ./appdata/data:/data:rw
     environment:
       - UID=1000
