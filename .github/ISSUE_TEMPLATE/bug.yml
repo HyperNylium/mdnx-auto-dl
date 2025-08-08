@@ -1,0 +1,36 @@
+name: Bug
+description: File a bug report
+title: "[BUG]: "
+assignees:
+  - HyperNylium
+labels:
+  - bug
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Program version
+      description: Which version of the program do you use?
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs from app.log
+      description: >
+        Please paste the relevant content from `app.log`.
+        You can drag-and-drop the file here or paste its contents directly.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Tell me more about your issue
+      description: Provide any extra details that will help reproduce or understand the bug.
+      placeholder: "Steps to reproduce, expected behavior, actual behavior, screenshots..."
+    validations:
+      required: true
