@@ -1,6 +1,7 @@
 import os
 import sys
 import signal
+import threading
 
 # Custom imports
 from appdata.modules.MDNX_API import MDNX_API
@@ -13,9 +14,8 @@ from appdata.modules.Vars import update_mdnx_config, update_app_config, handle_e
 
 
 def app():
-    logger.info("[app] Initializing MDNX API...")
+    logger.info("[app] Starting MDNX_API...")
     mdnx_api = MDNX_API(mdnx_path=MDNX_SERVICE_BIN_PATH)
-    logger.info("[app] MDNX API initialized.")
 
     # Authenticate with MDNX service if needed or force auth if user wants to
     logger.info("[app] Checking to see if user is authenticated with MDNX service (cr_token.yml exists?)...")
@@ -23,11 +23,8 @@ def app():
         mdnx_api.auth()
 
         # Update the "CR_FORCE_REAUTH" config to False if needed
-        logger.info("[app] Checking to see if user wants to force re-auth with MDNX service...")
         if config["app"]["CR_FORCE_REAUTH"] == True:
             update_app_config("CR_FORCE_REAUTH", False)
-        else:
-            logger.info("[app] User does not want to force re-auth with MDNX service.")
     else:
         logger.info("[app] cr_token.yml exists. Assuming user is already authenticated with MDNX service.")
 
@@ -57,25 +54,26 @@ def app():
     mainloop = MainLoop(mdnx_api=mdnx_api, notifier=notifier)
     mainloop.start()
 
+    MainLoopEvent = threading.Event()
+
     def shutdown(signum, frame):
         logger.info(f"[app] Received signal {signum}. Start to shutdown...")
-
-        # Stop MainLoop
-        logger.info("[app] Stopping MainLoop...")
         mainloop.stop()
-
-        logger.info("[app] MDNX-auto-dl has stopped cleanly. Exiting...")
-        sys.exit(0)
+        logger.info("[app] mdnx-auto-dl has stopped cleanly. Exiting...")
+        MainLoopEvent.set()
 
     # catch both Ctrl-C and Docker SIGTERM
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
+    # park the main thread until shutdown is requested
+    MainLoopEvent.wait()
+
 if __name__ == "__main__":
     logger.info("[app] Overriding sys.excepthook to log uncaught exceptions...")
     sys.excepthook = handle_exception
 
-    logger.info("[app] MDNX-auto-dl has started.")
+    logger.info("[app] mdnx-auto-dl has started.")
     get_running_user()
     update_mdnx_config()
     app()
