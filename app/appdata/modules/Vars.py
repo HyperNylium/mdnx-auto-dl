@@ -66,14 +66,17 @@ LANG_MAP = {
     "Japanese": ["jpn", "ja"],
 }
 
+# This will look like: {"English": "en", "Spanish": "es-419", ...}
 NAME_TO_CODE = {}
 for name, vals in LANG_MAP.items():
     NAME_TO_CODE[name] = vals[0] # vals[0] is the code
 
+# This will look like: {"en", "es-419", ...}
 VALID_LOCALES = set()
 for vals in LANG_MAP.values():
     VALID_LOCALES.add(vals[1]) # vals[1] is the locale
 
+# This will look like: {"eng": "en", "spa": "es-419", ...}
 CODE_TO_LOCALE = {}
 for name, vals in LANG_MAP.items():
     code = vals[0].lower()
@@ -125,26 +128,37 @@ def select_dubs(episode_info: dict):
     for dub in episode_info["available_dubs"]:
         available_dubs.add(dub)
 
+    logger.debug(f"[Vars] Desired dubs: {desired_dubs}")
+    logger.debug(f"[Vars] Backup dubs: {backup_dubs}")
+    logger.debug(f"[Vars] Available dubs: {available_dubs}")
+
     # If desired dub is available, use the default already present.
     if desired_dubs & available_dubs:
+        logger.debug(f"[Vars] Desired dubs available: {desired_dubs & available_dubs}")
         return None
 
     # If backups are available but not the desired dubs, override with that intersection.
     if backup_dubs & available_dubs:
+        logger.debug(f"[Vars] Desired dubs not available, but backup dubs are: {backup_dubs & available_dubs}")
         return list(backup_dubs & available_dubs)
 
     # Otherwise fall back to the alphabetically first available dub.
     if available_dubs:
+        logger.debug(f"[Vars] Neither desired nor backup dubs are available. Falling back to first available dub.")
         first_dub = next(iter(sorted(available_dubs)))
         return [first_dub]
 
     # No dubs at all, which is unexpected tbh.
     # But, you never know with Crunchyroll...
     # Will skip the episode.
+    logger.debug("[Vars] No dubs available at all for this episode. Skipping it.")
     return False
 
 def probe_streams(file_path: str, timeout: int):
     cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", file_path]
+
+    logger.debug(f"[Vars] Running ffprobe on {file_path} with command: {' '.join(cmd)}")
+
     try:
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
@@ -161,6 +175,8 @@ def probe_streams(file_path: str, timeout: int):
         logger.error(f"[Vars] ffprobe found no dubs/subs for {file_path}")
         return set(), set()
 
+    logger.debug(f"[Vars] ffprobe output for {file_path}: {data}")
+
     audio_langs = set()
     sub_langs = set()
 
@@ -170,7 +186,7 @@ def probe_streams(file_path: str, timeout: int):
         title = tags.get("title", "").strip()
 
         mapped_audio = None
-        mapped_sub   = None
+        mapped_sub = None
 
         # if the title matches one of the LANG_MAP keys, get its dub and sub codes
         if title in LANG_MAP:
@@ -197,6 +213,8 @@ def probe_streams(file_path: str, timeout: int):
                 lang = raw_lang
 
             sub_langs.add(lang)
+
+    logger.debug(f"[Vars] Probed {file_path}: audio languages: {audio_langs}, subtitle languages: {sub_langs}")
 
     return audio_langs, sub_langs
 
@@ -245,7 +263,7 @@ def sanitize(segment: str) -> str:
     cleaned = cleaned.replace("_", " ")
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     if cleaned != segment:
-        logger.info(f"[Vars] Sanitized '{segment}' to '{cleaned}'")
+        logger.debug(f"[Vars] Sanitized '{segment}' to '{cleaned}'")
     return cleaned
 
 def get_running_user():
@@ -296,7 +314,7 @@ def update_mdnx_config():
         with open(file_path, "w") as file:
             file.writelines(lines)
 
-        logger.info(f"[Vars] Updated {file_path} with new settings.")
+        logger.debug(f"[Vars] Updated {file_path} with new settings.")
 
     logger.info("[Vars] MDNX config updated.")
 
@@ -306,13 +324,16 @@ def update_app_config(key: str, value):
     for Property in ["app"]:
         if Property in config and key in config[Property]:
             config[Property][key] = value
+            logger.debug(f"[Vars] Updated config property '{Property}' key '{key}' with value '{value}'")
             break
     else:
         logger.error(f"[Vars] Error while writing to the config file\nProperty: {Property}\nKey: {key}\nValue: {value}")
-        return
+        return False
 
     with open(CONFIG_PATH, 'w') as config_file:
         json.dump(config, config_file, indent=4)
+
+    return True
 
 def log_manager(log_file_path=LOG_FILE, max_lines: int = 50000, keep_lines: int = 5000) -> None:
     try:
@@ -369,6 +390,8 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
     if not full_path.lower().endswith(extension.lower()):
         full_path = f"{full_path}{extension}"
 
+    logger.debug(f"[Vars] Built file path: {full_path}")
+
     return full_path
 
 def get_episode_file_path(queue, series_id, season_key, episode_key, base_dir, extension=".mkv"):
@@ -385,6 +408,8 @@ def get_episode_file_path(queue, series_id, season_key, episode_key, base_dir, e
 
     # Build the folder structure and file name.
     file_name = build_folder_structure(base_dir, raw_series, season, episode, raw_episode_name, extension)
+
+    logger.debug(f"[Vars] Built file path for series ID {series_id}, season {season_key}, episode {episode_key}: {file_name}")
 
     # Combine to form the full file path.
     return file_name
