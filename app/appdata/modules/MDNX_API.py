@@ -275,11 +275,8 @@ class MDNX_API:
         return result.stdout
 
     def stop_monitor(self, series_id: str) -> None:
-        logger.info(f"[MDNX_API] Stopping monitor for series with ID: {series_id}")
-
         self.queue_manager.remove(series_id)
-
-        logger.info(f"[MDNX_API] Stopping monitor for series with ID: {series_id} complete.")
+        logger.info(f"[MDNX_API] Stopped monitoring series with ID: {series_id}")
         return
 
     def update_monitor(self, series_id: str) -> str:
