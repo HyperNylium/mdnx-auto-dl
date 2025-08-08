@@ -1,0 +1,16 @@
+name: Enhancement
+description: Suggest a enhancement or feature
+title: "[Enhancement]: "
+assignees:
+  - HyperNylium
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: details
+    attributes:
+      label: Tell me more about the enhancement/feature you want to see
+      description: Give me a as detailed as possible description of this enhancement/feature you want
+      placeholder: "I want to do... I would like this to work like..."
+    validations:
+      required: true
