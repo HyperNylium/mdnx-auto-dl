@@ -30,7 +30,8 @@ class FileHandler:
         if not os.path.exists(src_path):
             logger.error(f"[FileHandler] Downloaded file not found: {src_path}")
             return False
-        logger.info(f"[FileHandler] Downloaded source: {src_path}")
+
+        logger.info(f"[FileHandler] Found source file: {src_path}. Checking readiness...")
 
         if not self.waitForReady(src_path):
             logger.warning(f"[FileHandler] '{src_basename}' not ready within {self.readyTimeout} seconds, skipping.")
@@ -43,11 +44,15 @@ class FileHandler:
                 continue
             sanitized.append(sanitize(part))
 
+        logger.debug(f"[FileHandler] Sanitized destination path parts: {sanitized}")
+
         if dst_path.startswith(os.sep):
             parent = os.sep + os.path.join(*sanitized[:-1])
         else:
             parent = os.path.join(*sanitized[:-1])
         final_dst = os.path.join(parent, sanitized[-1])
+
+        logger.debug(f"[FileHandler] Final destination path: {final_dst}")
 
         try:
             os.makedirs(parent, exist_ok=True)
@@ -63,6 +68,8 @@ class FileHandler:
             except Exception as e:
                 logger.error(f"[FileHandler] Could not remove existing file {final_dst}: {e}")
                 return False
+
+        logger.info(f"[FileHandler] Moving '{src_basename}' to '{final_dst}'")
 
         for attempt in range(1, self.moveRetries + 1):
             try:
