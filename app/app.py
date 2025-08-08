@@ -1,6 +1,7 @@
 import os
 import sys
 import signal
+import threading
 
 # Custom imports
 from appdata.modules.MDNX_API import MDNX_API
@@ -53,25 +54,26 @@ def app():
     mainloop = MainLoop(mdnx_api=mdnx_api, notifier=notifier)
     mainloop.start()
 
+    MainLoopEvent = threading.Event()
+
     def shutdown(signum, frame):
         logger.info(f"[app] Received signal {signum}. Start to shutdown...")
-
-        # Stop MainLoop
-        logger.info("[app] Stopping MainLoop...")
         mainloop.stop()
-
-        logger.info("[app] MDNX-auto-dl has stopped cleanly. Exiting...")
-        sys.exit(0)
+        logger.info("[app] mdnx-auto-dl has stopped cleanly. Exiting...")
+        MainLoopEvent.set()
 
     # catch both Ctrl-C and Docker SIGTERM
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
+    # park the main thread until shutdown is requested
+    MainLoopEvent.wait()
+
 if __name__ == "__main__":
     logger.info("[app] Overriding sys.excepthook to log uncaught exceptions...")
     sys.excepthook = handle_exception
 
-    logger.info("[app] MDNX-auto-dl has started.")
+    logger.info("[app] mdnx-auto-dl has started.")
     get_running_user()
     update_mdnx_config()
     app()
