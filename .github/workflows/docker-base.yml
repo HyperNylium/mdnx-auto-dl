@@ -1,4 +1,4 @@
-name: Create base image
+name: Build & push base image
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ permissions:
   packages: write
 
 jobs:
-  build-base:
+  build-base-image:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
