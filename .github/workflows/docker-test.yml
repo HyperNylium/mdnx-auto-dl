@@ -1,11 +1,11 @@
-name: Build & push active image
+name: Build & push test image
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version tag (e.g. 0.0.1)."
-        required: false
+        description: "Version tag (e.g. 0.0.1)"
+        required: true
         default: ""
 
 permissions:
@@ -13,7 +13,7 @@ permissions:
   packages: write
 
 jobs:
-  build-active-image:
+  build-test-image:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,14 +32,12 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=raw,value=latest
-            ${{ inputs.version != '' && format('type=raw,value={0}', inputs.version) || '' }}
+            ${{ format('type=raw,value={0}', inputs.version) }}
 
       - name: Pull base image
         run: docker pull ghcr.io/hypernylium/mdnx-auto-dl-base:latest || true
 
       - name: Build & push image
-        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
