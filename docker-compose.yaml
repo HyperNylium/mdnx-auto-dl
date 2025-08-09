@@ -1,16 +1,5 @@
 services:
   mdnx-auto-dl:
-    ### Build image locally if you want.
-    ### Requires all files from repo to be present.
-    ### run "git clone https://github.com/HyperNylium/mdnx-auto-dl.git && cd mdnx-auto-dl" to get started
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile
-
-    ### Use local image if you manually ran "docker build -t mdnx-auto-dl:latest ."
-    # image: mdnx-auto-dl:latest
-
-    ### Use public image (recommended).
     image: ghcr.io/hypernylium/mdnx-auto-dl:latest
     container_name: mdnx-auto-dl
     restart: unless-stopped
@@ -28,11 +17,10 @@ services:
       - ./appdata/mdnx/config:/app/appdata/bin/mdnx/config:rw
 
       # plex/jellyfin/emby anime storage location.
-      # I suggest to make a separate "active-anime" library and mount that here.
-      # Only modify the left side ("./appdata/data") not the right.
+      # Only modify the left side, not the right.
       # Example:
-      #- /mnt/plexdata/active-anime:/data:rw
-      - ./appdata/data:/data:rw
+      #- /mnt/plexdata/Anime:/data:rw
+      - /mnt/to/your/library:/data:rw
     environment:
       - UID=1000
       - GID=1000
