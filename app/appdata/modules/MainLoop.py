@@ -99,7 +99,7 @@ class MainLoop:
         if upd_items:
             parts.append(f"{len(upd_items)} updated")
 
-        when = datetime.now().strftime("%Y-%m-%d %H:%M")
+        when = datetime.now().strftime("%I:%M %p %d/%m/%Y")
         if parts:
             subject = f"Download summary: {', '.join(parts)} ({when})"
         else:
