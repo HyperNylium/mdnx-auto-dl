@@ -7,8 +7,6 @@ This application is not endorsed by or affiliated with Crunchyroll, Hidive, Anim
 MDNX-auto-dl is a free and open-source Python application that monitors and downloads anime from Crunchyroll. Its main usage is to monitor new anime that has weekly episodes and download them to your plex/jellyfin/emby server.
 This application only supports downloads from Crunchyroll at the moment even though multi-download-nx supports more services. This may change in the future, but not planned as i dont have an account with other services.
 
-You can track progress of things [here](https://github.com/users/HyperNylium/projects/4)
-
 # Get started
 1. Save the `docker-compose.yaml` file to your server.
 ```yaml
@@ -246,22 +244,7 @@ To modify things like tags and such, you can modify the `ntfy.sh` script.
 
 
 # Future plans
-I plan to add the following features after i get the basics working:
-- [ ] Somehow transcode the .mkv files from what they are to HEVC, or something else. Currently, every episode is ~1.2 - 1.5GB with movies being +6GB.
-
-- [ ] Add audio options using [mkv-auto](https://github.com/philiptn/mkv-auto) if you want to have [whatever CR auido is] -> EOS for example. Higher vocals, lower booms.
-
-- [x] Add capability to set different `/data` folder structures. (done as of v0.0.4)
-
-- [x] Add capability to monitor dubs. Currently, it only monitors if new episodes are available and downloads them according to what you have set in `config["app"]["mdnx"]["cli-defaults"]`. In the future, i would like to add a way to monitor if a `jpn` only episode now has an `eng` dub available and download it, overwriting the episode already in `DATA_DIR`. the `jpn` and `eng` would be from `dubLang` in `config.json`, not hardcoded. (done as of v0.0.5. Also monitors subs using whats set in `dlsubs`)
-
-- [x] Add capability to rename seasons correctly. Sometimes, CR has season 66 or whatever for season 4. Wrong season number is also passed through multi-download-nx - which is expected. (done as of v0.0.5)
-
-- [ ] When downloading the episode is finished and `file_handler.transfer()` is called. Instead of just naming the file S01E01 or whatever i was able to guess from multi-download-nx's output, i would like to somehow get episode details from TheTVDB. The importence of this is not really the individual episode names, but more the episode codes. If we download a special episode, which then gets moved to `Specials/S00E01`, how do we know its actually `S00E01` and not `S00E03`? Plex may show the wrong metadata or not show the episode at all. Thats what i aim to solve with TheTVDB API searches. This would only really benefit special episodes and anime that has weird season naming. An example of that is the duke of death and his maid. Some DBs say it has 1 season, but CR says it has 3 season, each season having 12 episodes. Hopfully i can cook something up in the future to help with this episode naming stuff haha.
-
-- [x] Add dependencies in the container itself, no downloading from my webserver.
-
-- [x] Add notification support for at least SMTP. (done as of 0.0.9)
+You can track progress of things [here](https://github.com/users/HyperNylium/projects/4)
 
 # Acknowledgments
 **This project would not be possible without the following third-party tools/packages:**
