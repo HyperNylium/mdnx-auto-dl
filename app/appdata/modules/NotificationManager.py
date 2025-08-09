@@ -17,7 +17,7 @@ class ntfy:
             logger.info(f"[Notification][ntfy] Sending ntfy notification...")
             subprocess.run([self.ntfy_script_path, subject, message], check=True)
         except Exception as e:
-            logger.info(f"[Notification][ntfy] Error sending notification: {e}")
+            logger.error(f"[Notification][ntfy] Error sending notification: {e}")
             return False
         return True
 
@@ -33,7 +33,7 @@ class SMTP:
 
     def notify(self, subject, message):
         try:
-            logger.info(f"[Notification][SMTP] Sending email notification to {self.SMTP_TO}...")
+            logger.debug(f"[Notification][SMTP] Sending email notification to {self.SMTP_TO}...")
             msg = EmailMessage()
             msg["Subject"] = subject
             msg["From"] = self.SMTP_FROM
