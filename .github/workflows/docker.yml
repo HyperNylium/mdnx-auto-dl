@@ -13,7 +13,7 @@ permissions:
   packages: write
 
 jobs:
-  build:
+  build-active-image:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
