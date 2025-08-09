@@ -7,6 +7,8 @@ This application is not endorsed by or affiliated with Crunchyroll, Hidive, Anim
 MDNX-auto-dl is a free and open-source Python application that monitors and downloads anime from Crunchyroll. Its main usage is to monitor new anime that has weekly episodes and download them to your plex/jellyfin/emby server.
 This application only supports downloads from Crunchyroll at the moment even though multi-download-nx supports more services. This may change in the future, but not planned as i dont have an account with other services.
 
+You can track progress of thing [here](https://github.com/users/HyperNylium/projects/4)
+
 # Get started
 1. Save the `docker-compose.yaml` file to your server.
 ```yaml
