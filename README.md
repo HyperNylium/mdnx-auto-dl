@@ -29,10 +29,10 @@ services:
       - ./appdata/mdnx/config:/app/appdata/bin/mdnx/config:rw
 
       # plex/jellyfin/emby anime storage location.
-      # Only modify the left side ("./appdata/data"), not the right.
+      # Only modify the left side, not the right.
       # Example:
       #- /mnt/plexdata/Anime:/data:rw
-      - ./appdata/data:/data:rw
+      - /mnt/to/your/library:/data:rw
     environment:
       - UID=1000
       - GID=1000
@@ -45,10 +45,6 @@ mkdir -p ./appdata/logs
 mkdir -p ./appdata/config
 mkdir -p ./appdata/mdnx/widevine
 mkdir -p ./appdata/mdnx/config
-
-# Optional if not using SMB or NFS share. 
-# Make sure to update compose file with desired file storage
-mkdir -p ./appdata/data
 ```
 
 3. Put in your widevine `device_client_id_blob.bin` and `device_private_key.pem` files. For legal reasons we do not include the CDM with the software, and you will have to source one yourself. Please do not open issues asking for these files. I can not give, nor instruct you on how to get these. Please Google around.

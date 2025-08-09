@@ -96,7 +96,7 @@ LOG_LEVEL = LEVEL_MAP.get(config["app"]["LOG_LEVEL"].upper(), "INFO")
 logging.basicConfig(
     level=LOG_LEVEL,
     format='[%(asctime)s] %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
+    datefmt='%I:%M:%S %p %d/%m/%Y',
     handlers=[
         logging.StreamHandler(TextIOWrapper(sys.stdout.buffer, encoding="utf-8")),
         logging.FileHandler(LOG_FILE, encoding="utf-8")
