@@ -49,31 +49,36 @@ class MainLoop:
             return True
         return False
 
-    def snapshot_episode(self, season_info, episode_info, file_path, action_label: str):
+    def snapshot_episode(self, series_name, episode_info, file_path, action_label: str, before_dubs=None, before_subs=None) -> dict:
         try:
-            local_dubs, local_subs = probe_streams(file_path, self.config["app"]["CHECK_MISSING_DUB_SUB_TIMEOUT"])
-
-            derived = set(local_subs)
-            for loc in list(local_subs):
+            after_dubs, after_subs = probe_streams(file_path, self.config["app"]["CHECK_MISSING_DUB_SUB_TIMEOUT"])
+            derived = set(after_subs)
+            for loc in list(after_subs):
                 if "-" in loc:
                     derived.add(loc.split("-")[0])
-            local_subs = derived
-
+            after_subs = derived
         except Exception:
-            local_dubs = set()
-            local_subs = set()
+            after_dubs = set()
+            after_subs = set()
+
+        if before_dubs is None:
+            before_dubs = set()
+        if before_subs is None:
+            before_subs = set()
 
         return {
             "action": action_label,
-            "series_name": season_info.get("season_name", ""),
+            "series_name": series_name,
             "episode_name": episode_info.get("episode_name", ""),
             "episode_number": episode_info.get("episode_number", ""),
-            "dubs": sorted(local_dubs),
-            "subs": sorted(local_subs),
+            "before_dubs": sorted(before_dubs),
+            "before_subs": sorted(before_subs),
+            "after_dubs": sorted(after_dubs),
+            "after_subs": sorted(after_subs),
             "path": file_path,
         }
 
-    def flush_notifications(self):
+    def flush_notifications(self) -> None:
         if not self.notifications_buffer or self.notifier is None:
             self.notifications_buffer = []
             return
@@ -88,7 +93,6 @@ class MainLoop:
             if notification["action"] == "updated":
                 upd_items.append(notification)
 
-        # subject
         parts = []
         if new_items:
             parts.append(f"{len(new_items)} new")
@@ -97,45 +101,49 @@ class MainLoop:
 
         when = datetime.now().strftime("%Y-%m-%d %H:%M")
         if parts:
-            subject = f"Episode download summary: {', '.join(parts)} ({when})"
+            subject = f"Download summary: {', '.join(parts)} ({when})"
         else:
-            subject = f"Episode download summary ({when})"
+            subject = f"Download summary ({when})"
 
-        # body
         lines = []
         if new_items:
-            lines.append("New downloads:\n")
+            lines.append("New downloads:")
+            lines.append("---------------------------")
             for item in new_items:
                 lines += [
-                    "A new episode has been downloaded!",
-                    "",
+                    f"Series name: {item['series_name']}",
                     f"Episode name: {item['episode_name']}",
                     f"Episode number: {item['episode_number']}",
-                    f"Episode dubs: {', '.join(item['dubs']) or 'None'}",
-                    f"Episode subs: {', '.join(item['subs']) or 'None'}",
+                    f"Episode dubs: {', '.join(item['after_dubs']) or 'None'}",
+                    f"Episode subs: {', '.join(item['after_subs']) or 'None'}",
                     f"Episode path: {item['path']}",
-                    "",
+                    ""
                 ]
+            lines.append("---------------------------")
+            lines.append("")
+
         if upd_items:
-            lines.append("Updates (new dub/sub detected):\n")
+            lines.append("Updates (new dub/sub detected):")
+            lines.append("---------------------------")
             for item in upd_items:
                 lines += [
-                    "An episode has been re-downloaded due to new dub/sub!",
-                    "",
+                    f"Series name: {item['series_name']}",
                     f"Episode name: {item['episode_name']}",
                     f"Episode number: {item['episode_number']}",
-                    f"Episode dubs: {', '.join(item['dubs']) or 'None'}",
-                    f"Episode subs: {', '.join(item['subs']) or 'None'}",
+                    f"Episode before dubs: {', '.join(item['before_dubs']) or 'None'}",
+                    f"Episode before subs: {', '.join(item['before_subs']) or 'None'}",
+                    f"Episode after dubs: {', '.join(item['after_dubs']) or 'None'}",
+                    f"Episode after subs: {', '.join(item['after_subs']) or 'None'}",
                     f"Episode path: {item['path']}",
-                    "",
+                    ""
                 ]
+            lines.append("---------------------------")
 
         body = "\n".join(lines).strip()
 
         try:
             self.notifier.notify(subject, body)
         finally:
-            # always clear buffer so we dont resend on next loop
             self.notifications_buffer = []
 
     def mainloop(self) -> None:
@@ -178,7 +186,8 @@ class MainLoop:
                                 if self.file_handler.transfer(temp_path, file_path):
                                     logger.info("[MainLoop] Transfer complete.")
                                     self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
-                                    snapshot = self.snapshot_episode(season_info, episode_info, file_path, action_label="new")
+                                    series_name = current_queue[series_id]["series"]["series_name"]
+                                    snapshot = self.snapshot_episode(series_name, episode_info, file_path, action_label="new")
                                     self.notifications_buffer.append(snapshot)
                                 else:
                                     logger.error("[MainLoop] Transfer failed.")
@@ -270,7 +279,8 @@ class MainLoop:
                             temp_path = os.path.join(TEMP_DIR, self.config["mdnx"]["cli-defaults"]["fileName"] + ".mkv")
                             if self.file_handler.transfer(temp_path, file_path, overwrite=True):
                                 logger.info("[MainLoop] Transfer complete.")
-                                snapshot = self.snapshot_episode(season_info, episode_info, file_path, action_label="updated")
+                                series_name = current_queue[series_id]["series"]["series_name"]
+                                snapshot = self.snapshot_episode(series_name, episode_info, file_path, action_label="updated", before_dubs=local_dubs, before_subs=local_subs)
                                 self.notifications_buffer.append(snapshot)
                             else:
                                 logger.info("[MainLoop] Transfer failed")
