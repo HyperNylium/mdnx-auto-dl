@@ -1,4 +1,4 @@
-FROM ghcr.io/hypernylium/mdnx-auto-dl/base:latest
+FROM ghcr.io/hypernylium/mdnx-auto-dl-base:latest
 
 WORKDIR /app
 
