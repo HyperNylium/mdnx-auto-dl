@@ -1,4 +1,4 @@
-name: Create active image
+name: Build & push active image
 
 on:
   workflow_dispatch:
@@ -8,15 +8,16 @@ on:
         required: false
         default: ""
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
     steps:
       - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -33,6 +34,9 @@ jobs:
           tags: |
             type=raw,value=latest
             ${{ inputs.version != '' && format('type=raw,value={0}', inputs.version) || '' }}
+
+      - name: Pull base image
+        run: docker pull ghcr.io/hypernylium/mdnx-auto-dl-base:latest || true
 
       - name: Build & push image
         id: build
