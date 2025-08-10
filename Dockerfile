@@ -1,10 +1,6 @@
 FROM ghcr.io/hypernylium/mdnx-auto-dl-base:latest
 
-WORKDIR /app
-
 COPY app/ .
-
-USER root
 
 # Convert Windows line-endings (CRLF) to LF
 RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh

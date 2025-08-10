@@ -15,3 +15,7 @@ RUN apt-get update && \
         gosu \
         unzip && \
     rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+USER root
