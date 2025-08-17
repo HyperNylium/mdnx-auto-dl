@@ -3,6 +3,8 @@ services:
     image: ghcr.io/hypernylium/mdnx-auto-dl:latest
     container_name: mdnx-auto-dl
     restart: unless-stopped
+    ports:
+      - 8080:8080
     volumes:
       # log file location
       - ./appdata/logs:/app/appdata/logs:rw

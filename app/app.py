@@ -10,8 +10,15 @@ from appdata.modules.NotificationManager import ntfy, SMTP
 from appdata.modules.Vars import logger, config
 from appdata.modules.Vars import MDNX_SERVICE_BIN_PATH, MDNX_SERVICE_CR_TOKEN_PATH
 from appdata.modules.Vars import update_mdnx_config, update_app_config, handle_exception, get_running_user
+from appdata.modules.webui import start_webui
 
 
+
+def webui():
+    logger.info("[app] Starting WebUI...")
+    webui_thread = threading.Thread(target=start_webui, name="WebUI", daemon=True)
+    webui_thread.start()
+    logger.info("[app] WebUI started on http://0.0.0.0:8080")
 
 def app():
     logger.info("[app] Starting MDNX_API...")
@@ -76,4 +83,5 @@ if __name__ == "__main__":
     logger.info("[app] mdnx-auto-dl has started.")
     get_running_user()
     update_mdnx_config()
+    webui()
     app()
