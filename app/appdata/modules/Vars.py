@@ -115,6 +115,29 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 
     logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
 
+def format_duration(seconds: int) -> str:
+    units = [
+        ("day", 86400),
+        ("hour", 3600),
+        ("minute", 60),
+        ("second", 1),
+    ]
+
+    parts = []
+    remaining = seconds
+    for name, size in units:
+        qty, remaining = divmod(remaining, size)
+        if qty:
+            parts.append(f"{qty} {name}{'' if qty == 1 else 's'}")
+
+    if not parts:
+        return "0 seconds"
+    if len(parts) == 1:
+        return parts[0]
+    if len(parts) == 2:
+        return f"{parts[0]} and {parts[1]}"
+    return ", ".join(parts[:-1]) + f" and {parts[-1]}"
+
 def select_dubs(episode_info: dict):
     desired_dubs = set()
     for lang in config["mdnx"]["cli-defaults"]["dubLang"]:

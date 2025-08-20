@@ -217,7 +217,7 @@ class MDNX_API:
             for old_key, season_info in kept_seasons:
                 new_key = f"S{new_idx}"
                 if new_key != old_key:
-                    logger.info(f"[MDNX_API] Renaming season {old_key} to {new_key} in series {series_id}")
+                    logger.debug(f"[MDNX_API] Renaming season {old_key} to {new_key} in series {series_id}")
                 season_info["season_number"] = str(new_idx)
                 season_info["eps_count"] = str(len(season_info["episodes"]))
                 new_seasons[new_key] = season_info
@@ -271,7 +271,7 @@ class MDNX_API:
 
         self.process_console_output(result.stdout)
 
-        logger.info(f"[MDNX_API] Monitoring for series with ID: {series_id} complete.")
+        logger.debug(f"[MDNX_API] Monitoring for series with ID: {series_id} complete.")
         return result.stdout
 
     def stop_monitor(self, series_id: str) -> None:
@@ -287,7 +287,7 @@ class MDNX_API:
 
         self.process_console_output(result.stdout)
 
-        logger.info(f"[MDNX_API] Updating monitor for series with ID: {series_id} complete.")
+        logger.debug(f"[MDNX_API] Updating monitor for series with ID: {series_id} complete.")
         return result.stdout
 
     def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list = None) -> bool:
