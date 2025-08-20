@@ -217,7 +217,7 @@ class MDNX_API:
             for old_key, season_info in kept_seasons:
                 new_key = f"S{new_idx}"
                 if new_key != old_key:
-                    logger.info(f"[MDNX_API] Renaming season {old_key} to {new_key} in series {series_id}")
+                    logger.debug(f"[MDNX_API] Renaming season {old_key} to {new_key} in series {series_id}")
                 season_info["season_number"] = str(new_idx)
                 season_info["eps_count"] = str(len(season_info["episodes"]))
                 new_seasons[new_key] = season_info
