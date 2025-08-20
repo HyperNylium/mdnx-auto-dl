@@ -157,7 +157,7 @@ You would then put it into the `monitor-series-id` list in `config.json` like so
 docker compose up -d
 ```
 
-And you are done! The application will now monitor the series you have specified in `config.json` and download new episodes as they become available, and update the downloaded episode if any new dubs/subs are available!
+That’s it! The application will now keep track of the series you listed in config.json, automatically download new episodes as they’re released, and update existing downloads whenever new dubs or subs become available.
 
 # Docs
 This is not the entire documentation that i want, but it will do for now. In the future, i will have a more detailed seperate documentation file with examples. \
