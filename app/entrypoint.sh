@@ -7,6 +7,9 @@ GROUP_ID=${GID:-1000}
 USERNAME=mdnx-auto-dl
 CONFIG_FILE="${CONFIG_FILE:-/app/appdata/config/config.json}"
 
+BENTO4_URL="${BENTO4_URL:-https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/Bento4-SDK.zip}"
+MDNX_URL="${MDNX_URL:-https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/mdnx.zip}"
+
 # If config.json doesn't exist, warn and exit
 if [[ ! -f "$CONFIG_FILE" ]]; then
   echo "[entrypoint] ERROR: $CONFIG_FILE not found."
@@ -22,34 +25,51 @@ echo "[entrypoint] Using BIN_DIR=$BIN_DIR"
 mkdir -p "$BIN_DIR"
 
 # Bento4 SDK
-if [[ ! -f "$BIN_DIR/Bento4-SDK.zip" ]]; then
-  if [[ ! -d "$BIN_DIR/Bento4-SDK" ]]; then
-    echo "[entrypoint] ERROR: Neither Bento4-SDK.zip nor $BIN_DIR/Bento4-SDK directory found."
-    echo "[entrypoint] Please run 'docker compose down && docker compose up -d' to fix this."
-    exit 1
-  else
-    echo "[entrypoint] Bento4-SDK.zip missing, but extracted directory found. Skipping unzip."
-  fi
-else
-  echo "[entrypoint] Extracting Bento4 SDK from $BIN_DIR/Bento4-SDK.zip..."
+if [[ -f "$BIN_DIR/Bento4-SDK.zip" ]]; then
+  echo "[entrypoint] Extracting Bento4-SDK from $BIN_DIR/Bento4-SDK.zip..."
   unzip -oq "$BIN_DIR/Bento4-SDK.zip" -d "$BIN_DIR"
   rm -f "$BIN_DIR/Bento4-SDK.zip"
+elif [[ -d "$BIN_DIR/Bento4-SDK" ]]; then
+  echo "[entrypoint] Bento4-SDK.zip missing, but extracted directory found. Skipping unzip."
+else
+  echo "[entrypoint] Bento4 SDK not found locally. Downloading from '$BENTO4_URL'..."
+  tmp_zip="$BIN_DIR/.Bento4-SDK.zip.tmp"
+  if curl -fL --retry 5 --retry-all-errors --connect-timeout 10 -o "$tmp_zip" "$BENTO4_URL"; then
+    mv "$tmp_zip" "$BIN_DIR/Bento4-SDK.zip"
+    echo "[entrypoint] Extracting downloaded Bento4 SDK..."
+    unzip -oq "$BIN_DIR/Bento4-SDK.zip" -d "$BIN_DIR"
+    rm -f "$BIN_DIR/Bento4-SDK.zip"
+  else
+    echo "[entrypoint] ERROR: failed to download Bento4 SDK from $BENTO4_URL" >&2
+    rm -f "$tmp_zip" || true
+    echo "[entrypoint] Please run 'docker compose down && docker compose up -d' to fix this."
+    exit 1
+  fi
 fi
 
 # MDNX CLI
-if [[ ! -f "$BIN_DIR/mdnx.zip" ]]; then
-  if [[ ! -d "$BIN_DIR/mdnx" ]]; then
-    echo "[entrypoint] ERROR: Neither mdnx.zip nor $BIN_DIR/mdnx directory found."
-    echo "[entrypoint] Please run 'docker compose down && docker compose up -d' to fix this."
-    exit 1
-  else
-    echo "[entrypoint] mdnx.zip missing, but extracted directory found. Skipping unzip."
-  fi
-else
+if [[ -f "$BIN_DIR/mdnx.zip" ]]; then
   echo "[entrypoint] Extracting MDNX CLI from $BIN_DIR/mdnx.zip..."
   unzip -oq "$BIN_DIR/mdnx.zip" -d "$BIN_DIR"
   rm -f "$BIN_DIR/mdnx.zip"
+elif [[ -f "$BIN_DIR/mdnx/aniDL" ]]; then
+  echo "[entrypoint] mdnx.zip missing, but aniDL binary found. Assuming folder exists as well. Skipping unzip."
+else
+  echo "[entrypoint] MDNX CLI not found locally. Downloading from '$MDNX_URL'..."
+  tmp_zip="$BIN_DIR/.mdnx.zip.tmp"
+  if curl -fL --retry 5 --retry-all-errors --connect-timeout 10 -o "$tmp_zip" "$MDNX_URL"; then
+    mv "$tmp_zip" "$BIN_DIR/mdnx.zip"
+    echo "[entrypoint] Extracting downloaded MDNX CLI..."
+    unzip -oq "$BIN_DIR/mdnx.zip" -d "$BIN_DIR"
+    rm -f "$BIN_DIR/mdnx.zip"
+  else
+    echo "[entrypoint] ERROR: failed to download MDNX CLI from $MDNX_URL" >&2
+    rm -f "$tmp_zip" || true
+    echo "[entrypoint] Please run 'docker compose down && docker compose up -d' to fix this."
+    exit 1
+  fi
 fi
+
 
 # Create non-root user and start app with said user
 if grep -qEi 'microsoft|wsl' /proc/version 2>/dev/null; then
