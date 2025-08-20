@@ -6,7 +6,7 @@ from datetime import datetime
 from .FileHandler import FileHandler
 from .Vars import logger, config
 from .Vars import TEMP_DIR, DATA_DIR
-from .Vars import get_episode_file_path, iter_episodes, log_manager, refresh_queue, probe_streams, select_dubs
+from .Vars import get_episode_file_path, iter_episodes, log_manager, refresh_queue, probe_streams, select_dubs, format_duration
 
 
 
@@ -197,7 +197,7 @@ class MainLoop:
                                 self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
 
                             self.file_handler.remove_temp_files()
-                            logger.info(f"[MainLoop] Waiting for {self.between_episode_timeout} seconds before next iteration.")
+                            logger.info(f"[MainLoop] Waiting for {format_duration(self.between_episode_timeout)} before next iteration.")
                             if self.wait_or_interrupt(timeout=self.between_episode_timeout):
                                 return
 
@@ -216,6 +216,7 @@ class MainLoop:
                     for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(current_queue):
 
                         file_path = get_episode_file_path(current_queue, series_id, season_key, episode_key, DATA_DIR)
+                        episode_basename = os.path.basename(file_path)
                         if not os.path.exists(file_path):
                             continue
 
@@ -231,7 +232,7 @@ class MainLoop:
                         missing_subs = wanted_subs - local_subs
 
                         if not missing_dubs and not missing_subs:
-                            logger.info(f"[MainLoop] {os.path.basename(file_path)} has all required dubs and subs. No action needed.")
+                            logger.info(f"[MainLoop] {episode_basename} has all required dubs and subs. No action needed.")
                             continue
 
                         avail_dubs = set()
@@ -257,8 +258,8 @@ class MainLoop:
                         if not effective_missing_dubs and not effective_missing_subs:
                             skip_download = True
 
-                        logger.info(
-                            f"[MainLoop] {os.path.basename(file_path)}\ndubs: "
+                        logger.debug(
+                            f"[MainLoop] {episode_basename}\ndubs: "
                             f"wanted={','.join(wanted_dubs) or 'None'} "
                             f"present={','.join(local_dubs) or 'None'} "
                             f"available={','.join(avail_dubs) or 'None'} "
@@ -270,8 +271,14 @@ class MainLoop:
                         )
 
                         if skip_download:
-                            logger.info(f"[MainLoop] Skipping download for {os.path.basename(file_path)} as all required dubs and subs are present.")
+                            logger.info(f"[MainLoop] Skipping download for {episode_basename} as all required dubs and subs are present.")
                             continue
+
+                        if effective_missing_dubs:
+                            logger.info(f"[MainLoop] Missing dubs detected for {episode_basename}: {', '.join(effective_missing_dubs)}. Re-downloading episode to acquire missing dubs.")
+
+                        if effective_missing_subs:
+                            logger.info(f"[MainLoop] Missing dubs detected for {episode_basename}: {', '.join(effective_missing_subs)}. Re-downloading episode to acquire missing dubs.")
 
                         dub_override = select_dubs(episode_info)
 
@@ -288,7 +295,7 @@ class MainLoop:
                             logger.error("[MainLoop] Re-download failed. Keeping existing file.")
 
                         self.file_handler.remove_temp_files()
-                        logger.info(f"[MainLoop] Waiting for {self.between_episode_timeout} seconds before next iteration.")
+                        logger.info(f"[MainLoop] Waiting for {format_duration(self.between_episode_timeout)} before next iteration.")
                         if self.wait_or_interrupt(timeout=self.between_episode_timeout):
                             return
                 else:
@@ -311,6 +318,7 @@ class MainLoop:
                     self.flush_notifications()
 
                 # Wait for self.timeout seconds or exit early if stop_event is set.
+                logger.info(f"[MainLoop] MainLoop iteration completed. Next iteration in {format_duration(self.loop_timeout)}.")
                 if self.wait_or_interrupt(timeout=self.loop_timeout):
                     return
         finally:
