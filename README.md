@@ -239,6 +239,19 @@ Make sure to set `NTFY_URL` in `app/appdata/config/ntfy.sh` to the URL of your n
 To modify things like tags and such, you can modify the `ntfy.sh` script.
 
 
+These are the environment variables that you can set in the `docker-compose.yaml` file under the `environment` section.
+| Variable                | Default value | Explanation                                                                 |
+| :---------------------- | :------------ | :-------------------------------------------------------------------------- |
+| `UID`                   | `1000`                             | User ID that mdnx-auto-dl will run as.                 |
+| `GID`                   | `1000`                             | Group ID that mdnx-auto-dl will run as.                |
+| `TZ`                    | `America/New_York`                 | Timezone for the container. Set to your local timezone from the "TZ identifier" column [here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)  |
+| `CONFIG_FILE`           | `/app/appdata/config/config.json`  | `config.json` file location in the container.          |
+| `QUEUE_FILE`            | `/app/appdata/config/queue.json`    | `queue.json` file location in the container.          |
+| `BENTO4_URL`            | `https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/Bento4-SDK.zip`    | URL for downloading `Bento4-SDK.zip` if both the file itself and extracted folder doesn't exist  |
+| `MDNX_URL`              | `https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/mdnx.zip`          | URL for downloading `mdnx.zip` if both the file itself and extracted folder doesn't exist        |
+
+
+
 # Future plans
 You can track progress of things [here](https://github.com/users/HyperNylium/projects/4)
 
