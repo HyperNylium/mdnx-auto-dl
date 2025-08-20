@@ -57,8 +57,7 @@ nano config.json
 
 And paste in the following. These are defaults. Feel free to change what you like. \
 All settings under "mdnx" refer to that services settings. \
-For example, the key-vaule pairs under "bin-path" will modify multi-download-nx's `bin-path.yml` file. \
-These are planned to later become variables you can put into the `docker-compose.yaml` environment section. But thats in the future, not right now :)
+For example, the key-vaule pairs under "bin-path" will modify multi-download-nx's `bin-path.yml` file.
 ```json
 {
     "monitor-series-id": [],
@@ -123,11 +122,7 @@ These are planned to later become variables you can put into the `docker-compose
 }
 ```
 
-5. Put in your Crunchyroll username and password into the following key-value pairs in `config.json`. You will be putting then in the `""` quotes.
-```
-CR_USERNAME
-CR_PASSWORD
-```
+5. Put in your Crunchyroll username and password into the following key-value pairs in `config.json`. You will be putting them in the `""` (quotes). \
 Example:
 ```json
 {
@@ -140,12 +135,12 @@ Example:
 ```
 
 6. Get the series ID of the anime you want to monitor and put them into the `monitor-series-id` list in `config.json`. \
-Lets sat you want to monitor Kaiju No. 8. You would go to the anime's page on Crunchyroll and copy the series ID from the URL. \
+Lets say you wanted to monitor Kaiju No. 8. You would go to the anime's page on Crunchyroll and copy the series ID from the URL. \
 Example:
 ```
 https://www.crunchyroll.com/series/GG5H5XQ7D/kaiju-no-8
 ```
-The series ID is `GG5H5XQ7D`.
+The series ID would be `GG5H5XQ7D`.
 
 You would then put it into the `monitor-series-id` list in `config.json` like so:
 ```json
@@ -162,7 +157,7 @@ You would then put it into the `monitor-series-id` list in `config.json` like so
 docker compose up -d
 ```
 
-And you are done! The application will now monitor the series you have specified in `config.json` and download new episodes as they become available!
+And you are done! The application will now monitor the series you have specified in `config.json` and download new episodes as they become available, and update the downloaded episode if any new dubs/subs are available!
 
 # Docs
 This is not the entire documentation that i want, but it will do for now. In the future, i will have a more detailed seperate documentation file with examples. \
@@ -244,11 +239,11 @@ These are the environment variables that you can set in the `docker-compose.yaml
 | :---------------------- | :------------ | :-------------------------------------------------------------------------- |
 | `UID`                   | `1000`                             | User ID that mdnx-auto-dl will run as.                 |
 | `GID`                   | `1000`                             | Group ID that mdnx-auto-dl will run as.                |
-| `TZ`                    | `America/New_York`                 | Timezone for the container. Set to your local timezone from the "TZ identifier" column [here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)  |
+| `TZ`                    | `America/New_York`                 | Timezone for the container. Set to your local timezone from the "TZ identifier" column [here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).  |
 | `CONFIG_FILE`           | `/app/appdata/config/config.json`  | `config.json` file location in the container.          |
 | `QUEUE_FILE`            | `/app/appdata/config/queue.json`    | `queue.json` file location in the container.          |
-| `BENTO4_URL`            | `https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/Bento4-SDK.zip`    | URL for downloading `Bento4-SDK.zip` if both the file itself and extracted folder doesn't exist  |
-| `MDNX_URL`              | `https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/mdnx.zip`          | URL for downloading `mdnx.zip` if both the file itself and extracted folder doesn't exist        |
+| `BENTO4_URL`            | `https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/Bento4-SDK.zip`    | URL for downloading `Bento4-SDK.zip` if both the file itself and extracted folder doesn't exist.  |
+| `MDNX_URL`              | `https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/mdnx.zip`          | URL for downloading `mdnx.zip` if both the file itself and extracted folder doesn't exist.        |
 
 
 
