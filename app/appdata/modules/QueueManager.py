@@ -25,7 +25,7 @@ class QueueManager:
             except Exception as e:
                 logger.error(f"[QueueManager] Error loading queue. Starting with an empty queue.\n{e}")
         else:
-            logger.info(f"[QueueManager] Queue file not found at {self.queue_path}. Starting with an empty queue.")
+            logger.debug(f"[QueueManager] Queue file not found at {self.queue_path}. Starting with an empty queue.")
 
         # Create an empty queue file if it doesn't exist.
         with open(self.queue_path, "a", encoding="utf-8") as empty_queue_file:
@@ -48,7 +48,7 @@ class QueueManager:
                 for s in series_info["seasons"].values():
                     for ep in s["episodes"].values():
                         ep.setdefault("episode_downloaded", False)
-                logger.info(f"[QueueManager] Added series '{series_id}' to the queue.")
+                logger.debug(f"[QueueManager] Added series '{series_id}' to the queue.")
                 continue
 
             # series already exists
@@ -74,7 +74,7 @@ class QueueManager:
 
                     season["episodes"][ep_key] = new_ep
 
-            logger.info(f"[QueueManager] Updated series '{series_id}' in the queue.")
+            logger.debug(f"[QueueManager] Updated series '{series_id}' in the queue.")
         self.save_queue()
 
     def remove(self, series_id: str) -> None:
@@ -82,7 +82,7 @@ class QueueManager:
         if series_id in self.queue_data:
             del self.queue_data[series_id]
             self.save_queue()
-            logger.info(f"[QueueManager] Removed series '{series_id}' from the queue.")
+            logger.debug(f"[QueueManager] Removed series '{series_id}' from the queue.")
         else:
             logger.warning(f"[QueueManager] Series '{series_id}' not found in the queue.")
 
