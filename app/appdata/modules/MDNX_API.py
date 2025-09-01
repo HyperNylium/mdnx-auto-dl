@@ -62,12 +62,13 @@ class MDNX_API:
 
     def process_console_output(self, output: str, add2queue: bool = True):
         logger.debug("[MDNX_API] Processing console output...")
-        tmp_dict = {}
-        episode_counters = {} # maps season key ("S1", "S2", etc) to episode counter
-        season_num_map = {}
-        season_subs = {} # maps (series_id, season_key) to list of subtitles
+        tmp_dict = {}             # maps series_id to series info
+        episode_counters = {}     # maps season key ("S1", "S2", etc) to episode counter
+        season_num_map = {}       # maps original season_number to mapped season_number (goes from S43, S45  to S1, S2)
+        season_subs = {}          # maps (series_id, season_key) to list of subtitles
         current_series_id = None
         active_season_key = None
+        name_to_season_key = {}   # map normalized season_name to season_key ("S1", "S2", etc) so we can resolve mismatched numbers by name
 
         for line in output.splitlines():
             line = line.strip()
@@ -87,6 +88,7 @@ class MDNX_API:
                 season_num_map.clear()
                 episode_counters.clear()
                 active_season_key = None
+                name_to_season_key.clear()
                 continue
 
             # Check for season information.
@@ -111,6 +113,8 @@ class MDNX_API:
                     "episodes": {}
                 }
                 episode_counters[season_key] = 1
+
+                name_to_season_key[sanitize(info["season_name"]).lower()] = season_key
                 continue
 
             # Check for subtitles line.
@@ -125,7 +129,7 @@ class MDNX_API:
                             subs_locales.append(locale)
                     season_subs[(current_series_id, active_season_key)] = subs_locales
                 # If we are at series level, ignore the list.
-                # Do not want to store series subtitles, as they are not used.
+                # We only care about season-level subtitles.
                 continue
 
             # Check for episode information.
@@ -142,25 +146,52 @@ class MDNX_API:
                     continue
 
                 # find season number in full line
-                season_num = re.search(r'- Season (\d+) -', line)
-                if not season_num:
-                    logger.warning(f"[MDNX_API] Season not found in line: {line}")
-                    continue
-                orig_label = int(season_num.group(1))
-                if orig_label not in season_num_map:
-                    season_num_map[orig_label] = len(season_num_map) + 1
-                mapped_num = season_num_map[orig_label]
-                season_key = f"S{mapped_num}"
+                # only trust numbers declared by season headers.
+                # otherwise fall back to season name
+                season_key = None
+                mapped_num = None
 
-                # season line was missing, so create an empty season entry
-                if season_key not in tmp_dict[current_series_id]["seasons"]:
-                    tmp_dict[current_series_id]["seasons"][season_key] = {
-                        "season_id": None,
-                        "season_name": None,
-                        "season_number": str(mapped_num),
-                        "episodes": {}
-                    }
-                    episode_counters[season_key] = 1
+                season_num = re.search(r'- Season (\d+) -', line)
+                if season_num:
+                    orig_label = int(season_num.group(1))
+                    if orig_label in season_num_map:
+                        mapped_num = season_num_map[orig_label]
+                        season_key = f"S{mapped_num}"
+
+                # extract season name
+                full_name_guess = ep_info["full_episode_name"]
+                full_name_guess = re.sub(r'^\[\d{4}-\d{2}-\d{2}\]\s*', '', full_name_guess)
+                parts_before = full_name_guess.split(' - Season ', 1)
+                season_name_guess = parts_before[0].strip()
+
+                # fallback by season name (text before " - Season ... -") if number didnt resolve
+                if not season_key:
+                    guessed_key = name_to_season_key.get(sanitize(season_name_guess).lower())
+                    if guessed_key:
+                        season_key = guessed_key
+                        mapped_num = int(season_key[1:])
+                        logger.debug(f"[MDNX_API] Resolved episode season by name '{season_name_guess}' -> {season_key}")
+
+                if not season_key:
+                    # If we still cant resolve the season, warn and create a shell entry
+                    logger.warning(f"[MDNX_API] Season not resolved by number or name in line: {line}")
+                    mapped_num = len(tmp_dict[current_series_id]["seasons"]) + 1
+                    season_key = f"S{mapped_num}"
+                    if season_key not in tmp_dict[current_series_id]["seasons"]:
+                        tmp_dict[current_series_id]["seasons"][season_key] = {
+                            "season_id": None,
+                            "season_name": None,
+                            "season_number": str(mapped_num),
+                            "episodes": {}
+                        }
+                        episode_counters[season_key] = 1
+
+                    # stabilize future matches for this season (by number and by name)
+                    if season_num:
+                        orig_label = int(season_num.group(1))
+                        if orig_label not in season_num_map:
+                            season_num_map[orig_label] = mapped_num
+                    name_to_season_key[sanitize(season_name_guess).lower()] = season_key
 
                 # extract dubs that CR can provide for this episode
                 dubs_match = re.search(r'\[([^\]]+)\]\s*$', line)
@@ -187,6 +218,16 @@ class MDNX_API:
                 else:
                     episode_title_clean = ep_info["full_episode_name"]
                 episode_title_clean = sanitize(episode_title_clean)
+
+                # season line was missing, so create an empty season entry
+                if season_key not in tmp_dict[current_series_id]["seasons"]:
+                    tmp_dict[current_series_id]["seasons"][season_key] = {
+                        "season_id": None,
+                        "season_name": None,
+                        "season_number": str(mapped_num),
+                        "episodes": {}
+                    }
+                    episode_counters[season_key] = 1
 
                 tmp_dict[current_series_id]["seasons"][season_key]["episodes"][ep_key] = {
                     "episode_number": episode_number_clean,
@@ -236,6 +277,7 @@ class MDNX_API:
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", "GMEHME81V"]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8").stdout
         logger.info(f"[MDNX_API] MDNX API test resault:\n{result}")
+
         json_result = self.process_console_output(result, add2queue=False)
         logger.info(f"[MDNX_API] Processed console output:\n{json_result}")
 
@@ -268,6 +310,7 @@ class MDNX_API:
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
+        logger.debug(f"[MDNX_API] Console output for start_monitor process:\n{result.stdout}")
 
         self.process_console_output(result.stdout)
 
@@ -284,6 +327,7 @@ class MDNX_API:
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
+        logger.debug(f"[MDNX_API] Console output for update_monitor process:\n{result.stdout}")
 
         self.process_console_output(result.stdout)
 

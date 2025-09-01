@@ -39,7 +39,8 @@ class MainLoop:
     def stop(self) -> None:
         logger.info("[MainLoop] Stopping MainLoop...")
         self.stop_event.set()
-        self.thread.join()
+        if threading.current_thread() is not self.thread:  # avoid joining self
+            self.thread.join()
         logger.info("[MainLoop] MainLoop stopped.")
         return
 
@@ -152,6 +153,11 @@ class MainLoop:
                 logger.debug("[MainLoop] Executing main loop task.")
                 refresh_queue(self.mdnx_api)
                 current_queue = self.mdnx_api.queue_manager.output()
+
+                if self.config["app"]["ONLY_CREATE_QUEUE"] == True:
+                    logger.info("[MainLoop] ONLY_CREATE_QUEUE is True. Exiting after queue creation.\nIf docker-compose.yaml has 'restart: always/unless-stopped', please change it to 'restart: no' to prevent restart loop.")
+                    self.stop()
+                    return
 
                 # download any missing / not yet downloaded episodes
                 logger.info("[MainLoop] Checking for episodes to download.")
@@ -323,4 +329,3 @@ class MainLoop:
                     return
         finally:
             logger.info("[MainLoop] MainLoop exited.")
-            return
