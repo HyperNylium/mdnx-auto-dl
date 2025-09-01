@@ -39,7 +39,8 @@ class MainLoop:
     def stop(self) -> None:
         logger.info("[MainLoop] Stopping MainLoop...")
         self.stop_event.set()
-        self.thread.join()
+        if threading.current_thread() is not self.thread:  # avoid joining self
+            self.thread.join()
         logger.info("[MainLoop] MainLoop stopped.")
         return
 
