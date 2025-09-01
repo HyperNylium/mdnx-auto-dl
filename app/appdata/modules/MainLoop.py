@@ -329,4 +329,3 @@ class MainLoop:
                     return
         finally:
             logger.info("[MainLoop] MainLoop exited.")
-            return

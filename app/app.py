@@ -58,13 +58,19 @@ def app():
     exit_code = {"code": 0}
     if hasattr(threading, "excepthook"):
         def _thread_excepthook(args):
+            # Treat SystemExit as intentional shutdown.
+            if issubclass(args.exc_type, SystemExit):
+                code = getattr(args.exc_value, "code", 1)
+                try:
+                    exit_code["code"] = int(code)
+                except Exception:
+                    exit_code["code"] = 1
+                return
+
+            # Real crash: log it and force non-zero
             logger.error(f"[app] Uncaught exception in thread {args.thread.name}",
                         exc_info=(args.exc_type, args.exc_value, args.exc_traceback))
-            code = getattr(args.exc_value, "code", 1) # SystemExit(code) -> use that
-            try:
-                exit_code["code"] = int(code)
-            except Exception:
-                exit_code["code"] = 1
+            exit_code["code"] = 1
         threading.excepthook = _thread_excepthook
     else:
         logger.warning("[app] threading.excepthook unavailable. Worker crash exit codes may not propagate.")
