@@ -153,6 +153,11 @@ class MainLoop:
                 refresh_queue(self.mdnx_api)
                 current_queue = self.mdnx_api.queue_manager.output()
 
+                if self.config["app"]["ONLY_CREATE_QUEUE"] == True:
+                    logger.info("[MainLoop] ONLY_CREATE_QUEUE is True. Exiting after queue creation.\nIf docker-compose.yaml has 'restart: always/unless-stopped', please change it to 'restart: no' to prevent restart loop.")
+                    self.stop()
+                    return
+
                 # download any missing / not yet downloaded episodes
                 logger.info("[MainLoop] Checking for episodes to download.")
                 for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(current_queue):
