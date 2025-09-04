@@ -18,7 +18,6 @@
         "CR_FORCE_REAUTH": false,
         "CR_SKIP_API_TEST": false,
         "NOTIFICATION_PREFERENCE": "none",
-        "REMOVE_ALL_ACTIVE_STREAMS": false,
         "ONLY_CREATE_QUEUE": false,
         "LOG_LEVEL": "info"
     },
@@ -51,8 +50,9 @@
             "dlVideoOnce": false,
             "keepAllVideos": false,
             "skipUpdate": true,
-            "vstream": "samsungtv",
-            "astream": "android"
+            "vstream": "androidtv",
+            "astream": "androidtv",
+            "tsd": false
         },
         "dir-path": {
             "content": "/app/appdata/temp",
