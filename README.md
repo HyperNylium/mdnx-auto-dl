@@ -16,7 +16,7 @@ You can track progress of things [here](https://github.com/users/HyperNylium/pro
 # Acknowledgments
 **This project would not be possible without the following third-party tools/packages:**
 
-[Multi-download-nx](https://github.com/anidl/multi-downloader-nx)
+[Multi-downloader-nx](https://github.com/anidl/multi-downloader-nx)
 
 [FFmpeg](https://ffmpeg.org/)
 
