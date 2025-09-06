@@ -3,10 +3,14 @@ import threading
 from datetime import datetime
 
 # Custom imports
-from .FileHandler import FileHandler
-from .Vars import logger, config
-from .Vars import TEMP_DIR, DATA_DIR
-from .Vars import get_episode_file_path, iter_episodes, log_manager, refresh_queue, probe_streams, select_dubs, format_duration
+from .Globals import (
+    file_manager, queue_manager
+)
+from .Vars import (
+    logger, config,
+    TEMP_DIR, DATA_DIR,
+    get_episode_file_path, iter_episodes, log_manager, probe_streams, select_dubs, format_duration
+)
 
 
 
@@ -21,9 +25,6 @@ class MainLoop:
         self.notifications_buffer = []
 
         logger.debug(f"[MainLoop] MainLoop initialized.")
-
-        # Initialize FileHandler
-        self.file_handler = FileHandler()
 
         # Event to signal the loop to stop
         self.stop_event = threading.Event()
@@ -81,7 +82,7 @@ class MainLoop:
 
     def flush_notifications(self) -> None:
         if not self.notifications_buffer or self.notifier is None:
-            self.notifications_buffer = []
+            self.notifications_buffer.clear()
             return
 
         new_items = []
@@ -145,14 +146,52 @@ class MainLoop:
         try:
             self.notifier.notify(subject, body)
         finally:
-            self.notifications_buffer = []
+            self.notifications_buffer.clear()
+
+    def refresh_queue(self) -> bool:
+        logger.info("[MainLoop] Getting the current queue IDs...")
+        queue_output = queue_manager.output()
+        if queue_output is not None:
+            queue_ids = set(queue_output.keys())
+        else:
+            queue_ids = set()
+
+        monitor_ids = set(config["monitor-series-id"])
+        if not monitor_ids and not queue_ids:
+            logger.info("[MainLoop] No series to monitor or stop monitoring.\nPlease add series IDs to 'monitor-series-id' in the config file to start monitoring.\nExiting...")
+            return False
+
+        # Start or update monitors
+        logger.info("[MainLoop] Checking to see if any series need to be monitored...")
+        for series_id in monitor_ids:
+            if series_id not in queue_ids:
+                logger.info(f"[MainLoop] Starting to monitor series with ID: {series_id}")
+                self.mdnx_api.start_monitor(series_id)
+            else:
+                logger.info(f"[MainLoop] Series with ID: {series_id} is already being monitored. Updating with new data...")
+                self.mdnx_api.update_monitor(series_id)
+
+        # Stop monitors for IDs no longer in config
+        logger.info("[MainLoop] Checking to see if any series need to be stopped from monitoring...")
+        for series_id in queue_ids:
+            if series_id not in monitor_ids:
+                logger.info(f"[MainLoop] Stopping monitor for series with ID: {series_id}")
+                self.mdnx_api.stop_monitor(series_id)
+
+        logger.info("[MainLoop] MDNX queue refresh complete.")
+
+        return True
 
     def mainloop(self) -> None:
         try:
             while not self.stop_event.is_set():
                 logger.debug("[MainLoop] Executing main loop task.")
-                refresh_queue(self.mdnx_api)
-                current_queue = self.mdnx_api.queue_manager.output()
+                refresh_ok = self.refresh_queue()
+                if not refresh_ok:
+                    self.stop()
+                    return
+
+                current_queue = queue_manager.output()
 
                 if self.config["app"]["ONLY_CREATE_QUEUE"] == True:
                     logger.info("[MainLoop] ONLY_CREATE_QUEUE is True. Exiting after queue creation.\nIf docker-compose.yaml has 'restart: always/unless-stopped', please change it to 'restart: no' to prevent restart loop.")
@@ -176,7 +215,7 @@ class MainLoop:
 
                         if os.path.exists(file_path):
                             logger.info(f"[MainLoop] Episode already exists at {file_path}. Updating 'episode_downloaded' status to True and skipping download.")
-                            self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
+                            queue_manager.update_episode_status(series_id, season_key, episode_key, True)
                             continue
                         else:
                             logger.info(f"[MainLoop] Episode not found at {file_path} and 'episode_downloaded' status is False. Initiating download.")
@@ -187,22 +226,22 @@ class MainLoop:
                             if download_successful:
                                 logger.info(f"[MainLoop] Episode downloaded successfully.")
 
-                                temp_path = os.path.join(TEMP_DIR, self.config["mdnx"]["cli-defaults"]["fileName"] + ".mkv")
+                                temp_path = os.path.join(TEMP_DIR, "output.mkv")
 
-                                if self.file_handler.transfer(temp_path, file_path):
+                                if file_manager.transfer(temp_path, file_path):
                                     logger.info("[MainLoop] Transfer complete.")
-                                    self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, True)
+                                    queue_manager.update_episode_status(series_id, season_key, episode_key, True)
                                     series_name = current_queue[series_id]["series"]["series_name"]
                                     snapshot = self.snapshot_episode(series_name, episode_info, file_path, action_label="new")
                                     self.notifications_buffer.append(snapshot)
                                 else:
                                     logger.error("[MainLoop] Transfer failed.")
-                                    self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
+                                    queue_manager.update_episode_status(series_id, season_key, episode_key, False)
                             else:
                                 logger.error(f"[MainLoop] Episode download failed for {series_id} season {season_key} - {episode_key}.")
-                                self.mdnx_api.queue_manager.update_episode_status(series_id, season_key, episode_key, False)
+                                queue_manager.update_episode_status(series_id, season_key, episode_key, False)
 
-                            self.file_handler.remove_temp_files()
+                            file_manager.remove_temp_files()
                             logger.info(f"[MainLoop] Waiting for {format_duration(self.between_episode_timeout)} before next iteration.")
                             if self.wait_or_interrupt(timeout=self.between_episode_timeout):
                                 return
@@ -290,7 +329,7 @@ class MainLoop:
 
                         if self.mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override):
                             temp_path = os.path.join(TEMP_DIR, self.config["mdnx"]["cli-defaults"]["fileName"] + ".mkv")
-                            if self.file_handler.transfer(temp_path, file_path, overwrite=True):
+                            if file_manager.transfer(temp_path, file_path, overwrite=True):
                                 logger.info("[MainLoop] Transfer complete.")
                                 series_name = current_queue[series_id]["series"]["series_name"]
                                 snapshot = self.snapshot_episode(series_name, episode_info, file_path, action_label="updated", before_dubs=local_dubs, before_subs=local_subs)
@@ -300,7 +339,7 @@ class MainLoop:
                         else:
                             logger.error("[MainLoop] Re-download failed. Keeping existing file.")
 
-                        self.file_handler.remove_temp_files()
+                        file_manager.remove_temp_files()
                         logger.info(f"[MainLoop] Waiting for {format_duration(self.between_episode_timeout)} before next iteration.")
                         if self.wait_or_interrupt(timeout=self.between_episode_timeout):
                             return

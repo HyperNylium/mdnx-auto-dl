@@ -14,9 +14,101 @@ CONFIG_PATH = os.getenv("CONFIG_FILE", "appdata/config/config.json")
 QUEUE_PATH = os.getenv("QUEUE_FILE", "appdata/config/queue.json")
 
 
+def merge_config(defaults: dict, overrides: dict) -> dict:
+    if not isinstance(defaults, dict) or not isinstance(overrides, dict):
+        if overrides is not None:
+            return overrides
+        else:
+            return defaults
+
+    merged = {}
+    for key in (defaults.keys() | overrides.keys()):
+        default_value = defaults.get(key)
+        override_value = overrides.get(key)
+
+        if isinstance(default_value, dict) and isinstance(override_value, dict):
+            merged[key] = merge_config(default_value, override_value)
+        elif override_value is None:
+            merged[key] = default_value
+        else:
+            merged[key] = override_value
+
+    return merged
+
+def output_effective_config(config, max_chunk=8000):
+    logger.info("[Vars] Effective config: ")
+    formatted_json = json.dumps(config, indent=4, sort_keys=True)
+    for line in formatted_json.splitlines():
+        for i in range(0, len(line), max_chunk):
+            logger.info(line[i:i+max_chunk])
+
+# Default config values in case config.json is missing any keys.
+CONFIG_DEFAULTS = {
+    "monitor-series-id": [],
+    "app": {
+        "TEMP_DIR": "/app/appdata/temp",
+        "BIN_DIR": "/app/appdata/bin",
+        "LOG_FILE": "/app/appdata/logs/app.log",
+        "DATA_DIR": "/data",
+        "CR_USERNAME": "",
+        "CR_PASSWORD": "",
+        "BACKUP_DUBS": ["zho"],
+        "FOLDER_STRUCTURE": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
+        "CHECK_MISSING_DUB_SUB": True,
+        "CHECK_MISSING_DUB_SUB_TIMEOUT": 300,
+        "CHECK_FOR_UPDATES_INTERVAL": 3600,
+        "BETWEEN_EPISODE_DL_WAIT_INTERVAL": 30,
+        "CR_FORCE_REAUTH": False,
+        "CR_SKIP_API_TEST": False,
+        "NOTIFICATION_PREFERENCE": "none",
+        "ONLY_CREATE_QUEUE": False,
+        "LOG_LEVEL": "info",
+        "NTFY_SCRIPT_PATH": "/app/appdata/config/ntfy.sh",
+        "SMTP_FROM": "",
+        "SMTP_TO": "",
+        "SMTP_HOST": "",
+        "SMTP_USERNAME": "",
+        "SMTP_PASSWORD": "",
+        "SMTP_PORT": 587,
+        "SMTP_STARTTLS": True
+    },
+    "mdnx": {
+        "bin-path": {
+            "ffmpeg": "ffmpeg",
+            "ffprobe": "ffprobe",
+            "mkvmerge": "mkvmerge",
+            "mp4decrypt": "/app/appdata/bin/Bento4-SDK/bin/mp4decrypt"
+        },
+        "cli-defaults": {
+            "q": 0,
+            "partsize": 3,
+            "dubLang": [
+                "jpn",
+                "eng"
+            ],
+            "dlsubs": [
+                "en"
+            ],
+            "defaultAudio": "jpn",
+            "defaultSub": "eng",
+            "vstream": "androidtv",
+            "astream": "androidtv",
+            "tsd": False
+        },
+        "dir-path": {
+            "content": "/app/appdata/temp",
+            "fonts": "./fonts/"
+        }
+    }
+}
+
 # Load the config file
 with open(CONFIG_PATH, 'r') as config_file:
-    config = json.load(config_file)
+    LOCAL_CONFIG = json.load(config_file)
+
+config = merge_config(defaults=CONFIG_DEFAULTS, overrides=LOCAL_CONFIG)
+
+del CONFIG_DEFAULTS, LOCAL_CONFIG
 
 # App settings
 LOG_FILE = config["app"]["LOG_FILE"]
@@ -105,7 +197,6 @@ logging.basicConfig(
 
 # Create a logger for all modules to use
 logger = logging.getLogger(__name__)
-
 
 def handle_exception(exc_type, exc_value, exc_traceback):
     # skip logging for KeyboardInterrupt and SystemExit. Use the default handler.
@@ -241,40 +332,6 @@ def probe_streams(file_path: str, timeout: int):
 
     return audio_langs, sub_langs
 
-def refresh_queue(mdnx_api):
-    logger.info("[Vars] Getting the current queue IDs...")
-    queue_output = mdnx_api.queue_manager.output()
-    if queue_output is not None:
-        queue_ids = set(queue_output.keys())
-    else:
-        queue_ids = set()
-
-    monitor_ids = set(config["monitor-series-id"])
-    if not monitor_ids and not queue_ids:
-        logger.info("[Vars] No series to monitor or stop monitoring.\nPlease add series IDs to 'monitor-series-id' in the config file to start monitoring.\nExiting...")
-        sys.exit(1)
-
-    # Start or update monitors
-    logger.info("[Vars] Checking to see if any series need to be monitored...")
-    for series_id in monitor_ids:
-        if series_id not in queue_ids:
-            logger.info(f"[Vars] Starting to monitor series with ID: {series_id}")
-            mdnx_api.start_monitor(series_id)
-        else:
-            logger.info(f"[Vars] Series with ID: {series_id} is already being monitored. Updating with new data...")
-            mdnx_api.update_monitor(series_id)
-
-    # Stop monitors for IDs no longer in config
-    logger.info("[Vars] Checking to see if any series need to be stopped from monitoring...")
-    for series_id in queue_ids:
-        if series_id not in monitor_ids:
-            logger.info(f"[Vars] Stopping monitor for series with ID: {series_id}")
-            mdnx_api.stop_monitor(series_id)
-
-    logger.info("[Vars] MDNX queue refresh complete.")
-
-    return True
-
 def sanitize(segment: str) -> str:
     """
     Prepare a path segment for your the filesystem:
@@ -394,18 +451,18 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
     for part in raw_path.split("/"):
         if not part:
             continue
-
-        # specials (Season 0) go in "/config["app"]["SPECIAL_EPISODES_FOLDER_NAME"]/..."
-        if int(season) == 0:
-            norm = sanitize(part).lower()
-            if norm in {
-                "0", "00", # ${season}, ${seasonPadded}
-                "s0", "s00", # S${season}, S${seasonPadded}
-                "season 0", "season 00",  # "Season ${seasonPadded}"
-            }:
-                part = config["app"]["SPECIAL_EPISODES_FOLDER_NAME"]
-
         parts.append(sanitize(part))
+
+        # Commented out as downloading special episodes is not supported.
+        # specials (Season 0) go in "/config["app"]["SPECIAL_EPISODES_FOLDER_NAME"]/..."
+        # if int(season) == 0:
+        #     norm = sanitize(part).lower()
+        #     if norm in {
+        #         "0", "00", # ${season}, ${seasonPadded}
+        #         "s0", "s00", # S${season}, S${seasonPadded}
+        #         "season 0", "season 00",  # "Season ${seasonPadded}"
+        #     }:
+        #         part = config["app"]["SPECIAL_EPISODES_FOLDER_NAME"]
 
     full_path = os.path.join(base_dir, *parts)
 

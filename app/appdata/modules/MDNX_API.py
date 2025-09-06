@@ -4,20 +4,21 @@ import sys
 import subprocess
 
 # Custom imports
-from .QueueManager import QueueManager
-from .Vars import logger, config
-from .Vars import VALID_LOCALES, NAME_TO_CODE
-from .Vars import sanitize
+from .Globals import queue_manager
+from .Vars import (
+    logger, config,
+    VALID_LOCALES, NAME_TO_CODE, MDNX_SERVICE_BIN_PATH,
+    sanitize
+)
 
 
 
 class MDNX_API:
-    def __init__(self, mdnx_path, config=config, mdnx_service="crunchy") -> None:
+    def __init__(self, mdnx_path=MDNX_SERVICE_BIN_PATH, config=config, mdnx_service="crunchy") -> None:
         self.mdnx_path = mdnx_path
         self.mdnx_service = mdnx_service
         self.username = str(config["app"]["CR_USERNAME"])
         self.password = str(config["app"]["CR_PASSWORD"])
-        self.queue_manager = QueueManager()
 
         # Series: lines starting with [Z...]
         self.series_pattern = re.compile(
@@ -46,13 +47,13 @@ class MDNX_API:
             self.stdbuf_exists = False
             logger.debug("[MDNX_API] stdbuf not found, using default command without buffering.")
 
-        logger.info(f"[MDNX_API] MDNX API initialized with: Path: {mdnx_path} | Service: {mdnx_service}")
-
         # Skip API test if user wants to
         if config["app"]["CR_SKIP_API_TEST"] == False:
             self.test()
         else:
             logger.info("[MDNX_API] API test skipped by user.")
+
+        logger.info(f"[MDNX_API] MDNX API initialized with: Path: {mdnx_path} | Service: {mdnx_service}")
 
     def process_console_output(self, output: str, add2queue: bool = True):
         logger.debug("[MDNX_API] Processing console output...")
@@ -262,7 +263,7 @@ class MDNX_API:
 
         logger.debug("[MDNX_API] Console output processed.")
         if add2queue:
-            self.queue_manager.add(tmp_dict)
+            queue_manager.add(tmp_dict)
         return tmp_dict
 
     def test(self) -> None:
@@ -312,7 +313,7 @@ class MDNX_API:
         return result.stdout
 
     def stop_monitor(self, series_id: str) -> None:
-        self.queue_manager.remove(series_id)
+        queue_manager.remove(series_id)
         logger.info(f"[MDNX_API] Stopped monitoring series with ID: {series_id}")
         return
 
@@ -340,6 +341,11 @@ class MDNX_API:
         if dub_override:
             tmp_cmd += ["--dubLang", *dub_override]
             logger.info(f"[MDNX_API] Using dubLang override: {' '.join(dub_override)}")
+
+        # Hardcoded options.
+        # These can not be modified by config.json, or things will break/not work as expected.
+        tmp_cmd += ["--fileName", "output"]
+        tmp_cmd += ["--skipUpdate", "true"]
 
         if self.stdbuf_exists:
             cmd = ["stdbuf", "-oL", "-eL", *tmp_cmd]
