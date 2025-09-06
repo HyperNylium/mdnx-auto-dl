@@ -10,7 +10,7 @@ from appdata.modules.MainLoop import MainLoop
 from appdata.modules.Vars import (
     logger, config,
     MDNX_SERVICE_CR_TOKEN_PATH,
-    update_mdnx_config, update_app_config, handle_exception, get_running_user
+    update_mdnx_config, update_app_config, handle_exception, get_running_user, output_effective_config
 )
 
 
@@ -125,4 +125,5 @@ if __name__ == "__main__":
     logger.info("[app] mdnx-auto-dl has started.")
     get_running_user()
     update_mdnx_config()
+    output_effective_config(config)
     app()
