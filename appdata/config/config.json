@@ -1,31 +1,16 @@
 {
     "monitor-series-id": [],
     "app": {
-        "TEMP_DIR": "/app/appdata/temp",
-        "BIN_DIR": "/app/appdata/bin",
-        "LOG_FILE": "/app/appdata/logs/app.log",
-        "DATA_DIR": "/data",
         "CR_USERNAME": "",
         "CR_PASSWORD": "",
         "BACKUP_DUBS": ["zho"],
         "FOLDER_STRUCTURE": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
         "CHECK_MISSING_DUB_SUB": true,
-        "CHECK_MISSING_DUB_SUB_TIMEOUT": 300,
         "CHECK_FOR_UPDATES_INTERVAL": 3600,
         "BETWEEN_EPISODE_DL_WAIT_INTERVAL": 30,
-        "CR_FORCE_REAUTH": false,
-        "CR_SKIP_API_TEST": false,
-        "NOTIFICATION_PREFERENCE": "none",
-        "ONLY_CREATE_QUEUE": false,
         "LOG_LEVEL": "info"
     },
     "mdnx": {
-        "bin-path": {
-            "ffmpeg": "ffmpeg",
-            "ffprobe": "ffprobe",
-            "mkvmerge": "mkvmerge",
-            "mp4decrypt": "/app/appdata/bin/Bento4-SDK/bin/mp4decrypt"
-        },
         "cli-defaults": {
             "q": 0,
             "partsize": 3,
@@ -41,10 +26,6 @@
             "vstream": "androidtv",
             "astream": "androidtv",
             "tsd": false
-        },
-        "dir-path": {
-            "content": "/app/appdata/temp",
-            "fonts": "./fonts/"
         }
     }
 }
