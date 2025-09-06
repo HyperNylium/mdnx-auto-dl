@@ -342,6 +342,11 @@ class MDNX_API:
             tmp_cmd += ["--dubLang", *dub_override]
             logger.info(f"[MDNX_API] Using dubLang override: {' '.join(dub_override)}")
 
+        # Hardcoded options.
+        # These can not be modified by config.json, or things will break/not work as expected.
+        tmp_cmd += ["--fileName", "output"]
+        tmp_cmd += ["--skipUpdate", "true"]
+
         if self.stdbuf_exists:
             cmd = ["stdbuf", "-oL", "-eL", *tmp_cmd]
         else:

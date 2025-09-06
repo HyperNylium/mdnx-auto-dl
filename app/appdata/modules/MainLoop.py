@@ -223,7 +223,7 @@ class MainLoop:
                             if download_successful:
                                 logger.info(f"[MainLoop] Episode downloaded successfully.")
 
-                                temp_path = os.path.join(TEMP_DIR, self.config["mdnx"]["cli-defaults"]["fileName"] + ".mkv")
+                                temp_path = os.path.join(TEMP_DIR, "output.mkv")
 
                                 if file_manager.transfer(temp_path, file_path):
                                     logger.info("[MainLoop] Transfer complete.")
