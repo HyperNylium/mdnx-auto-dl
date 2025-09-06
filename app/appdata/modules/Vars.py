@@ -56,7 +56,7 @@ CONFIG_DEFAULTS = {
         "NOTIFICATION_PREFERENCE": "none",
         "ONLY_CREATE_QUEUE": False,
         "LOG_LEVEL": "info",
-        "NTFY_SCRIPT_PATH": None,
+        "NTFY_SCRIPT_PATH": "/app/appdata/config/ntfy.sh",
         "SMTP_FROM": None,
         "SMTP_TO": None,
         "SMTP_HOST": None,
