@@ -159,7 +159,6 @@ class MainLoop:
         monitor_ids = set(config["monitor-series-id"])
         if not monitor_ids and not queue_ids:
             logger.info("[MainLoop] No series to monitor or stop monitoring.\nPlease add series IDs to 'monitor-series-id' in the config file to start monitoring.\nExiting...")
-            self.stop()
             return False
 
         # Start or update monitors
@@ -187,7 +186,11 @@ class MainLoop:
         try:
             while not self.stop_event.is_set():
                 logger.debug("[MainLoop] Executing main loop task.")
-                self.refresh_queue()
+                refresh_ok = self.refresh_queue()
+                if not refresh_ok:
+                    self.stop()
+                    return
+
                 current_queue = queue_manager.output()
 
                 if self.config["app"]["ONLY_CREATE_QUEUE"] == True:

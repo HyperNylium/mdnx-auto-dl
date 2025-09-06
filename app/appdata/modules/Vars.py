@@ -35,6 +35,13 @@ def merge_config(defaults: dict, overrides: dict) -> dict:
 
     return merged
 
+def output_effective_config(config, max_chunk=8000):
+    logger.info("[Vars] Effective config: ")
+    formatted_json = json.dumps(config, indent=4, sort_keys=True)
+    for line in formatted_json.splitlines():
+        for i in range(0, len(line), max_chunk):
+            logger.info(line[i:i+max_chunk])
+
 # Default config values in case config.json is missing any keys.
 CONFIG_DEFAULTS = {
     "monitor-series-id": [],
@@ -190,6 +197,8 @@ logging.basicConfig(
 
 # Create a logger for all modules to use
 logger = logging.getLogger(__name__)
+
+output_effective_config(config)
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
