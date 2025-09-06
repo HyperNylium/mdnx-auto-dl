@@ -1,21 +1,23 @@
 import os
 import sys
 import signal
+import logging
 import threading
 
 # Custom imports
 from appdata.modules.MDNX_API import MDNX_API
 from appdata.modules.MainLoop import MainLoop
-from appdata.modules.NotificationManager import ntfy, SMTP
-from appdata.modules.Vars import logger, config
-from appdata.modules.Vars import MDNX_SERVICE_BIN_PATH, MDNX_SERVICE_CR_TOKEN_PATH
-from appdata.modules.Vars import update_mdnx_config, update_app_config, handle_exception, get_running_user
+from appdata.modules.Vars import (
+    logger, config,
+    MDNX_SERVICE_CR_TOKEN_PATH,
+    update_mdnx_config, update_app_config, handle_exception, get_running_user, output_effective_config
+)
 
 
 
 def app():
     logger.info("[app] Starting MDNX_API...")
-    mdnx_api = MDNX_API(mdnx_path=MDNX_SERVICE_BIN_PATH)
+    mdnx_api = MDNX_API()
 
     # Authenticate with MDNX service if needed or force auth if user wants to
     logger.info("[app] Checking to see if user is authenticated with MDNX service (cr_token.yml exists?)...")
@@ -32,19 +34,46 @@ def app():
     logger.info("[app] Checking notification preference...")
     if config["app"]["NOTIFICATION_PREFERENCE"] == "ntfy":
         logger.info("[app] User prefers ntfy notifications. Setting up ntfy script...")
-        if not os.path.exists(config["app"]["NTFY_SCRIPT_PATH"]):
-            logger.error(f"[app] Ntfy script not found at {config['app']['NTFY_SCRIPT_PATH']}. Please check your configuration.")
+
+        script_path = config["app"].get("NTFY_SCRIPT_PATH")
+
+        if script_path is None or script_path == "":
+            logger.error("[app] NTFY_SCRIPT_PATH is not set or is empty. Please set it in config.json.")
             sys.exit(1)
+
+        if not os.path.exists(script_path):
+            logger.error(f"[app] NTFY_SCRIPT_PATH does not exist: {script_path}. Please check the path in config.json.")
+            sys.exit(1)
+
+        from appdata.modules.NotificationManager import ntfy
         notifier = ntfy()
+
     elif config["app"]["NOTIFICATION_PREFERENCE"] == "smtp":
         logger.info("[app] User prefers SMTP notifications. Configuring SMTP settings...")
-        if not all(key in config["app"] for key in ["SMTP_FROM", "SMTP_TO", "SMTP_HOST", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_PORT", "SMTP_STARTTLS"]):
-            logger.error("[app] Missing SMTP configuration parameters. Please check your configuration.")
+
+        required_keys = [
+            "SMTP_FROM", "SMTP_TO", "SMTP_HOST", "SMTP_USERNAME",
+            "SMTP_PASSWORD", "SMTP_PORT", "SMTP_STARTTLS"
+        ]
+
+        # ensure all keys exist AND are not None
+        missing_or_empty = []
+        for key in required_keys:
+            value = config["app"].get(key)
+            if value is None or value == "":
+                missing_or_empty.append(key)
+
+        if missing_or_empty:
+            logger.error(f"[app] Missing or invalid SMTP configuration values: {', '.join(missing_or_empty)}")
             sys.exit(1)
+
+        from appdata.modules.NotificationManager import SMTP
         notifier = SMTP()
+
     elif config["app"]["NOTIFICATION_PREFERENCE"] == "none":
         logger.info("[app] User prefers no notifications.")
         notifier = None
+
     else:
         logger.error(f"[app] Unsupported notification preference: {config['app']['NOTIFICATION_PREFERENCE']}. Supported options are 'ntfy', 'smtp' or 'none'.")
         sys.exit(1)
@@ -86,6 +115,7 @@ def app():
 
     # block main thread until the worker ends (normal or crash)
     mainloop.thread.join()
+    logging.shutdown()
     sys.exit(exit_code["code"])
 
 if __name__ == "__main__":
@@ -95,4 +125,5 @@ if __name__ == "__main__":
     logger.info("[app] mdnx-auto-dl has started.")
     get_running_user()
     update_mdnx_config()
+    output_effective_config(config)
     app()

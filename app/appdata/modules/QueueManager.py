@@ -2,8 +2,10 @@ import os
 import json
 
 # Custom imports
-from .Vars import logger
-from .Vars import QUEUE_PATH
+from .Vars import (
+    logger,
+    QUEUE_PATH
+)
 
 
 
