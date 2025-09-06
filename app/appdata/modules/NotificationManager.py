@@ -1,7 +1,7 @@
 
-from email.message import EmailMessage
 import subprocess
 import smtplib
+from email.message import EmailMessage
 
 # Custom imports
 from .Vars import logger, config
