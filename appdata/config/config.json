@@ -30,10 +30,7 @@
         },
         "cli-defaults": {
             "q": 0,
-            "kstream": 1,
-            "server": 1,
             "partsize": 3,
-            "fileName": "output",
             "dubLang": [
                 "jpn",
                 "eng"
@@ -43,13 +40,6 @@
             ],
             "defaultAudio": "jpn",
             "defaultSub": "eng",
-            "timeout": 30000,
-            "waittime": 3000,
-            "mp4": false,
-            "nocleanup": false,
-            "dlVideoOnce": false,
-            "keepAllVideos": false,
-            "skipUpdate": true,
             "vstream": "androidtv",
             "astream": "androidtv",
             "tsd": false
