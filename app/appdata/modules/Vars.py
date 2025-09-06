@@ -198,9 +198,6 @@ logging.basicConfig(
 # Create a logger for all modules to use
 logger = logging.getLogger(__name__)
 
-output_effective_config(config)
-
-
 def handle_exception(exc_type, exc_value, exc_traceback):
     # skip logging for KeyboardInterrupt and SystemExit. Use the default handler.
     if issubclass(exc_type, (KeyboardInterrupt, SystemExit)):
