@@ -360,18 +360,18 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
     for part in raw_path.split("/"):
         if not part:
             continue
-
-        # specials (Season 0) go in "/config["app"]["SPECIAL_EPISODES_FOLDER_NAME"]/..."
-        if int(season) == 0:
-            norm = sanitize(part).lower()
-            if norm in {
-                "0", "00", # ${season}, ${seasonPadded}
-                "s0", "s00", # S${season}, S${seasonPadded}
-                "season 0", "season 00",  # "Season ${seasonPadded}"
-            }:
-                part = config["app"]["SPECIAL_EPISODES_FOLDER_NAME"]
-
         parts.append(sanitize(part))
+
+        # Commented out as downloading special episodes is not supported.
+        # specials (Season 0) go in "/config["app"]["SPECIAL_EPISODES_FOLDER_NAME"]/..."
+        # if int(season) == 0:
+        #     norm = sanitize(part).lower()
+        #     if norm in {
+        #         "0", "00", # ${season}, ${seasonPadded}
+        #         "s0", "s00", # S${season}, S${seasonPadded}
+        #         "season 0", "season 00",  # "Season ${seasonPadded}"
+        #     }:
+        #         part = config["app"]["SPECIAL_EPISODES_FOLDER_NAME"]
 
     full_path = os.path.join(base_dir, *parts)
 

@@ -9,8 +9,6 @@
         "CR_PASSWORD": "",
         "BACKUP_DUBS": ["zho"],
         "FOLDER_STRUCTURE": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
-        "DOWNLOAD_SPECIAL_EPISODES": false,
-        "SPECIAL_EPISODES_FOLDER_NAME": "Special",
         "CHECK_MISSING_DUB_SUB": true,
         "CHECK_MISSING_DUB_SUB_TIMEOUT": 300,
         "CHECK_FOR_UPDATES_INTERVAL": 3600,
