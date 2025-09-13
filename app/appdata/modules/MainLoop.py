@@ -358,15 +358,15 @@ class MainLoop:
                     logger.info("[MainLoop] Truncated log file.")
                     self.mainloop_iter = 0
 
+                # Trigger media server scan if configured and there are new items in the notifications buffer.
+                if len(self.notifications_buffer) > 0 and self.config["app"]["MEDIASERVER_TYPE"] is not None:
+                    logger.info("[MainLoop] Triggering media server scan.")
+                    scan_media_server()
+
                 # Flush notifications buffer if it has items.
                 if self.notifications_buffer:
                     logger.info("[MainLoop] Flushing notifications buffer.")
                     self.flush_notifications()
-
-                # Trigger media server scan if configured.
-                if self.config["app"]["MEDIASERVER_TYPE"] is not None:
-                    logger.info("[MainLoop] Triggering media server scan.")
-                    scan_media_server()
 
                 # Wait for self.timeout seconds or exit early if stop_event is set.
                 logger.info(f"[MainLoop] MainLoop iteration completed. Next iteration in {format_duration(self.loop_timeout)}.")
