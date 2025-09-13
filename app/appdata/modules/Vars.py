@@ -70,7 +70,11 @@ CONFIG_DEFAULTS = {
         "SMTP_USERNAME": "",
         "SMTP_PASSWORD": "",
         "SMTP_PORT": 587,
-        "SMTP_STARTTLS": True
+        "SMTP_STARTTLS": True,
+        "MEDIASERVER_TYPE": None,
+        "MEDIASERVER_URL": None,
+        "MEDIASERVER_TOKEN": None,
+        "MEDIASERVER_URL_OVERRIDE": False,
     },
     "mdnx": {
         "bin-path": {

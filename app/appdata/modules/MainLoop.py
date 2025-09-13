@@ -11,6 +11,7 @@ from .Vars import (
     TEMP_DIR, DATA_DIR,
     get_episode_file_path, iter_episodes, log_manager, probe_streams, select_dubs, format_duration
 )
+from .MediaServerManager import scan_media_server
 
 
 
@@ -356,6 +357,11 @@ class MainLoop:
                     log_manager()
                     logger.info("[MainLoop] Truncated log file.")
                     self.mainloop_iter = 0
+
+                # Trigger media server scan if configured and there are new items in the notifications buffer.
+                if len(self.notifications_buffer) > 0 and self.config["app"]["MEDIASERVER_TYPE"] is not None:
+                    logger.info("[MainLoop] Triggering media server scan.")
+                    scan_media_server()
 
                 # Flush notifications buffer if it has items.
                 if self.notifications_buffer:
