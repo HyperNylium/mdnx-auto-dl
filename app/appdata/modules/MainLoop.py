@@ -11,6 +11,7 @@ from .Vars import (
     TEMP_DIR, DATA_DIR,
     get_episode_file_path, iter_episodes, log_manager, probe_streams, select_dubs, format_duration
 )
+from .MediaServerManager import scan_media_server
 
 
 
@@ -361,6 +362,11 @@ class MainLoop:
                 if self.notifications_buffer:
                     logger.info("[MainLoop] Flushing notifications buffer.")
                     self.flush_notifications()
+
+                # Trigger media server scan if configured.
+                if self.config["app"]["MEDIASERVER_TYPE"] is not None:
+                    logger.info("[MainLoop] Triggering media server scan.")
+                    scan_media_server()
 
                 # Wait for self.timeout seconds or exit early if stop_event is set.
                 logger.info(f"[MainLoop] MainLoop iteration completed. Next iteration in {format_duration(self.loop_timeout)}.")
