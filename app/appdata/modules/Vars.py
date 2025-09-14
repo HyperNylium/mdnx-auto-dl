@@ -430,11 +430,11 @@ def log_manager(log_file_path=LOG_FILE, max_lines: int = 50000, keep_lines: int 
             new_lines = lines[-keep_lines:]
             with open(log_file_path, 'w', encoding='utf-8') as file:
                 file.writelines(new_lines)
-            logger.info(f"Log file truncated: was {total_lines} lines, now {keep_lines} lines kept.")
+            logger.info(f"[Vars] Log file truncated: was {total_lines} lines, now {keep_lines} lines kept.")
         else:
-            logger.info("Log file is within the allowed size; no truncation performed.")
+            logger.info("[Vars] Log file is within the allowed size; no truncation performed.")
     except Exception as e:
-        logger.error(f"Error managing log file: {e}")
+        logger.error(f"[Vars] Error managing log file: {e}")
 
 def build_folder_structure(base_dir: str, series_title: str, season: str, episode: str, episode_name: str, extension: str = ".mkv") -> str:
     template_str = str(config["app"]["FOLDER_STRUCTURE"])
