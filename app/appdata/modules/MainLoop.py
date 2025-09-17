@@ -3,6 +3,7 @@ import threading
 from datetime import datetime
 
 # Custom imports
+from .MediaServerManager import mediaserver_scan_library
 from .Globals import (
     file_manager, queue_manager
 )
@@ -11,7 +12,6 @@ from .Vars import (
     TEMP_DIR, DATA_DIR,
     get_episode_file_path, iter_episodes, log_manager, probe_streams, select_dubs, format_duration
 )
-from .MediaServerManager import scan_media_server
 
 
 
@@ -361,7 +361,7 @@ class MainLoop:
                 # Trigger media server scan if configured and there are new items in the notifications buffer.
                 if len(self.notifications_buffer) > 0 and self.config["app"]["MEDIASERVER_TYPE"] is not None:
                     logger.info("[MainLoop] Triggering media server scan.")
-                    scan_media_server()
+                    mediaserver_scan_library()
 
                 # Flush notifications buffer if it has items.
                 if self.notifications_buffer:

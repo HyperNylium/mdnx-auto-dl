@@ -7,6 +7,7 @@ import threading
 # Custom imports
 from appdata.modules.MDNX_API import MDNX_API
 from appdata.modules.MainLoop import MainLoop
+from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
 from appdata.modules.Vars import (
     logger, config,
     MDNX_SERVICE_CR_TOKEN_PATH,
@@ -77,6 +78,24 @@ def app():
     else:
         logger.error(f"[app] Unsupported notification preference: {config['app']['NOTIFICATION_PREFERENCE']}. Supported options are 'ntfy', 'smtp' or 'none'.")
         sys.exit(1)
+
+    server_type = config["app"]["MEDIASERVER_TYPE"]
+
+    if isinstance(server_type, str) and server_type.strip() != "":
+        logger.debug(f"[app] Media server type: {server_type}")
+
+        if not mediaserver_auth():
+            logger.error("[app] Authentication timed out or failed. Check the logs.")
+            sys.exit(1)
+
+        logger.info("[app] User is authenticated. Testing library scan...")
+        if not mediaserver_scan_library():
+            logger.error("[app] Library scan failed. Please check your configuration.")
+            sys.exit(1)
+        else:
+            logger.info("[app] Library scan successful.")
+    else:
+        logger.info("[app] MEDIASERVER_TYPE not set. Skipping media server auth/scan.")
 
     # Start MainLoop
     logger.info("[app] Starting MainLoop...")
