@@ -324,7 +324,7 @@ class MainLoop:
                             logger.info(f"[MainLoop] Missing dubs detected for {episode_basename}: {', '.join(effective_missing_dubs)}. Re-downloading episode to acquire missing dubs.")
 
                         if effective_missing_subs:
-                            logger.info(f"[MainLoop] Missing dubs detected for {episode_basename}: {', '.join(effective_missing_subs)}. Re-downloading episode to acquire missing dubs.")
+                            logger.info(f"[MainLoop] Missing dubs detected for {episode_basename}: {', '.join(effective_missing_subs)}. Re-downloading episode to acquire missing subs.")
 
                         dub_override = select_dubs(episode_info)
 
