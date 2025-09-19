@@ -26,7 +26,7 @@ class PLEX_API:
         self.url_override = config["app"]["MEDIASERVER_URL_OVERRIDE"]
 
         if self.server_url is None or self.server_url == "":
-            logger.error("[PLEX_API] MEDIASERVER_URL is not set or empty. Please set it in config.json. Exiting...")
+            logger.error("[MediaServerManager][PLEX_API] MEDIASERVER_URL is not set or empty. Please set it in config.json. Exiting...")
             sys.exit(1)
 
         if isinstance(self.server_url, str):
@@ -41,7 +41,7 @@ class PLEX_API:
         self.pin_started_at = None
         self.pin_url_logged = False
 
-        logger.info(f"[PLEX_API] PLEX API initialized with: URL: {self.server_url}")
+        logger.info(f"[MediaServerManager][PLEX_API] PLEX API initialized with: URL: {self.server_url}")
 
     def wait_for_auth(self, max_wait_seconds: int = 600, poll_interval: float = 1.0) -> bool:
         if self._verify_token(self.token):
@@ -60,49 +60,49 @@ class PLEX_API:
                 if new_token:
                     self._store_token(new_token)
                     self._clear_pin_state()
-                    logger.info("[PLEX_API] Authorization completed. Token stored.")
+                    logger.info("[MediaServerManager][PLEX_API] Authorization completed. Token stored.")
                     return True
 
             if self.pin_started_at and (time.time() - self.pin_started_at > PLEX_PIN_TIMEOUT_SECONDS):
-                logger.info("[PLEX_API] PIN timed out. Generating a new one.")
+                logger.info("[MediaServerManager][PLEX_API] PIN timed out. Generating a new one.")
                 self._clear_pin_state()
                 self._create_and_log_pin()
 
             time.sleep(poll_interval)
 
-        logger.error(f"[PLEX_API] Authorization timed out after {format_duration(max_wait_seconds)}.")
+        logger.error(f"[MediaServerManager][PLEX_API] Authorization timed out after {format_duration(max_wait_seconds)}.")
         return False
 
     def scan_library(self) -> bool:
         if not self.server_url:
-            logger.info("[PLEX_API] MEDIASERVER_URL not configured. Skipping scan.")
+            logger.info("[MediaServerManager][PLEX_API] MEDIASERVER_URL not configured. Skipping scan.")
             return False
 
         if not self._verify_token(self.token):
-            logger.info("[PLEX_API] No valid token yet.")
+            logger.info("[MediaServerManager][PLEX_API] No valid token yet.")
             return False
 
         if self.url_override:
-            logger.info("[PLEX_API] MEDIASERVER_URL_OVERRIDE is true. Using whatever is in MEDIASERVER_URL for scan endpoint.")
+            logger.info("[MediaServerManager][PLEX_API] MEDIASERVER_URL_OVERRIDE is true. Using whatever is in MEDIASERVER_URL for scan endpoint.")
             url = self.server_url
         else:
-            logger.info("[PLEX_API] Using standard Plex scan URL for all libraries.")
+            logger.info("[MediaServerManager][PLEX_API] Using standard Plex scan URL for all libraries.")
             url = f"{self.server_url}/library/sections/all/refresh"
 
         try:
             resp = requests.get(url, headers=self._headers(include_token=True), timeout=30)
-            logger.debug(f"[PLEX_API] Scan status={resp.status_code}")
+            logger.debug(f"[MediaServerManager][PLEX_API] Scan status={resp.status_code}")
             resp.raise_for_status()
-            logger.info("[PLEX_API] Scan triggered successfully.")
+            logger.info("[MediaServerManager][PLEX_API] Scan triggered successfully.")
             return True
         except requests.HTTPError as e:
             status = e.response.status_code if e.response is not None else "unknown"
             if status == 401:
-                logger.error("[PLEX_API] 401 Unauthorized. Token invalid or lacks permission.")
+                logger.error("[MediaServerManager][PLEX_API] 401 Unauthorized. Token invalid or lacks permission.")
             else:
-                logger.error(f"[PLEX_API] HTTP error: {e}")
+                logger.error(f"[MediaServerManager][PLEX_API] HTTP error: {e}")
         except requests.RequestException as e:
-            logger.error(f"[PLEX_API] Request failed: {e}")
+            logger.error(f"[MediaServerManager][PLEX_API] Request failed: {e}")
         return False
 
     def _headers(self, include_token: bool) -> dict:
@@ -120,17 +120,17 @@ class PLEX_API:
             return False
         try:
             resp = requests.get(f"{PLEX_API_BASE}/user", headers=self._headers(include_token=True), timeout=10)
-            logger.debug(f"[PLEX_API] Verify token status={resp.status_code}")
+            logger.debug(f"[MediaServerManager][PLEX_API] Verify token status={resp.status_code}")
             return resp.status_code == 200
         except requests.RequestException as e:
-            logger.warning(f"[PLEX_API] Token verify error (network?): {e}")
+            logger.warning(f"[MediaServerManager][PLEX_API] Token verify error (network?): {e}")
             return False
 
     def _create_and_log_pin(self) -> None:
         pin_id, code, auth_url = self._start_pin()
         self.pin_id, self.pin_code, self.pin_started_at = pin_id, code, time.time()
         if not self.pin_url_logged:
-            logger.info(f"[PLEX_API] Open this URL in a browser to authorize the app:\n{auth_url}")
+            logger.info(f"[MediaServerManager][PLEX_API] Open this URL in a browser to authorize the app:\n{auth_url}")
             self.pin_url_logged = True
 
     def _start_pin(self):
@@ -163,13 +163,13 @@ class PLEX_API:
             resp.raise_for_status()
             return resp.json().get("authToken")
         except requests.RequestException as e:
-            logger.debug(f"[PLEX_API] PIN poll error: {e}")
+            logger.debug(f"[MediaServerManager][PLEX_API] PIN poll error: {e}")
             return None
 
     def _store_token(self, token) -> None:
         ok = update_app_config("MEDIASERVER_TOKEN", token)
         if not ok:
-            logger.error("[PLEX_API] Failed to persist MEDIASERVER_TOKEN to config.")
+            logger.error("[MediaServerManager][PLEX_API] Failed to persist MEDIASERVER_TOKEN to config.")
         self.token = token
 
     def _clear_pin_state(self) -> None:
@@ -186,33 +186,33 @@ class JELLYFIN_API:
         self.api_key = config["app"].get("MEDIASERVER_TOKEN")
 
         if self.server_url is None or self.server_url == "":
-            logger.error("[JELLYFIN_API] MEDIASERVER_URL is not set or empty. Please set it in config.json. Exiting...")
+            logger.error("[MediaServerManager][JELLYFIN_API] MEDIASERVER_URL is not set or empty. Please set it in config.json. Exiting...")
             sys.exit(1)
         if self.api_key is None or self.api_key == "":
-            logger.error("[JELLYFIN_API] MEDIASERVER_TOKEN (API key) is not set or empty. Please set it in config.json. Exiting...")
+            logger.error("[MediaServerManager][JELLYFIN_API] MEDIASERVER_TOKEN (API key) is not set or empty. Please set it in config.json. Exiting...")
             sys.exit(1)
 
-        logger.info(f"[JELLYFIN_API] Initialized (URL: {self.server_url})")
+        logger.info(f"[MediaServerManager][JELLYFIN_API] Initialized (URL: {self.server_url})")
 
     def scan_library(self) -> bool:
         if not self.server_url:
-            logger.info("[JELLYFIN_API] MEDIASERVER_URL not configured. Skipping scan.")
+            logger.info("[MediaServerManager][JELLYFIN_API] MEDIASERVER_URL not configured. Skipping scan.")
             return False
 
         if not self.api_key:
-            logger.info("[JELLYFIN_API] MEDIASERVER_TOKEN (API key) not configured. Skipping scan.")
+            logger.info("[MediaServerManager][JELLYFIN_API] MEDIASERVER_TOKEN (API key) not configured. Skipping scan.")
             return False
 
         url = f"{self.server_url}/Library/Refresh"
         try:
             resp = requests.post(url, params={"api_key": self.api_key}, timeout=30)
-            logger.debug(f"[JELLYFIN_API] Scan URL: {resp.url}")
+            logger.debug(f"[MediaServerManager][JELLYFIN_API] Scan URL: {resp.url}")
             resp.raise_for_status()
-            logger.debug(f"[JELLYFIN_API] Response: {resp.text}")
-            logger.info("[JELLYFIN_API] Scan triggered successfully.")
+            logger.debug(f"[MediaServerManager][JELLYFIN_API] Response: {resp.text}")
+            logger.info("[MediaServerManager][JELLYFIN_API] Scan triggered successfully.")
             return True
         except requests.RequestException as e:
-            logger.error(f"[JELLYFIN_API] Error triggering scan: {e}")
+            logger.error(f"[MediaServerManager][JELLYFIN_API] Error triggering scan: {e}")
             return False
 
 
