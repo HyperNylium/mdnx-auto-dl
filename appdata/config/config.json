@@ -3,7 +3,9 @@
     "app": {
         "CR_USERNAME": "",
         "CR_PASSWORD": "",
-        "BACKUP_DUBS": ["zho"],
+        "BACKUP_DUBS": [
+            "zho"
+        ],
         "FOLDER_STRUCTURE": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
         "CHECK_MISSING_DUB_SUB": true,
         "CHECK_FOR_UPDATES_INTERVAL": 3600,

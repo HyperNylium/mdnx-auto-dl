@@ -8,6 +8,7 @@ import logging
 import subprocess
 from string import Template
 from io import TextIOWrapper
+from collections import OrderedDict
 
 
 CONFIG_PATH = os.getenv("CONFIG_FILE", "appdata/config/config.json")
@@ -112,7 +113,7 @@ with open(CONFIG_PATH, 'r') as config_file:
 
 config = merge_config(defaults=CONFIG_DEFAULTS, overrides=LOCAL_CONFIG)
 
-del CONFIG_DEFAULTS, LOCAL_CONFIG
+del LOCAL_CONFIG
 
 # App settings
 LOG_FILE = config["app"]["LOG_FILE"]
@@ -405,18 +406,51 @@ def update_mdnx_config():
 def update_app_config(key: str, value):
     global config
 
-    for Property in ["app"]:
-        if Property in config and key in config[Property]:
-            config[Property][key] = value
-            logger.debug(f"[Vars] Updated config property '{Property}' key '{key}' with value '{value}'")
-            break
-    else:
-        logger.error(f"[Vars] Error while writing to the config file\nProperty: {Property}\nKey: {key}\nValue: {value}")
+    try:
+        with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+            on_disk = json.load(f, object_pairs_hook=OrderedDict)
+    except Exception as e:
+        logger.error(f"[Vars] Failed to read config file: {e}")
         return False
 
-    with open(CONFIG_PATH, 'w') as config_file:
-        json.dump(config, config_file, indent=4)
+    app_section = on_disk.get("app")
+    if not isinstance(app_section, dict):
+        logger.error("[Vars] Invalid config: missing 'app' object.")
+        return False
 
+    app_section[key] = value
+
+    # Reorder "app" section according to CONFIG_DEFAULTS["app"] key order.
+    # Keys not present in defaults are appended in their current relative order.
+    try:
+        defaults_app = CONFIG_DEFAULTS.get("app", {})
+        ordered_app = OrderedDict()
+
+        for default_key in defaults_app.keys():
+            if default_key in app_section:
+                ordered_app[default_key] = app_section[default_key]
+
+        for existing_key, existing_value in app_section.items():
+            if existing_key not in ordered_app:
+                ordered_app[existing_key] = existing_value
+        on_disk["app"] = ordered_app
+    except Exception as e:
+        logger.warning(f"[Vars] Unable to apply defaults order to 'app' section: {e}")
+
+    try:
+        with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
+            json.dump(on_disk, f, indent=4)
+            f.write("\n")
+    except Exception as e:
+        logger.error(f"[Vars] Failed to write config file: {e}")
+        return False
+
+    try:
+        config["app"][key] = value
+    except Exception:
+        logger.debug("[Vars] In-memory config structure unexpected. Could not mirror update cleanly.")
+
+    logger.debug(f"[Vars] Updated on-disk 'app.{key}' with '{value}'")
     return True
 
 def log_manager(log_file_path=LOG_FILE, max_lines: int = 50000, keep_lines: int = 5000) -> None:
