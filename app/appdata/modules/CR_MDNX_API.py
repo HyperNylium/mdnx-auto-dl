@@ -17,6 +17,7 @@ class CR_MDNX_API:
     def __init__(self, mdnx_path=MDNX_SERVICE_BIN_PATH, config=config, mdnx_service="crunchy") -> None:
         self.mdnx_path = mdnx_path
         self.mdnx_service = mdnx_service
+        self.queue_service = "crunchy"
         self.username = str(config["app"]["CR_USERNAME"])
         self.password = str(config["app"]["CR_PASSWORD"])
 
@@ -51,7 +52,7 @@ class CR_MDNX_API:
         if config["app"]["CR_SKIP_API_TEST"] == False:
             self.test()
         else:
-            logger.info("[CR_CR_MDNX_API] API test skipped by user.")
+            logger.info("[CR_MDNX_API] API test skipped by user.")
 
         logger.info(f"[CR_MDNX_API] MDNX API initialized with: Path: {mdnx_path} | Service: {mdnx_service}")
 
@@ -263,15 +264,15 @@ class CR_MDNX_API:
 
         logger.debug("[CR_MDNX_API] Console output processed.")
         if add2queue:
-            queue_manager.add(tmp_dict)
+            queue_manager.add(tmp_dict, self.queue_service)
         return tmp_dict
 
     def test(self) -> None:
         logger.info("[CR_MDNX_API] Testing MDNX API...")
 
-        tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", "GMEHME81V"]
+        tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", "G8DHV78ZM"]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8").stdout
-        logger.info(f"[CR_MDNX_API] MDNX API test resault:\n{result}")
+        logger.info(f"[CR_MDNX_API] MDNX API test result:\n{result}")
 
         json_result = self.process_console_output(result, add2queue=False)
         logger.info(f"[CR_MDNX_API] Processed console output:\n{json_result}")
@@ -313,7 +314,7 @@ class CR_MDNX_API:
         return result.stdout
 
     def stop_monitor(self, series_id: str) -> None:
-        queue_manager.remove(series_id)
+        queue_manager.remove(series_id, self.queue_service)
         logger.info(f"[CR_MDNX_API] Stopped monitoring series with ID: {series_id}")
         return
 
@@ -358,7 +359,7 @@ class CR_MDNX_API:
         with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
             for line in proc.stdout:
                 cleaned = line.rstrip()
-                logger.info(f"[CR_MDNX_API][multi-download-nx] {cleaned}")
+                logger.info(f"[CR_MDNX_API][multi-downloader-nx] {cleaned}")
 
                 if "[mkvmerge Done]" in cleaned:
                     success = True

@@ -45,14 +45,19 @@ def output_effective_config(config, max_chunk=8000):
 
 # Default config values in case config.json is missing any keys.
 CONFIG_DEFAULTS = {
-    "monitor-series-id": [],
+    "cr_monitor_series_id": [],
+    "hidive_monitor_series_id": [],
     "app": {
         "TEMP_DIR": "/app/appdata/temp",
         "BIN_DIR": "/app/appdata/bin",
         "LOG_FILE": "/app/appdata/logs/app.log",
         "DATA_DIR": "/data",
+        "CR_ENABLED": True,
         "CR_USERNAME": "",
         "CR_PASSWORD": "",
+        "HIDIVE_ENABLED": False,
+        "HIDIVE_USERNAME": "",
+        "HIDIVE_PASSWORD": "",
         "BACKUP_DUBS": ["zho"],
         "FOLDER_STRUCTURE": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
         "CHECK_MISSING_DUB_SUB": True,
@@ -61,6 +66,8 @@ CONFIG_DEFAULTS = {
         "BETWEEN_EPISODE_DL_WAIT_INTERVAL": 30,
         "CR_FORCE_REAUTH": False,
         "CR_SKIP_API_TEST": False,
+        "HIDIVE_FORCE_REAUTH": False,
+        "HIDIVE_SKIP_API_TEST": False,
         "NOTIFICATION_PREFERENCE": "none",
         "ONLY_CREATE_QUEUE": False,
         "LOG_LEVEL": "info",
@@ -127,6 +134,7 @@ MDNX_CONFIG = config["mdnx"]
 # Dynamic paths
 MDNX_SERVICE_BIN_PATH = os.path.join(BIN_DIR, "mdnx", "aniDL")
 MDNX_SERVICE_CR_TOKEN_PATH = os.path.join(BIN_DIR, "mdnx", "config", "cr_token.yml")
+MDNX_SERVICE_HIDIVE_TOKEN_PATH = os.path.join(BIN_DIR, "mdnx", "config", "hd_new_token.yml")
 
 # Regular expression to match invalid characters in filenames
 INVALID_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1F]')
@@ -532,8 +540,13 @@ def get_episode_file_path(queue, series_id, season_key, episode_key, base_dir, e
     # Combine to form the full file path.
     return file_name
 
-def iter_episodes(queue_data: dict):
-    for series_id, series_info in queue_data.items():
-        for season_key, season_info in series_info["seasons"].items():
-            for episode_key, episode_info in season_info["episodes"].items():
+def iter_episodes(bucket_data: dict):
+    if not isinstance(bucket_data, dict) or not bucket_data:
+        return
+
+    for series_id, series_info in bucket_data.items():
+        seasons = series_info.get("seasons") or {}
+        for season_key, season_info in seasons.items():
+            episodes = season_info.get("episodes") or {}
+            for episode_key, episode_info in episodes.items():
                 yield series_id, season_key, episode_key, season_info, episode_info
