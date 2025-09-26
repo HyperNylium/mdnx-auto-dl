@@ -13,7 +13,7 @@ from .Vars import (
 
 
 
-class MDNX_API:
+class CR_MDNX_API:
     def __init__(self, mdnx_path=MDNX_SERVICE_BIN_PATH, config=config, mdnx_service="crunchy") -> None:
         self.mdnx_path = mdnx_path
         self.mdnx_service = mdnx_service
@@ -42,21 +42,21 @@ class MDNX_API:
 
         if os.path.exists("/usr/bin/stdbuf"):
             self.stdbuf_exists = True
-            logger.debug("[MDNX_API] Using stdbuf to ensure live output streaming.")
+            logger.debug("[CR_MDNX_API] Using stdbuf to ensure live output streaming.")
         else:
             self.stdbuf_exists = False
-            logger.debug("[MDNX_API] stdbuf not found, using default command without buffering.")
+            logger.debug("[CR_MDNX_API] stdbuf not found, using default command without buffering.")
 
         # Skip API test if user wants to
         if config["app"]["CR_SKIP_API_TEST"] == False:
             self.test()
         else:
-            logger.info("[MDNX_API] API test skipped by user.")
+            logger.info("[CR_CR_MDNX_API] API test skipped by user.")
 
-        logger.info(f"[MDNX_API] MDNX API initialized with: Path: {mdnx_path} | Service: {mdnx_service}")
+        logger.info(f"[CR_MDNX_API] MDNX API initialized with: Path: {mdnx_path} | Service: {mdnx_service}")
 
     def process_console_output(self, output: str, add2queue: bool = True):
-        logger.debug("[MDNX_API] Processing console output...")
+        logger.debug("[CR_MDNX_API] Processing console output...")
         tmp_dict = {}             # maps series_id to series info
         episode_counters = {}     # maps season key ("S1", "S2", etc) to episode counter
         season_num_map = {}       # maps original season_number to mapped season_number (goes from S43, S45  to S1, S2)
@@ -165,11 +165,11 @@ class MDNX_API:
                     if guessed_key:
                         season_key = guessed_key
                         mapped_num = int(season_key[1:])
-                        logger.debug(f"[MDNX_API] Resolved episode season by name '{season_name_guess}' -> {season_key}")
+                        logger.debug(f"[CR_MDNX_API] Resolved episode season by name '{season_name_guess}' -> {season_key}")
 
                 if not season_key:
                     # If we still cant resolve the season, warn and create a shell entry
-                    logger.warning(f"[MDNX_API] Season not resolved by number or name in line: {line}")
+                    logger.warning(f"[CR_MDNX_API] Season not resolved by number or name in line: {line}")
                     mapped_num = len(tmp_dict[current_series_id]["seasons"]) + 1
                     season_key = f"S{mapped_num}"
                     if season_key not in tmp_dict[current_series_id]["seasons"]:
@@ -253,7 +253,7 @@ class MDNX_API:
             for old_key, season_info in kept_seasons:
                 new_key = f"S{new_idx}"
                 if new_key != old_key:
-                    logger.debug(f"[MDNX_API] Renaming season {old_key} to {new_key} in series {series_id}")
+                    logger.debug(f"[CR_MDNX_API] Renaming season {old_key} to {new_key} in series {series_id}")
                 season_info["season_number"] = str(new_idx)
                 season_info["eps_count"] = str(len(season_info["episodes"]))
                 new_seasons[new_key] = season_info
@@ -261,86 +261,86 @@ class MDNX_API:
 
             series_info["seasons"] = new_seasons
 
-        logger.debug("[MDNX_API] Console output processed.")
+        logger.debug("[CR_MDNX_API] Console output processed.")
         if add2queue:
             queue_manager.add(tmp_dict)
         return tmp_dict
 
     def test(self) -> None:
-        logger.info("[MDNX_API] Testing MDNX API...")
+        logger.info("[CR_MDNX_API] Testing MDNX API...")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", "GMEHME81V"]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8").stdout
-        logger.info(f"[MDNX_API] MDNX API test resault:\n{result}")
+        logger.info(f"[CR_MDNX_API] MDNX API test resault:\n{result}")
 
         json_result = self.process_console_output(result, add2queue=False)
-        logger.info(f"[MDNX_API] Processed console output:\n{json_result}")
+        logger.info(f"[CR_MDNX_API] Processed console output:\n{json_result}")
 
         # Check if the output contains authentication errors
         error_triggers = ["invalid_grant", "Token Refresh Failed", "Authentication required", "Anonymous"]
         if any(trigger in result for trigger in error_triggers):
-            logger.info("[MDNX_API] Authentication error detected. Forcing re-authentication...")
+            logger.info("[CR_MDNX_API] Authentication error detected. Forcing re-authentication...")
             self.auth()
         else:
-            logger.info("[MDNX_API] MDNX API test successful.")
+            logger.info("[CR_MDNX_API] MDNX API test successful.")
 
         return
 
     def auth(self) -> str:
-        logger.info(f"[MDNX_API] Authenticating with {self.mdnx_service}...")
+        logger.info(f"[CR_MDNX_API] Authenticating with {self.mdnx_service}...")
 
         if not self.username or not self.password:
-            logger.error("[MDNX_API] MDNX service username or password not found.\nPlease check the config.json file and enter your credentials in the following keys:\nCR_USERNAME\nCR_PASSWORD\nExiting...")
+            logger.error("[CR_MDNX_API] MDNX service username or password not found.\nPlease check the config.json file and enter your credentials in the following keys:\nCR_USERNAME\nCR_PASSWORD\nExiting...")
             sys.exit(1)
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--auth", "--username", self.username, "--password", self.password, "--silentAuth"]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
-        logger.info(f"[MDNX_API] Console output for auth process:\n{result.stdout}")
+        logger.info(f"[CR_MDNX_API] Console output for auth process:\n{result.stdout}")
 
-        logger.info(f"[MDNX_API] Authentication with {self.mdnx_service} complete.")
+        logger.info(f"[CR_MDNX_API] Authentication with {self.mdnx_service} complete.")
         return result.stdout
 
     def start_monitor(self, series_id: str) -> str:
-        logger.info(f"[MDNX_API] Monitoring series with ID: {series_id}")
+        logger.info(f"[CR_MDNX_API] Monitoring series with ID: {series_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
-        logger.debug(f"[MDNX_API] Console output for start_monitor process:\n{result.stdout}")
+        logger.debug(f"[CR_MDNX_API] Console output for start_monitor process:\n{result.stdout}")
 
         self.process_console_output(result.stdout)
 
-        logger.debug(f"[MDNX_API] Monitoring for series with ID: {series_id} complete.")
+        logger.debug(f"[CR_MDNX_API] Monitoring for series with ID: {series_id} complete.")
         return result.stdout
 
     def stop_monitor(self, series_id: str) -> None:
         queue_manager.remove(series_id)
-        logger.info(f"[MDNX_API] Stopped monitoring series with ID: {series_id}")
+        logger.info(f"[CR_MDNX_API] Stopped monitoring series with ID: {series_id}")
         return
 
     def update_monitor(self, series_id: str) -> str:
-        logger.info(f"[MDNX_API] Updating monitor for series with ID: {series_id}")
+        logger.info(f"[CR_MDNX_API] Updating monitor for series with ID: {series_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
-        logger.debug(f"[MDNX_API] Console output for update_monitor process:\n{result.stdout}")
+        logger.debug(f"[CR_MDNX_API] Console output for update_monitor process:\n{result.stdout}")
 
         self.process_console_output(result.stdout)
 
-        logger.debug(f"[MDNX_API] Updating monitor for series with ID: {series_id} complete.")
+        logger.debug(f"[CR_MDNX_API] Updating monitor for series with ID: {series_id} complete.")
         return result.stdout
 
     def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list = None) -> bool:
-        logger.info(f"[MDNX_API] Downloading episode {episode_number} for series {series_id} season {season_id}")
+        logger.info(f"[CR_MDNX_API] Downloading episode {episode_number} for series {series_id} season {season_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id, "-s", season_id, "-e", episode_number]
 
         if dub_override is False:
-            logger.info("[MDNX_API] No dubs were found for this episode, skipping download.")
+            logger.info("[CR_MDNX_API] No dubs were found for this episode, skipping download.")
             return False
 
         if dub_override:
             tmp_cmd += ["--dubLang", *dub_override]
-            logger.info(f"[MDNX_API] Using dubLang override: {' '.join(dub_override)}")
+            logger.info(f"[CR_MDNX_API] Using dubLang override: {' '.join(dub_override)}")
 
         # Hardcoded options.
         # These can not be modified by config.json, or things will break/not work as expected.
@@ -352,24 +352,24 @@ class MDNX_API:
         else:
             cmd = tmp_cmd
 
-        logger.info(f"[MDNX_API] Executing command: {' '.join(cmd)}")
+        logger.info(f"[CR_MDNX_API] Executing command: {' '.join(cmd)}")
 
         success = False
         with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
             for line in proc.stdout:
                 cleaned = line.rstrip()
-                logger.info(f"[MDNX_API][multi-download-nx] {cleaned}")
+                logger.info(f"[CR_MDNX_API][multi-download-nx] {cleaned}")
 
                 if "[mkvmerge Done]" in cleaned:
                     success = True
 
         if proc.returncode != 0:
-            logger.error(f"[MDNX_API] Download failed with exit code {proc.returncode}")
+            logger.error(f"[CR_MDNX_API] Download failed with exit code {proc.returncode}")
             return False
 
         if not success:
-            logger.error("[MDNX_API] Download did not report successful download. Assuming failure.")
+            logger.error("[CR_MDNX_API] Download did not report successful download. Assuming failure.")
             return False
 
-        logger.info("[MDNX_API] Download finished successfully.")
+        logger.info("[CR_MDNX_API] Download finished successfully.")
         return True

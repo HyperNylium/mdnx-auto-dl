@@ -5,7 +5,7 @@ import logging
 import threading
 
 # Custom imports
-from app.appdata.modules.CR_MDNX_API import MDNX_API
+from app.appdata.modules.CR_MDNX_API import CR_MDNX_API
 from appdata.modules.MainLoop import MainLoop
 from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
 from appdata.modules.Vars import (
@@ -18,7 +18,7 @@ from appdata.modules.Vars import (
 
 def app():
     logger.info("[app] Starting MDNX_API...")
-    mdnx_api = MDNX_API()
+    mdnx_api = CR_MDNX_API()
 
     # Authenticate with MDNX service if needed or force auth if user wants to
     logger.info("[app] Checking to see if user is authenticated with MDNX service (cr_token.yml exists?)...")
