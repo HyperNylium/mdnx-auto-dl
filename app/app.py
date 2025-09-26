@@ -5,7 +5,7 @@ import logging
 import threading
 
 # Custom imports
-from appdata.modules.MDNX_API import MDNX_API
+from app.appdata.modules.CR_MDNX_API import MDNX_API
 from appdata.modules.MainLoop import MainLoop
 from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
 from appdata.modules.Vars import (
