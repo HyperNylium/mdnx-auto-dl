@@ -1,8 +1,13 @@
 {
-    "monitor-series-id": [],
+    "cr_monitor_series_id": [],
+    "hidive_monitor_series_id": [],
     "app": {
+        "CR_ENABLED": false,
         "CR_USERNAME": "",
         "CR_PASSWORD": "",
+        "HIDIVE_ENABLED": false,
+        "HIDIVE_USERNAME": "",
+        "HIDIVE_PASSWORD": "",
         "BACKUP_DUBS": [
             "zho"
         ],
