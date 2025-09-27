@@ -7,7 +7,7 @@ import subprocess
 from .Globals import queue_manager
 from .Vars import (
     logger, config,
-    VALID_LOCALES, NAME_TO_CODE, MDNX_SERVICE_BIN_PATH,
+    VALID_LOCALES, NAME_TO_CODE, MDNX_SERVICE_BIN_PATH, MDNX_API_OK_LOGS,
     sanitize
 )
 
@@ -361,7 +361,7 @@ class CR_MDNX_API:
                 cleaned = line.rstrip()
                 logger.info(f"[CR_MDNX_API][multi-downloader-nx] {cleaned}")
 
-                if "[mkvmerge Done]" in cleaned:
+                if any(ok_log in cleaned for ok_log in MDNX_API_OK_LOGS):
                     success = True
 
         if proc.returncode != 0:
