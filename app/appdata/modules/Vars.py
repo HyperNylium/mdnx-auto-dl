@@ -139,6 +139,12 @@ MDNX_SERVICE_HIDIVE_TOKEN_PATH = os.path.join(BIN_DIR, "mdnx", "config", "hd_new
 # Regular expression to match invalid characters in filenames
 INVALID_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1F]')
 
+# Strings in multi-downloader-nx's logs that indicate a successful download
+MDNX_API_OK_LOGS = [
+    "[mkvmerge done]",
+    "[mkvmerge] Mkvmerge finished"
+]
+
 # Language mapping for MDNX
 LANG_MAP = {
     "English": ["eng", "en"],
