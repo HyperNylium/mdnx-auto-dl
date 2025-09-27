@@ -13,7 +13,7 @@ from appdata.modules.Vars import (
     update_mdnx_config, update_app_config, handle_exception, get_running_user, output_effective_config
 )
 
-
+__VERSION__ = "2.0.0"
 
 def app():
     if config["app"]["CR_ENABLED"] == True:
@@ -176,7 +176,7 @@ if __name__ == "__main__":
     logger.info("[app] Overriding sys.excepthook to log uncaught exceptions...")
     sys.excepthook = handle_exception
 
-    logger.info("[app] mdnx-auto-dl has started.")
+    logger.info(f"[app] mdnx-auto-dl has started. Version: {__VERSION__}")
     get_running_user()
     update_mdnx_config()
     output_effective_config(config)
