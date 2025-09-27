@@ -5,38 +5,57 @@ import logging
 import threading
 
 # Custom imports
-from appdata.modules.MDNX_API import MDNX_API
 from appdata.modules.MainLoop import MainLoop
 from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
 from appdata.modules.Vars import (
     logger, config,
-    MDNX_SERVICE_CR_TOKEN_PATH,
+    MDNX_SERVICE_CR_TOKEN_PATH, MDNX_SERVICE_HIDIVE_TOKEN_PATH,
     update_mdnx_config, update_app_config, handle_exception, get_running_user, output_effective_config
 )
 
 
 
 def app():
-    logger.info("[app] Starting MDNX_API...")
-    mdnx_api = MDNX_API()
+    if config["app"]["CR_ENABLED"] == True:
+        logger.info("[app] Starting CR_MDNX_API...")
+        from appdata.modules.CR_MDNX_API import CR_MDNX_API
+        cr_mdnx_api = CR_MDNX_API()
 
-    # Authenticate with MDNX service if needed or force auth if user wants to
-    logger.info("[app] Checking to see if user is authenticated with MDNX service (cr_token.yml exists?)...")
-    if not os.path.exists(MDNX_SERVICE_CR_TOKEN_PATH) or config["app"]["CR_FORCE_REAUTH"] == True:
-        mdnx_api.auth()
+        # Authenticate with CR MDNX service if needed or force auth if user wants to
+        logger.info("[app] Checking to see if user is authenticated with MDNX service (cr_token.yml exists?)...")
+        if not os.path.exists(MDNX_SERVICE_CR_TOKEN_PATH) or config["app"]["CR_FORCE_REAUTH"] == True:
+            cr_mdnx_api.auth()
 
-        # Update the "CR_FORCE_REAUTH" config to False if needed
-        if config["app"]["CR_FORCE_REAUTH"] == True:
-            update_app_config("CR_FORCE_REAUTH", False)
-    else:
-        logger.info("[app] cr_token.yml exists. Assuming user is already authenticated with MDNX service.")
+            # Update the "CR_FORCE_REAUTH" config to False if needed
+            if config["app"]["CR_FORCE_REAUTH"] == True:
+                update_app_config("CR_FORCE_REAUTH", False)
+        else:
+            logger.info("[app] cr_token.yml exists. Assuming user is already authenticated with CR MDNX service.")
+
+    if config["app"]["HIDIVE_ENABLED"] == True:
+        logger.info("[app] Starting HIDIVE_MDNX_API...")
+        from appdata.modules.HIDIVE_MDNX_API import HIDIVE_MDNX_API
+        hidive_mdnx_api = HIDIVE_MDNX_API()
+
+        logger.info("[app] Checking to see if user is authenticated with MDNX service (hd_new_token.yml exists?)...")
+        if not os.path.exists(MDNX_SERVICE_HIDIVE_TOKEN_PATH) or config["app"]["HIDIVE_FORCE_REAUTH"] == True:
+            hidive_mdnx_api.auth()
+            if config["app"]["HIDIVE_FORCE_REAUTH"] == True:
+                update_app_config("HIDIVE_FORCE_REAUTH", False)
+        else:
+            logger.info("[app] hd_new_token.yml exists. Assuming user is already authenticated with HiDive MDNX service.")
+
+        if config["app"]["HIDIVE_SKIP_API_TEST"] == False:
+            hidive_mdnx_api.test()
+        else:
+            logger.info("[app] API test skipped by user.")
 
     # What is the notification preference?
     logger.info("[app] Checking notification preference...")
     if config["app"]["NOTIFICATION_PREFERENCE"] == "ntfy":
         logger.info("[app] User prefers ntfy notifications. Setting up ntfy script...")
 
-        script_path = config["app"].get("NTFY_SCRIPT_PATH")
+        script_path = config["app"]["NTFY_SCRIPT_PATH"]
 
         if script_path is None or script_path == "":
             logger.error("[app] NTFY_SCRIPT_PATH is not set or is empty. Please set it in config.json.")
@@ -60,7 +79,7 @@ def app():
         # ensure all keys exist AND are not None
         missing_or_empty = []
         for key in required_keys:
-            value = config["app"].get(key)
+            value = config["app"][key]
             if value is None or value == "":
                 missing_or_empty.append(key)
 
@@ -99,7 +118,23 @@ def app():
 
     # Start MainLoop
     logger.info("[app] Starting MainLoop...")
-    mainloop = MainLoop(mdnx_api=mdnx_api, notifier=notifier)
+
+    if config["app"]["CR_ENABLED"] == True and config["app"]["HIDIVE_ENABLED"] == True:
+        logger.debug("[app] Both CR and HIDIVE are enabled. Starting MainLoop with both services...")
+        mainloop = MainLoop(cr_mdnx_api=cr_mdnx_api, hidive_mdnx_api=hidive_mdnx_api, notifier=notifier)
+
+    elif config["app"]["CR_ENABLED"] == True and config["app"]["HIDIVE_ENABLED"] == False:
+        logger.debug("[app] Only CR is enabled. Starting MainLoop with CR service only...")
+        mainloop = MainLoop(cr_mdnx_api=cr_mdnx_api, hidive_mdnx_api=None, notifier=notifier)
+
+    elif config["app"]["CR_ENABLED"] == False and config["app"]["HIDIVE_ENABLED"] == True:
+        logger.debug("[app] Only HIDIVE is enabled. Starting MainLoop with HIDIVE service only...")
+        mainloop = MainLoop(cr_mdnx_api=None, hidive_mdnx_api=hidive_mdnx_api, notifier=notifier)
+
+    else:
+        logger.error("[app] Both CR_ENABLED and HIDIVE_ENABLED are set to False. Nothing to do. Exiting...")
+        sys.exit(1)
+
     mainloop.start()
 
     # capture uncaught exceptions from threads (Py 3.8+), so we can exit non-zero
