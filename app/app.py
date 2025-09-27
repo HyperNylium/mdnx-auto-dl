@@ -5,6 +5,7 @@ import logging
 import threading
 
 # Custom imports
+from appdata.modules.Globals import file_manager
 from appdata.modules.MainLoop import MainLoop
 from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
 from appdata.modules.Vars import (
@@ -16,6 +17,11 @@ from appdata.modules.Vars import (
 _VERSION__ = "2.0.0"
 
 def app():
+
+    if file_manager.test() == False:
+        logger.error("[app] FileManager test failed. Please check your configuration and ensure the application has read/write access to the destination directory.")
+        sys.exit(1)
+
     if config["app"]["CR_ENABLED"] == True:
         logger.info("[app] Starting CR_MDNX_API...")
         from appdata.modules.CR_MDNX_API import CR_MDNX_API

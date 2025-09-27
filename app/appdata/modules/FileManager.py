@@ -24,6 +24,39 @@ class FileManager:
 
         logger.info(f"[FileManager] FileManager initialized with: Source: {self.source} | Destination: {self.dest}")
 
+    def test(self) -> bool:
+        logger.info(f"[FileManager] Checking Read/Write permissions for: {self.dest}")
+
+        if not os.path.isdir(self.dest):
+            logger.error(f"[FileManager] Directory not found: {self.dest}")
+            return False
+
+        can_r = os.access(self.dest, os.R_OK)
+        can_w = os.access(self.dest, os.W_OK)
+        logger.info(f"[FileManager] os.access -> R:{can_r} W:{can_w}")
+        if not (can_r and can_w):
+            logger.warning(f"[FileManager] Missing required R/W on {self.dest}")
+            return False
+
+        test_path = os.path.join(self.dest, "permtest.txt")
+        try:
+            with open(test_path, "w", encoding="utf-8") as f:
+                f.write("ok")
+            with open(test_path, "r", encoding="utf-8") as f:
+                data = f.read()
+            success = (data == "ok")
+            logger.info(f"[FileManager] Write/read test {'passed' if success else 'failed'} at {test_path}")
+            return success
+        except Exception as e:
+            logger.error(f"[FileManager] Write/read test failed in {self.dest}: {e}")
+            return False
+        finally:
+            try:
+                if os.path.exists(test_path):
+                    os.remove(test_path)
+            except Exception as e:
+                logger.warning(f"[FileManager] Could not clean up {test_path}\nMay fail when doing episode dub/sub updates\nFull error: {e}")
+
     def transfer(self, src_path: str, dst_path: str, overwrite: bool = False) -> bool:
         logger.info(f"[FileManager] Starting transfer from '{src_path}' to '{dst_path}'")
 
