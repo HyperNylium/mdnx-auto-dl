@@ -14,9 +14,9 @@ from .Vars import (
 
 
 class CR_MDNX_API:
-    def __init__(self, mdnx_path=MDNX_SERVICE_BIN_PATH, config=config, mdnx_service="crunchy") -> None:
-        self.mdnx_path = mdnx_path
-        self.mdnx_service = mdnx_service
+    def __init__(self) -> None:
+        self.mdnx_path = MDNX_SERVICE_BIN_PATH
+        self.mdnx_service = "crunchy"
         self.queue_service = "crunchy"
         self.username = str(config["app"]["CR_USERNAME"])
         self.password = str(config["app"]["CR_PASSWORD"])
@@ -54,7 +54,7 @@ class CR_MDNX_API:
         else:
             logger.info("[CR_MDNX_API] API test skipped by user.")
 
-        logger.info(f"[CR_MDNX_API] MDNX API initialized with: Path: {mdnx_path} | Service: {mdnx_service}")
+        logger.info(f"[CR_MDNX_API] MDNX API initialized with: Path: {self.mdnx_path} | Service: {self.mdnx_service}")
 
     def process_console_output(self, output: str, add2queue: bool = True):
         logger.debug("[CR_MDNX_API] Processing console output...")

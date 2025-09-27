@@ -52,7 +52,7 @@ CONFIG_DEFAULTS = {
         "BIN_DIR": "/app/appdata/bin",
         "LOG_FILE": "/app/appdata/logs/app.log",
         "DATA_DIR": "/data",
-        "CR_ENABLED": True,
+        "CR_ENABLED": False,
         "CR_USERNAME": "",
         "CR_PASSWORD": "",
         "HIDIVE_ENABLED": False,

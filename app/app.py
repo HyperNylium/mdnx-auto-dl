@@ -55,7 +55,7 @@ def app():
     if config["app"]["NOTIFICATION_PREFERENCE"] == "ntfy":
         logger.info("[app] User prefers ntfy notifications. Setting up ntfy script...")
 
-        script_path = config["app"].get("NTFY_SCRIPT_PATH")
+        script_path = config["app"]["NTFY_SCRIPT_PATH"]
 
         if script_path is None or script_path == "":
             logger.error("[app] NTFY_SCRIPT_PATH is not set or is empty. Please set it in config.json.")
@@ -79,7 +79,7 @@ def app():
         # ensure all keys exist AND are not None
         missing_or_empty = []
         for key in required_keys:
-            value = config["app"].get(key)
+            value = config["app"][key]
             if value is None or value == "":
                 missing_or_empty.append(key)
 

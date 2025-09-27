@@ -16,21 +16,15 @@ from .Vars import (
 
 
 class MainLoop:
-    def __init__(self, cr_mdnx_api, hidive_mdnx_api, notifier, config=config) -> None:
-
-        if cr_mdnx_api is not None:
-            self.cr_mdnx_api = cr_mdnx_api
-
-        if hidive_mdnx_api is not None:
-            self.hidive_mdnx_api = hidive_mdnx_api
-
+    def __init__(self, cr_mdnx_api, hidive_mdnx_api, notifier) -> None:
+        self.cr_mdnx_api = cr_mdnx_api
+        self.hidive_mdnx_api = hidive_mdnx_api
         self.cr_enabled = config["app"]["CR_ENABLED"]
         self.hidive_enabled = config["app"]["HIDIVE_ENABLED"]
         self.check_missing_dub_sub = config["app"]["CHECK_MISSING_DUB_SUB"]
         self.notifier = notifier
-        self.config = config
-        self.loop_timeout = int(self.config["app"]["CHECK_FOR_UPDATES_INTERVAL"])
-        self.between_episode_timeout = int(self.config["app"]["BETWEEN_EPISODE_DL_WAIT_INTERVAL"])
+        self.loop_timeout = int(config["app"]["CHECK_FOR_UPDATES_INTERVAL"])
+        self.between_episode_timeout = int(config["app"]["BETWEEN_EPISODE_DL_WAIT_INTERVAL"])
         self.mainloop_iter = 0
         self.notifications_buffer = []
 
@@ -63,7 +57,7 @@ class MainLoop:
 
     def snapshot_episode(self, series_name, episode_info, file_path, action_label: str, before_dubs=None, before_subs=None) -> dict:
         try:
-            after_dubs, after_subs = probe_streams(file_path, self.config["app"]["CHECK_MISSING_DUB_SUB_TIMEOUT"])
+            after_dubs, after_subs = probe_streams(file_path, config["app"]["CHECK_MISSING_DUB_SUB_TIMEOUT"])
             derived = set(after_subs)
             for loc in list(after_subs):
                 if "-" in loc:
@@ -161,8 +155,8 @@ class MainLoop:
     def refresh_queue(self) -> bool:
         logger.info("[MainLoop] Getting the current queue IDs...")
 
-        cr_monitor_ids = set(self.config["cr_monitor_series_id"])
-        hd_monitor_ids = set(self.config["hidive_monitor_series_id"])
+        cr_monitor_ids = set(config["cr_monitor_series_id"])
+        hd_monitor_ids = set(config["hidive_monitor_series_id"])
 
         def process_service(service, enabled, api, monitor_ids):
             if not enabled or api is None:
@@ -271,11 +265,11 @@ class MainLoop:
         bucket = current_queue.get(service, {})
 
         wanted_dubs = set()
-        for lang in self.config["mdnx"]["cli-defaults"]["dubLang"]:
+        for lang in config["mdnx"]["cli-defaults"]["dubLang"]:
             wanted_dubs.add(lang.lower())
 
         wanted_subs = set()
-        for lang in self.config["mdnx"]["cli-defaults"]["dlsubs"]:
+        for lang in config["mdnx"]["cli-defaults"]["dlsubs"]:
             wanted_subs.add(lang.lower())
 
         logger.info("[MainLoop] Verifying language tracks in downloaded files.")
@@ -286,7 +280,7 @@ class MainLoop:
             if not os.path.exists(file_path):
                 continue
 
-            local_dubs, local_subs = probe_streams(file_path, self.config["app"]["CHECK_MISSING_DUB_SUB_TIMEOUT"])
+            local_dubs, local_subs = probe_streams(file_path, config["app"]["CHECK_MISSING_DUB_SUB_TIMEOUT"])
 
             derived = set(local_subs)
             for loc in list(local_subs):
@@ -376,25 +370,26 @@ class MainLoop:
 
                 current_queue = queue_manager.output()
 
-                if self.config["app"]["ONLY_CREATE_QUEUE"] == True:
+                if config["app"]["ONLY_CREATE_QUEUE"] == True:
                     logger.info("[MainLoop] ONLY_CREATE_QUEUE is True. Exiting after queue creation.\nIf docker-compose.yaml has 'restart: always/unless-stopped', please change it to 'restart: no' to prevent restart loop.")
                     self.stop()
                     return
 
-                # download any missing / not yet downloaded episodes
+                # download any missing / not yet downloaded episodes for Crunchyroll
                 if self.cr_enabled:
                     self.download_for_service("Crunchyroll", self.cr_mdnx_api, current_queue)
 
-                    # Check for missing dubs and subs in downloaded files
+                    # Check for missing dubs and subs in downloaded files for Crunchyroll series
                     if self.check_missing_dub_sub == True:
                         self.refresh_dub_sub_for_service("Crunchyroll", self.cr_mdnx_api, current_queue)
                     else:
                         logger.info("[MainLoop] CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification for Crunchyroll.")
 
+                # download any missing / not yet downloaded episodes for HiDive
                 if self.hidive_enabled:
                     self.download_for_service("HiDive", self.hidive_mdnx_api, current_queue)
 
-                    # Check for missing dubs and subs in downloaded files
+                    # Check for missing dubs and subs in downloaded files for HiDive series
                     if self.check_missing_dub_sub == True:
                         self.refresh_dub_sub_for_service("HiDive", self.hidive_mdnx_api, current_queue)
                     else:
@@ -412,7 +407,7 @@ class MainLoop:
                     self.mainloop_iter = 0
 
                 # Trigger media server scan if configured and there are new items in the notifications buffer.
-                if len(self.notifications_buffer) > 0 and self.config["app"]["MEDIASERVER_TYPE"] is not None:
+                if len(self.notifications_buffer) > 0 and config["app"]["MEDIASERVER_TYPE"] is not None:
                     logger.info("[MainLoop] Triggering media server scan.")
                     mediaserver_scan_library()
 

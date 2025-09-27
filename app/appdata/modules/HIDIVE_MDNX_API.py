@@ -14,9 +14,9 @@ from .Vars import (
 
 
 class HIDIVE_MDNX_API:
-    def __init__(self, mdnx_path=MDNX_SERVICE_BIN_PATH, config=config, mdnx_service="hidive") -> None:
-        self.mdnx_path = mdnx_path
-        self.mdnx_service = mdnx_service
+    def __init__(self) -> None:
+        self.mdnx_path = MDNX_SERVICE_BIN_PATH
+        self.mdnx_service = "hidive"
         self.queue_service = "hidive"
         self.username = str(config["app"]["HIDIVE_USERNAME"])
         self.password = str(config["app"]["HIDIVE_PASSWORD"])
@@ -48,7 +48,7 @@ class HIDIVE_MDNX_API:
             self.stdbuf_exists = False
             logger.debug("[HIDIVE_MDNX_API] stdbuf not found, using default command without buffering.")
 
-        logger.info(f"[HIDIVE_MDNX_API] MDNX API initialized with: Path: {mdnx_path} | Service: {mdnx_service}")
+        logger.info(f"[HIDIVE_MDNX_API] MDNX API initialized with: Path: {self.mdnx_path} | Service: {self.mdnx_service}")
 
     def process_console_output(self, output: str, add2queue: bool = True):
         logger.debug("[HIDIVE_MDNX_API] Processing console output...")
@@ -351,7 +351,7 @@ class HIDIVE_MDNX_API:
         logger.info(f"[HIDIVE_MDNX_API] Authenticating with {self.mdnx_service}...")
 
         if not self.username or not self.password:
-            logger.error("[HIDIVE_MDNX_API] MDNX service username or password not found.\nPlease check the config.json file and enter your credentials in the following keys:\HIDIVE_USERNAME\HIDIVE_PASSWORD\nExiting...")
+            logger.error("[HIDIVE_MDNX_API] MDNX service username or password not found.\nPlease check the config.json file and enter your credentials in the following keys:\nHIDIVE_USERNAME\nHIDIVE_PASSWORD\nExiting...")
             sys.exit(1)
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--auth", "--username", self.username, "--password", self.password, "--silentAuth"]
