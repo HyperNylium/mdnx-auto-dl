@@ -361,7 +361,7 @@ class CR_MDNX_API:
                 cleaned = line.rstrip()
                 logger.info(f"[CR_MDNX_API][multi-downloader-nx] {cleaned}")
 
-                if any(ok_log in cleaned for ok_log in MDNX_API_OK_LOGS):
+                if any(ok_log in cleaned.lower() for ok_log in MDNX_API_OK_LOGS):
                     success = True
 
         if proc.returncode != 0:
