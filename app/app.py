@@ -5,11 +5,11 @@ import logging
 import threading
 
 # Custom imports
-from appdata.modules.Globals import file_manager
 from appdata.modules.MainLoop import MainLoop
+from appdata.modules.Globals import file_manager
 from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
 from appdata.modules.Vars import (
-    logger, config,
+    logger, config, CONFIG_DEFAULTS,
     MDNX_SERVICE_CR_TOKEN_PATH, MDNX_SERVICE_HIDIVE_TOKEN_PATH,
     update_mdnx_config, update_app_config, handle_exception, get_running_user, output_effective_config
 )
@@ -185,5 +185,5 @@ if __name__ == "__main__":
     logger.info(f"[app] mdnx-auto-dl v{_VERSION__} has started.")
     get_running_user()
     update_mdnx_config()
-    output_effective_config(config)
+    output_effective_config(config, CONFIG_DEFAULTS)
     app()
