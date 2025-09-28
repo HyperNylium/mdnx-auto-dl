@@ -36,9 +36,41 @@ def merge_config(defaults: dict, overrides: dict) -> dict:
 
     return merged
 
-def output_effective_config(config, max_chunk=8000):
+def output_effective_config(config, default_config, max_chunk=8000):
     logger.info("[Vars] Effective config: ")
-    formatted_json = json.dumps(config, indent=4, sort_keys=True)
+    try:
+        SKIP_ORDERING_KEYS = {"cr_monitor_series_id", "hidive_monitor_series_id", "mdnx"}
+
+        def _order_like_defaults(config_node: dict, defaults_node: dict):
+            if not isinstance(config_node, dict):
+                return config_node
+
+            ordered_node = OrderedDict()
+
+            # defaults ordered keys go first
+            for key in defaults_node.keys():
+                if key in config_node:
+                    if key in SKIP_ORDERING_KEYS:
+                        ordered_node[key] = config_node[key]
+                    else:
+                        ordered_node[key] = _order_like_defaults(config_node[key], defaults_node.get(key))
+
+            # then any remaining keys from config_node
+            for key, value in config_node.items():
+                if key not in ordered_node:
+                    if key in SKIP_ORDERING_KEYS:
+                        ordered_node[key] = value
+                    else:
+                        ordered_node[key] = _order_like_defaults(value, defaults_node.get(key))
+
+            return ordered_node
+
+        ordered_config = _order_like_defaults(config, default_config)
+    except Exception as e:
+        logger.debug(f"[Vars] Could not order config by defaults: {e}")
+        ordered_config = config  # fall back without reordering
+
+    formatted_json = json.dumps(ordered_config, indent=4)
     for line in formatted_json.splitlines():
         for i in range(0, len(line), max_chunk):
             logger.info(line[i:i+max_chunk])
