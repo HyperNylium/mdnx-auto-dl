@@ -173,7 +173,7 @@ INVALID_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1F]')
 
 # Strings in multi-downloader-nx's logs that indicate a successful download
 MDNX_API_OK_LOGS = [
-    "[mkvmerge done]",
+    "[mkvmerge Done]",
     "[mkvmerge] Mkvmerge finished"
 ]
 
