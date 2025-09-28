@@ -7,8 +7,8 @@ import subprocess
 from .Globals import queue_manager
 from .Vars import (
     logger, config,
-    VALID_LOCALES, NAME_TO_CODE, CODE_TO_LOCALE, LANG_MAP, MDNX_SERVICE_BIN_PATH, MDNX_API_OK_LOGS,
-    sanitize
+    VALID_LOCALES, CODE_TO_LOCALE, LANG_MAP, MDNX_SERVICE_BIN_PATH, MDNX_API_OK_LOGS,
+    sanitize, dedupe_casefold
 )
 
 
@@ -21,26 +21,32 @@ class HIDIVE_MDNX_API:
         self.username = str(config["app"]["HIDIVE_USERNAME"])
         self.password = str(config["app"]["HIDIVE_PASSWORD"])
 
-        # Series: lines starting with [Z.<series_id>]
-        self.series_pattern = re.compile(
-            r'^\[Z\.(?P<series_id>\d+)\]\s+(?P<series_name>.+?)\s+\((?P<seasons_count>\d+)\s+Seasons?\)\s*$'
+        # Series, season, episode, flat-list
+        self.series_pattern = re.compile(r'^\[Z\.(?P<series_id>\d+)\]\s+(?P<series_name>.+)\s+\((?P<seasons_count>\d+)\s+Seasons?\)\s*$', re.IGNORECASE)
+        self.season_main_pattern = re.compile(r'^\[S\.(?P<season_id>\d+)\]\s+Season\s+(?P<season_number>\d+)(?:\s+(?P<label>[^()]+?))?\s*\((?P<eps_count>\d+)\s*(?:Episodes?|Eps?)\)\s*$', re.IGNORECASE)
+        self.season_special_pattern = re.compile(r'^\[S\.(?P<season_id>\d+)\]\s+(?P<label>OVA|OAD|ONA|Specials?|Recap|Compilation|Summary|Movie|Film)(?:\s+(?P<season_number>\d+))?\s*\((?P<eps_count>\d+)\s*(?:Episodes?|Eps?)\)\s*$', re.IGNORECASE)
+        # covers: "Season N OVA/Recap/... (X Episodes)"
+        self.season_any_special_pattern = re.compile(
+            r'^\[S\.(?P<season_id>\d+)\]\s+(?:Season\s+(?P<season_number>\d+)\s+)?'
+            r'(?P<label>OVA|OAD|ONA|Specials?|Recap|Compilation|Summary|Movie|Film)'
+            r'\s*\((?P<eps_count>\d+)\s*(?:Episodes?|Eps?)\)\s*$',
+            re.IGNORECASE
         )
+        self.episode_pattern = re.compile(r'^\[E\.(?P<episode_id>\d+)\]\s+(?P<episode_title>.+?)\s*$', re.IGNORECASE)
+        self.flat_episode_pattern = re.compile(r'^\[S(?P<season_code>\d{1,3})\s*E(?P<download_number>\d{1,4})\]\s+(?P<title>.+?)\s*$', re.IGNORECASE)
 
-        # Season: lines starting with [S.<season_id>]
-        self.season_pattern = re.compile(
-            r'^\[S\.(?P<season_id>\d+)\]\s+Season\s+(?P<season_number>\d+)\s+\((?P<eps_count>\d+)\s+Episodes?\)\s*$'
-        )
+        # Probe headers
+        self.audio_header = re.compile(r'(?i)\bAudio(?:s|(?:\s+Tracks)?)\s*:\s*')
+        self.subs_header = re.compile(r'(?i)\bSub(?:s|titles?)\s*:\s*')
 
-        # Episode: lines starting with [E.<episode_id>]
-        self.episode_pattern = re.compile(
-            r'^\[E\.(?P<episode_id>\d+)\]\s+(?P<episode_title>.+?)\s*$'
-        )
+        # Special markers
+        self.special_season_flag = re.compile(r'\b(OVA|OAD|ONA|Specials?|Recap|Compilation|Summary|Movie|Film)\b', re.IGNORECASE)
+        self.special_episode_title_flag = re.compile(r'\b(recaps?|digest|compilation|summary|omake|extra|preview|prologue|specials?|ova|oad|ona)\b', re.IGNORECASE)
 
-        # Flat episode pattern: lines starting with [S<season_number>E<download_number>]
-        self.flat_episode_pattern = re.compile(
-            r'^\[S(?P<season_number>\d+)E(?P<download_number>\d+)\]\s+(?P<title>.+?)\s*$'
-        )
+        # Display name -> (audio_code, subtitle_locale), e.g., "English" -> ("eng", "en")
+        self._lang_display_to_pair = {name.lower(): pair for name, pair in LANG_MAP.items()}
 
+        # stdout line-buffering if available
         if os.path.exists("/usr/bin/stdbuf"):
             self.stdbuf_exists = True
             logger.debug("[HIDIVE_MDNX_API] Using stdbuf to ensure live output streaming.")
@@ -50,6 +56,54 @@ class HIDIVE_MDNX_API:
 
         logger.info(f"[HIDIVE_MDNX_API] MDNX API initialized with: Path: {self.mdnx_path} | Service: {self.mdnx_service}")
 
+    def _clean_tokens(self, text: str):
+        """Split a comma-separated list, trim, drop empties."""
+        if not text:
+            return []
+        return [token.strip() for token in text.split(',') if token and token.strip()]
+
+    def _strip_parens(self, text: str):
+        """Drop bracketed/parenthetical chunks."""
+        return re.sub(r'\s*[\(\[\{].*?[\)\]\}]\s*', '', text or '').strip()
+
+    def _norm_audio(self, token: str):
+        if not token:
+            return None
+        lowered = self._strip_parens(token).strip().lower()
+
+        pair = self._lang_display_to_pair.get(lowered)
+        if pair:
+            return (pair[0] or "").lower() or None
+
+        if lowered in CODE_TO_LOCALE:
+            return lowered
+
+        return None
+
+    def _norm_sub(self, token: str):
+        if not token:
+            return None
+
+        cleaned = self._strip_parens(token).strip()
+        lowered = cleaned.lower()
+
+        pair = self._lang_display_to_pair.get(lowered)
+        if pair:
+            return pair[1]
+
+        if lowered in CODE_TO_LOCALE:
+            mapped_locale = CODE_TO_LOCALE[lowered]
+            for canonical in VALID_LOCALES:
+                if canonical.lower() == mapped_locale.lower():
+                    return canonical
+            return mapped_locale
+
+        for canonical in VALID_LOCALES:
+            if canonical.lower() == lowered:
+                return canonical
+
+        return None
+
     def process_console_output(self, output: str, add2queue: bool = True):
         logger.debug("[HIDIVE_MDNX_API] Processing console output...")
         tmp_dict = {}
@@ -58,70 +112,108 @@ class HIDIVE_MDNX_API:
 
         seasons_meta = {}
         episodes_by_season = {}
-        download_map_by_season = {} # {"S1": {1:1, 2:2, ...}, "S2": {1:21, 2:22, ...}}
-        flat_local_index = {} # {"S1": next_local_idx, "S2": ...}
 
-        for raw in output.splitlines():
-            line = raw.strip()
+        flat_groups = []
+        current_flat_main_code = None
+        current_group_local_index = 0
+        skip_current_season = False
+
+        for raw_line in output.splitlines():
+            line = raw_line.strip()
             if not line:
                 continue
             if line.startswith("[ERROR]") or line.startswith("[WARN]"):
                 continue
 
-            match = self.series_pattern.match(line)
-            if match:
-                info = match.groupdict()
-                current_series_id = info["series_id"]
+            # Series
+            series_match = self.series_pattern.match(line)
+            if series_match:
+                gd = series_match.groupdict()
+                current_series_id = gd["series_id"]
                 tmp_dict[current_series_id] = {
                     "series": {
-                        "series_id": info["series_id"],
-                        "series_name": sanitize(info["series_name"]),
-                        "seasons_count": str(info["seasons_count"]),
+                        "series_id": gd["series_id"],
+                        "series_name": sanitize(gd["series_name"]),
+                        "seasons_count": str(gd["seasons_count"]),
                     },
                     "seasons": {}
                 }
                 seasons_meta.clear()
                 episodes_by_season.clear()
-                download_map_by_season.clear()
-                flat_local_index.clear()
+                flat_groups.clear()
                 current_season_key = None
+                skip_current_season = False
+                current_flat_main_code = None
+                current_group_local_index = 0
                 continue
 
             if not current_series_id:
                 continue
 
-            match = self.season_pattern.match(line)
-            if match:
-                info = match.groupdict()
-                season_key = f"S{int(info['season_number'])}"
+            # Season (normal/special)
+            season_main_match = self.season_main_pattern.match(line)
+            season_special_match = self.season_special_pattern.match(line)
+            season_any_special_match = self.season_any_special_pattern.match(line)
+
+            if season_any_special_match or season_main_match or season_special_match:
+                if season_any_special_match:
+                    gd = season_any_special_match.groupdict()
+                    season_number = int(gd.get("season_number") or 0)
+                    label_text = (gd.get("label") or "").strip()
+                    season_is_special = True
+                elif season_main_match:
+                    gd = season_main_match.groupdict()
+                    season_number = int(gd.get("season_number") or 0)
+                    label_text = (gd.get("label") or "").strip()
+                    season_is_special = bool(label_text and self.special_season_flag.search(label_text))
+                else:
+                    gd = season_special_match.groupdict()
+                    season_number = int(gd.get("season_number") or 0)
+                    label_text = (gd.get("label") or "").strip()
+                    season_is_special = True
+
+                season_key = f"S{season_number}"
+                current_season_key = None
+                skip_current_season = season_is_special
+
+                if skip_current_season:
+                    logger.debug(f"[HIDIVE_MDNX_API] Skipping special season [{gd['season_id']}] '{label_text}' (S{season_number}).")
+                    continue
+
                 current_season_key = season_key
                 seasons_meta[season_key] = {
-                    "season_id": info["season_id"],
-                    "season_name": f"Season {info['season_number']}",
-                    "season_number": str(int(info["season_number"])),
-                    "eps_count": str(int(info["eps_count"])),
+                    "season_id": gd["season_id"],
+                    "season_name": f"Season {season_number}",
+                    "season_number": str(season_number),
+                    "eps_count": str(int(gd["eps_count"])),
                 }
                 episodes_by_season.setdefault(season_key, [])
                 continue
 
-            if current_season_key:
-                match = self.episode_pattern.match(line)
-                if match:
-                    gd = match.groupdict()
+            # Episodes under current season
+            if current_season_key and not skip_current_season:
+                episode_match = self.episode_pattern.match(line)
+                if episode_match:
+                    gd = episode_match.groupdict()
                     episodes_by_season[current_season_key].append(
-                        (gd["episode_id"], sanitize(gd["episode_title"]))
+                        (gd["episode_id"], gd["episode_title"])
                     )
                     continue
 
-            # collect global download numbers from flat list ([SxEy] Title)
-            flat = self.flat_episode_pattern.match(line)
-            if flat:
-                gd = flat.groupdict()
-                s_key = f"S{int(gd['season_number'])}"
-                download_number = int(gd["download_number"])
-                idx = flat_local_index.get(s_key, 0) + 1
-                flat_local_index[s_key] = idx
-                download_map_by_season.setdefault(s_key, {})[idx] = download_number
+            # Flat list rows
+            flat_match = self.flat_episode_pattern.match(line)
+            if flat_match:
+                gd = flat_match.groupdict()
+                season_code_raw = int(gd['season_code'])
+                episode_download_number = int(gd["download_number"])
+
+                if season_code_raw != current_flat_main_code:
+                    current_flat_main_code = season_code_raw
+                    flat_groups.append({})
+                    current_group_local_index = 0
+
+                current_group_local_index += 1
+                flat_groups[-1][current_group_local_index] = episode_download_number
                 continue
 
         if not current_series_id:
@@ -131,28 +223,57 @@ class HIDIVE_MDNX_API:
             return tmp_dict
 
         total_episodes = 0
-        for season_key, meta in sorted(seasons_meta.items(), key=lambda kv: int(kv[1]["season_number"])):
+        ordered_seasons = sorted(seasons_meta.items(), key=lambda kv: int(kv[1]["season_number"]))
+
+        # Walk flat buckets and match by size (tolerate +1/+2 for E0/noise)
+        flat_ptr = 0
+
+        def _group_matches(count_group: int, count_declared: int) -> bool:
+            return (count_group == count_declared) or (count_group == count_declared + 1) or (count_group == count_declared + 2)
+
+        for season_idx, (season_key, meta) in enumerate(ordered_seasons, start=1):
             season_id = meta["season_id"]
             episode_list = episodes_by_season.get(season_key, [])
-            declared_count = int(meta.get("eps_count", len(episode_list)))
+            declared_count = int(meta.get("eps_count") or 0)
 
-            while len(episode_list) < declared_count:
-                idx_pad = len(episode_list) + 1
-                episode_list.append((f"unknown-{season_id}-{idx_pad}", ""))
+            flat_map_for_this_season = {}
+            while flat_ptr < len(flat_groups):
+                candidate = flat_groups[flat_ptr]
+                if _group_matches(len(candidate), declared_count):
+                    flat_map_for_this_season = candidate
+                    flat_ptr += 1
+                    break
+                flat_ptr += 1
+
+            filtered_episode_rows = []
+            for local_tree_index, (episode_id, title) in enumerate(episode_list, start=1):
+                download_num = flat_map_for_this_season.get(local_tree_index, local_tree_index)
+
+                if download_num == 0:
+                    logger.debug(f"[HIDIVE_MDNX_API] Skipping recap/special (E0) at {season_key} idx={local_tree_index} title='{title}'.")
+                    continue
+                if title and self.special_episode_title_flag.search(title):
+                    logger.debug(f"[HIDIVE_MDNX_API] Skipping special-like episode by title at {season_key} idx={local_tree_index} title='{title}'.")
+                    continue
+
+                filtered_episode_rows.append((local_tree_index, episode_id, title, download_num))
 
             episodes_dict = {}
-            for idx, (episode_id, title) in enumerate(episode_list, start=1):
+            for local_index, (_, episode_id, title, download_num) in enumerate(filtered_episode_rows, start=1):
+                dubs_list, subs_list = self._probe_episode_streams(
+                    series_id=current_series_id,
+                    season_id=season_id,
+                    episode_index=download_num
+                )
 
-                # prefer global download number from flat list; fallback to local idx
-                ep_download_num = download_map_by_season.get(season_key, {}).get(idx, idx)
+                dubs_list = dedupe_casefold(dubs_list)
+                subs_list = dedupe_casefold(subs_list)
 
-                dubs_list, subs_list = self._probe_episode_streams(current_series_id, season_id, ep_download_num)
-
-                episode_key = f"E{idx}"
+                episode_key = f"E{local_index}"
                 episodes_dict[episode_key] = {
-                    "episode_number": str(idx),
-                    "episode_number_download": str(ep_download_num),
-                    "episode_name": sanitize(title) if title else f"Episode {idx}",
+                    "episode_number": str(local_index),
+                    "episode_number_download": str(download_num),
+                    "episode_name": sanitize(title) if title else f"Episode {local_index}",
                     "available_dubs": dubs_list,
                     "available_subs": subs_list,
                     "episode_downloaded": False
@@ -182,10 +303,10 @@ class HIDIVE_MDNX_API:
         logger.debug(f"[HIDIVE_MDNX_API] Probing streams: {' '.join(cmd)}")
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
-            text = (result.stdout or "") + "\n" + (result.stderr or "")
-            logger.debug(f"[HIDIVE_MDNX_API] Probe output:\n{text}")
-        except Exception as e:
-            logger.error(f"[HIDIVE_MDNX_API] Probe failed (series {series_id} season {season_id} episode {episode_index}): {e}")
+            combined_text = (result.stdout or "") + "\n" + (result.stderr or "")
+            logger.debug(f"[HIDIVE_MDNX_API] Probe output:\n{combined_text}")
+        except Exception as exc:
+            logger.error(f"[HIDIVE_MDNX_API] Probe failed (series {series_id} season {season_id} episode {episode_index}): {exc}")
             return [], []
 
         available_dubs = []
@@ -193,131 +314,49 @@ class HIDIVE_MDNX_API:
         in_audios = False
         in_subs = False
 
-        for raw in text.splitlines():
-            line = raw.strip()
+        for raw_line in combined_text.splitlines():
+            line = raw_line.strip()
             if not line:
-                # end any active section on blank lines
                 in_audios = False
                 in_subs = False
                 continue
 
-            # allow lines like "[INFO] Audios:" or "Audios:" (any leading text)
-            if re.search(r'Audios\s*:\s*', raw):
-                in_audios = True
-                in_subs = False
-                tail = re.split(r'Audios\s*:\s*', raw, maxsplit=1)[-1].strip()
+            if self.audio_header.search(raw_line):
+                in_audios, in_subs = True, False
+                tail = self.audio_header.split(raw_line, 1)[-1].strip()
                 if tail:
-                    name_or_code = tail
-                    code_found = None
-                    for display_name, code in NAME_TO_CODE.items():
-                        if display_name.lower() == name_or_code.strip().lower():
-                            code_found = code.lower()
-                            break
-                    if not code_found:
-                        low = name_or_code.strip().lower()
-                        if low in CODE_TO_LOCALE:
-                            code_found = low
-                    if code_found:
-                        available_dubs.append(code_found)
+                    for token in self._clean_tokens(tail):
+                        code = self._norm_audio(token)
+                        if code:
+                            available_dubs.append(code)
                 continue
 
-            # allow "Subs  :" or "Subs:" with varying spaces or prefixes (e.g., "[INFO] Subs  :")
-            # TODO: Refactor this to helper functions or re-do it when not at %1 of the brain power
-            if re.search(r'Subs\s*:\s*', raw):
-                in_audios = False
-                in_subs = True
-                tail = re.split(r'Subs\s*:\s*', raw, maxsplit=1)[-1].strip()
+            if self.subs_header.search(raw_line):
+                in_audios, in_subs = False, True
+                tail = self.subs_header.split(raw_line, 1)[-1].strip()
                 if tail:
-                    locale_found = None
-                    for loc in VALID_LOCALES:
-                        if loc.lower() == tail.lower():
-                            locale_found = loc
-                            break
-                    if not locale_found:
-                        low = tail.lower()
-                        if low in CODE_TO_LOCALE:
-                            mapped = CODE_TO_LOCALE[low]
-                            for loc in VALID_LOCALES:
-                                if loc.lower() == mapped:
-                                    locale_found = loc
-                                    break
-                            if not locale_found:
-                                locale_found = mapped
-                    if not locale_found:
-                        for display_name, vals in LANG_MAP.items():
-                            if display_name.lower() == tail.lower():
-                                candidate = vals[1]
-                                for loc in VALID_LOCALES:
-                                    if loc.lower() == candidate.lower():
-                                        locale_found = loc
-                                        break
-                                if not locale_found:
-                                    locale_found = candidate
-                                break
-                    if locale_found:
-                        available_subs.append(locale_found)
+                    for token in self._clean_tokens(tail):
+                        loc = self._norm_sub(token)
+                        if loc:
+                            available_subs.append(loc)
                 continue
 
             if in_audios and line:
-                name_or_code = line
-                code_found = None
-                for display_name, code in NAME_TO_CODE.items():
-                    if display_name.lower() == name_or_code.strip().lower():
-                        code_found = code.lower()
-                        break
-                if not code_found:
-                    low = name_or_code.strip().lower()
-                    if low in CODE_TO_LOCALE:
-                        code_found = low
-                if code_found:
-                    available_dubs.append(code_found)
+                for token in self._clean_tokens(line):
+                    code = self._norm_audio(token)
+                    if code:
+                        available_dubs.append(code)
                 continue
 
             if in_subs and line:
-                tail = line
-                locale_found = None
-                for loc in VALID_LOCALES:
-                    if loc.lower() == tail.lower():
-                        locale_found = loc
-                        break
-                if not locale_found:
-                    low = tail.lower()
-                    if low in CODE_TO_LOCALE:
-                        mapped = CODE_TO_LOCALE[low]
-                        for loc in VALID_LOCALES:
-                            if loc.lower() == mapped:
-                                locale_found = loc
-                                break
-                        if not locale_found:
-                            locale_found = mapped
-                if not locale_found:
-                    for display_name, vals in LANG_MAP.items():
-                        if display_name.lower() == tail.lower():
-                            candidate = vals[1]
-                            for loc in VALID_LOCALES:
-                                if loc.lower() == candidate.lower():
-                                    locale_found = loc
-                                    break
-                            if not locale_found:
-                                locale_found = candidate
-                            break
-                if locale_found:
-                    available_subs.append(locale_found)
+                for token in self._clean_tokens(line):
+                    loc = self._norm_sub(token)
+                    if loc:
+                        available_subs.append(loc)
                 continue
 
-        seen = set()
-        dubs_deduped = []
-        for code in available_dubs:
-            if code not in seen:
-                seen.add(code)
-                dubs_deduped.append(code)
-
-        seen = set()
-        subs_deduped = []
-        for loc in available_subs:
-            if loc not in seen:
-                seen.add(loc)
-                subs_deduped.append(loc)
+        dubs_deduped = dedupe_casefold(available_dubs)
+        subs_deduped = dedupe_casefold(available_subs)
 
         logger.info(f"[HIDIVE_MDNX_API] Probe S{season_id}E{episode_index}: dubs={dubs_deduped}, subs={subs_deduped}")
 
@@ -344,7 +383,6 @@ class HIDIVE_MDNX_API:
         #     logger.info("[HIDIVE_MDNX_API] MDNX API test successful.")
 
         logger.info("[HIDIVE_MDNX_API] MDNX API test successful.")
-
         return
 
     def auth(self) -> str:
@@ -420,7 +458,6 @@ class HIDIVE_MDNX_API:
             for line in proc.stdout:
                 cleaned = line.rstrip()
                 logger.info(f"[HIDIVE_MDNX_API][multi-downloader-nx] {cleaned}")
-
                 if any(ok_log in cleaned for ok_log in MDNX_API_OK_LOGS):
                     success = True
 
