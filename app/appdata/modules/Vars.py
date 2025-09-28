@@ -257,6 +257,30 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 
     logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
 
+def dedupe_preserve_order(items, key=None):
+    if not items:
+        return []
+
+    seen_keys = set()
+    result = []
+
+    if key is None:
+        for item in items:
+            if item not in seen_keys:
+                seen_keys.add(item)
+                result.append(item)
+        return result
+
+    for item in items:
+        normalized = key(item)
+        if normalized not in seen_keys:
+            seen_keys.add(normalized)
+            result.append(item)
+    return result
+
+def dedupe_casefold(items):
+    return dedupe_preserve_order(items, key=lambda s: (s or "").casefold())
+
 def format_duration(seconds: int) -> str:
     units = [
         ("day", 86400),
