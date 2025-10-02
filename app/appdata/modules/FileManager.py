@@ -15,7 +15,6 @@ class FileManager:
     def __init__(self):
         self.source = TEMP_DIR
         self.dest = DATA_DIR
-        # These should be configurable from config.json in the future.
         self.readyCheckInterval = 1  # seconds between size checks
         self.readyStableSeconds = 5  # how long size must remain unchanged
         self.readyTimeout = 300      # overall timeout for readiness
