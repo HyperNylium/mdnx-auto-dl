@@ -1,6 +1,6 @@
 import os
 import time
-from shutil import move as shmove
+from shutil import copyfile as shcopy
 
 # Custom imports
 from .Vars import (
@@ -107,7 +107,7 @@ class FileManager:
 
         for attempt in range(1, self.moveRetries + 1):
             try:
-                shmove(src_path, final_dst)
+                shcopy(src_path, final_dst)
                 logger.info(f"[FileManager] Moved '{src_basename}' to '{final_dst}'")
                 return True
             except Exception as e:
