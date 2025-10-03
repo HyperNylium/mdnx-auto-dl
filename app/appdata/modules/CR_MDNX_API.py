@@ -31,12 +31,17 @@ class CR_MDNX_API:
             r'^\[S:(?P<season_id>\w+)\]\s+(?P<season_name>.+?)\s+\(Season:\s*(?P<season_number>\d+)\)'
         )
 
-        # Episodes: lines starting with [E...] or [S...] (without the colon after S)
+        # Episodes: lines starting with [E...] or [S...]
         self.episode_pattern = re.compile(
-            r'^\[(?P<ep_type>E|S)(?P<episode_number>\d+)\]\s+(?P<full_episode_name>.+?)\s+\['
+            r'^\[(?P<ep_type>E|S)(?P<episode_number>\d+)\]\s+(?P<full_episode_name>.+)$'
         )
 
-        # Subtitles: lines starting with - Subtitles:
+        # Versions (dubs): lines starting with "- Versions":
+        self.versions_pattern = re.compile(
+            r'-\s*Versions:\s*(.+)'
+        )
+
+        # Subtitles: lines starting with "- Subtitles":
         self.subtitles_pattern = re.compile(
             r'-\s*Subtitles:\s*(.+)'
         )
@@ -61,19 +66,55 @@ class CR_MDNX_API:
         tmp_dict = {}             # maps series_id to series info
         episode_counters = {}     # maps season key ("S1", "S2", etc) to episode counter
         season_num_map = {}       # maps original season_number to mapped season_number (goes from S43, S45  to S1, S2)
-        season_subs = {}          # maps (series_id, season_key) to list of subtitles
         current_series_id = None
         active_season_key = None
+        active_episode_key = None  # holds the current episode key like "E1"
         name_to_season_key = {}   # map normalized season_name to season_key ("S1", "S2", etc) so we can resolve mismatched numbers by name
 
-        for line in output.splitlines():
-            line = line.strip()
+        # Staging for the currently parsed episode
+        # committed when the next episode starts or at the end.
+        staged_episode = None  # dict with: series_id, season_key, ep_key, episode_number_clean, episode_number_download, episode_title_clean, available_subs, available_dubs
+
+        def _commit_staged():
+            nonlocal staged_episode
+            if not staged_episode:
+                return
+            s_id = staged_episode["series_id"]
+            s_key = staged_episode["season_key"]
+            e_key = staged_episode["ep_key"]
+
+            if s_key not in tmp_dict[s_id]["seasons"]:
+                tmp_dict[s_id]["seasons"][s_key] = {
+                    "season_id": None,
+                    "season_name": None,
+                    "season_number": tmp_dict[s_id]["seasons"].get(s_key, {}).get("season_number", s_key[1:]),
+                    "episodes": {}
+                }
+
+            tmp_dict[s_id]["seasons"][s_key]["episodes"][e_key] = {
+                "episode_number": staged_episode["episode_number_clean"],
+                "episode_number_download": staged_episode["episode_number_download"],
+                "episode_name": staged_episode["episode_title_clean"],
+                "available_dubs": staged_episode["available_dubs"],
+                "available_subs": staged_episode["available_subs"],
+                "episode_downloaded": False
+            }
+
+            logger.debug(f"[CR_MDNX_API] Committed episode {s_id}/{s_key}/{e_key} to tmp_dict.")
+            staged_episode = None
+            return
+
+        for raw_line in output.splitlines():
+            line = raw_line.strip()
             if not line:
                 continue
 
             # Check for series information.
             match = self.series_pattern.match(line)
             if match:
+                # before switching series, commit any staged episode
+                _commit_staged()
+
                 info = match.groupdict()
 
                 # sanitise illegal path characters
@@ -84,12 +125,16 @@ class CR_MDNX_API:
                 season_num_map.clear()
                 episode_counters.clear()
                 active_season_key = None
+                active_episode_key = None
                 name_to_season_key.clear()
                 continue
 
             # Check for season information.
             match = self.season_pattern.match(line)
             if match and current_series_id:
+                # commit any staged episode before changing season context
+                _commit_staged()
+
                 info = match.groupdict()
                 info["season_name"] = sanitize(info["season_name"])
 
@@ -102,6 +147,7 @@ class CR_MDNX_API:
 
                 season_key = f"S{mapped_num}"
                 active_season_key = season_key
+                active_episode_key = None
                 info["season_number"] = str(mapped_num)
 
                 tmp_dict[current_series_id]["seasons"][season_key] = {
@@ -113,24 +159,12 @@ class CR_MDNX_API:
                 name_to_season_key[sanitize(info["season_name"]).lower()] = season_key
                 continue
 
-            # Check for subtitles line.
-            match = self.subtitles_pattern.match(line)
-            if match and current_series_id:
-                # If we are inside a season, store its subtitle list
-                if active_season_key:
-                    subs_locales = []
-                    for raw_locale in match.group(1).split(','):
-                        locale = raw_locale.strip()
-                        if locale in VALID_LOCALES:
-                            subs_locales.append(locale)
-                    season_subs[(current_series_id, active_season_key)] = subs_locales
-                # If we are at series level, ignore the list.
-                # We only care about season-level subtitles.
-                continue
-
             # Check for episode information.
             match = self.episode_pattern.match(line)
             if match and current_series_id:
+                # committing previous episode (if any) before starting a new one
+                _commit_staged()
+
                 ep_info = match.groupdict()
 
                 # skip special episodes (This would include OVAs, "Ex-" episodes, movies (maybe), etc.)
@@ -189,17 +223,9 @@ class CR_MDNX_API:
                             season_num_map[orig_label] = mapped_num
                     name_to_season_key[sanitize(season_name_guess).lower()] = season_key
 
-                # extract dubs that CR can provide for this episode
-                dubs_match = re.search(r'\[([^\]]+)\]\s*$', line)
-                dub_codes = []
-                if dubs_match:
-                    for lang in dubs_match.group(1).split(','):
-                        lang = lang.strip().lstrip('☆').strip()
-                        if lang in NAME_TO_CODE:
-                            dub_codes.append(NAME_TO_CODE[lang])
-
-                # get subtitle list for this season
-                subs_locales = season_subs.get((current_series_id, season_key), [])
+                # ensure counter exists even if season header never appeared
+                if season_key not in episode_counters:
+                    episode_counters[season_key] = 1
 
                 # assign contiguous episode index inside the mapped season
                 idx = episode_counters[season_key]
@@ -215,25 +241,60 @@ class CR_MDNX_API:
                     episode_title_clean = ep_info["full_episode_name"]
                 episode_title_clean = sanitize(episode_title_clean)
 
-                # season line was missing, so create an empty season entry
-                if season_key not in tmp_dict[current_series_id]["seasons"]:
-                    tmp_dict[current_series_id]["seasons"][season_key] = {
-                        "season_id": None,
-                        "season_name": None,
-                        "season_number": str(mapped_num),
-                        "episodes": {}
-                    }
-                    episode_counters[season_key] = 1
-
-                tmp_dict[current_series_id]["seasons"][season_key]["episodes"][ep_key] = {
-                    "episode_number": episode_number_clean,
+                # stage the episode for committing when we see the next episode or at the end
+                active_season_key = season_key
+                active_episode_key = ep_key
+                staged_episode = {
+                    "series_id": current_series_id,
+                    "season_key": season_key,
+                    "ep_key": ep_key,
+                    "episode_number_clean": episode_number_clean,
                     "episode_number_download": episode_number_download,
-                    "episode_name": episode_title_clean,
-                    "available_dubs": dub_codes,
-                    "available_subs": subs_locales,
-                    "episode_downloaded": False
+                    "episode_title_clean": episode_title_clean,
+                    "available_dubs": [],
+                    "available_subs": []
                 }
+                logger.debug(f"[CR_MDNX_API] Staged new episode {current_series_id}/{season_key}/{ep_key}: '{episode_title_clean}'")
                 continue
+
+            # Check for versions (dubs) line.
+            match = self.versions_pattern.match(line)
+            if match and current_series_id and active_season_key and active_episode_key and staged_episode and staged_episode.get("ep_key") == active_episode_key:
+                raw_list = match.group(1)
+
+                dub_codes = []
+                for lang in raw_list.split(','):
+                    lang = lang.strip().lstrip('☆').strip()
+                    if lang in NAME_TO_CODE:
+                        dub_codes.append(NAME_TO_CODE[lang])
+
+                staged_episode["available_dubs"] = dub_codes
+                logger.debug(f"[CR_MDNX_API] Staged episode-level dubs for {current_series_id}/{active_season_key}/{active_episode_key}: {dub_codes}")
+                continue
+
+            # Check for subtitles line.
+            match = self.subtitles_pattern.match(line)
+            if match and current_series_id and active_season_key and active_episode_key and staged_episode and staged_episode.get("ep_key") == active_episode_key:
+                raw_list = match.group(1).strip()
+
+                subs_locales = []
+                if raw_list.lower() != "none":
+                    for raw_locale in raw_list.split(','):
+                        token = raw_locale.strip()
+                        if token in VALID_LOCALES:
+                            subs_locales.append(token)
+                            continue
+                        # fallback to base language (e.g. en-US -> en) if base is valid
+                        base = token.split('-', 1)[0]
+                        if base in VALID_LOCALES:
+                            subs_locales.append(base)
+
+                staged_episode["available_subs"] = subs_locales
+                logger.debug(f"[CR_MDNX_API] Staged episode-level subtitles for {current_series_id}/{active_season_key}/{active_episode_key}: {subs_locales}")
+                continue
+
+        # Commit any trailing staged episode after the loop ends.
+        _commit_staged()
 
         # Remove seasons that ended up empty and reorder them.
         # So, if there were 3 seasons, but only S1 and S3 had episodes,
