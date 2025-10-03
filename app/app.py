@@ -16,6 +16,7 @@ from appdata.modules.Vars import (
 
 _VERSION__ = "2.0.0"
 
+
 def app():
 
     if file_manager.test() == False:
@@ -177,6 +178,7 @@ def app():
     mainloop.thread.join()
     logging.shutdown()
     sys.exit(exit_code["code"])
+
 
 if __name__ == "__main__":
     logger.info("[app] Overriding sys.excepthook to log uncaught exceptions...")

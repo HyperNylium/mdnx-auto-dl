@@ -12,7 +12,6 @@ from .Vars import (
 )
 
 
-
 class CR_MDNX_API:
     def __init__(self) -> None:
         self.mdnx_path = MDNX_SERVICE_BIN_PATH
@@ -304,7 +303,7 @@ class CR_MDNX_API:
 
             kept_seasons = []
             for key, val in seasons.items():
-                if val["episodes"]: # keep seasons that have at least one episode
+                if val["episodes"]:  # keep seasons that have at least one episode
                     kept_seasons.append((key, val))
 
             # sort kept_seasons by the original season_number (as integers)
@@ -391,7 +390,7 @@ class CR_MDNX_API:
         logger.debug(f"[CR_MDNX_API] Updating monitor for series with ID: {series_id} complete.")
         return result.stdout
 
-    def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list = None) -> bool:
+    def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list | None = None) -> bool:
         logger.info(f"[CR_MDNX_API] Downloading episode {episode_number} for series {series_id} season {season_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id, "-s", season_id, "-e", episode_number]

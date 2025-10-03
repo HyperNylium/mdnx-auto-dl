@@ -8,7 +8,6 @@ from .Vars import (
 )
 
 
-
 class QueueManager:
     def __init__(self, queue_path=QUEUE_PATH):
         self.queue_path = queue_path
