@@ -10,7 +10,6 @@ from .Vars import (
 )
 
 
-
 class FileManager:
     def __init__(self):
         self.source = TEMP_DIR

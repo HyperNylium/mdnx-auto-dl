@@ -36,6 +36,7 @@ def merge_config(defaults: dict, overrides: dict) -> dict:
 
     return merged
 
+
 def output_effective_config(config, default_config, max_chunk=8000):
     logger.info("[Vars] Effective config: ")
     try:
@@ -73,7 +74,8 @@ def output_effective_config(config, default_config, max_chunk=8000):
     formatted_json = json.dumps(ordered_config, indent=4)
     for line in formatted_json.splitlines():
         for i in range(0, len(line), max_chunk):
-            logger.info(line[i:i+max_chunk])
+            logger.info(line[i:i + max_chunk])
+
 
 # Default config values in case config.json is missing any keys.
 CONFIG_DEFAULTS = {
@@ -212,16 +214,16 @@ LANG_MAP = {
 # This will look like: {"English": "en", "Spanish": "es-419", ...}
 NAME_TO_CODE = {}
 for name, vals in LANG_MAP.items():
-    NAME_TO_CODE[name] = vals[0] # vals[0] is the code
+    NAME_TO_CODE[name] = vals[0]  # vals[0] is the code
 
 # This will look like: {"en", "es-419", ...}
 VALID_LOCALES = set()
 for vals in LANG_MAP.values():
-    VALID_LOCALES.add(vals[1]) # vals[1] is the locale
+    VALID_LOCALES.add(vals[1])  # vals[1] is the locale
 
 # This will look like: {"eng": "en", "spa": "es-419", ...}
 CODE_TO_LOCALE = {}
-for name, vals in LANG_MAP.items():
+for _name, vals in LANG_MAP.items():
     code = vals[0].lower()
     loc = vals[1].lower()
     CODE_TO_LOCALE[code] = loc
@@ -249,6 +251,7 @@ logging.basicConfig(
 # Create a logger for all modules to use
 logger = logging.getLogger(__name__)
 
+
 def handle_exception(exc_type, exc_value, exc_traceback):
     # skip logging for KeyboardInterrupt and SystemExit. Use the default handler.
     if issubclass(exc_type, (KeyboardInterrupt, SystemExit)):
@@ -256,6 +259,7 @@ def handle_exception(exc_type, exc_value, exc_traceback):
         return
 
     logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
 
 def dedupe_preserve_order(items, key=None):
     if not items:
@@ -278,8 +282,10 @@ def dedupe_preserve_order(items, key=None):
             result.append(item)
     return result
 
+
 def dedupe_casefold(items):
     return dedupe_preserve_order(items, key=lambda s: (s or "").casefold())
+
 
 def format_duration(seconds: int) -> str:
     units = [
@@ -303,6 +309,7 @@ def format_duration(seconds: int) -> str:
     if len(parts) == 2:
         return f"{parts[0]} and {parts[1]}"
     return ", ".join(parts[:-1]) + f" and {parts[-1]}"
+
 
 def select_dubs(episode_info: dict):
     desired_dubs = set()
@@ -333,7 +340,7 @@ def select_dubs(episode_info: dict):
 
     # Otherwise fall back to the alphabetically first available dub.
     if available_dubs:
-        logger.debug(f"[Vars] Neither desired nor backup dubs are available. Falling back to first available dub.")
+        logger.debug("[Vars] Neither desired nor backup dubs are available. Falling back to first available dub.")
         first_dub = next(iter(sorted(available_dubs)))
         return [first_dub]
 
@@ -343,13 +350,14 @@ def select_dubs(episode_info: dict):
     logger.debug("[Vars] No dubs available at all for this episode. Skipping it.")
     return False
 
+
 def probe_streams(file_path: str, timeout: int):
     cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", file_path]
 
     logger.debug(f"[Vars] Running ffprobe on {file_path} with command: {' '.join(cmd)}")
 
     try:
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=timeout)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         logger.error(f"[Vars] ffprobe timed out after {timeout}s on {file_path}")
         return set(), set()
@@ -360,7 +368,7 @@ def probe_streams(file_path: str, timeout: int):
         logger.error(f"[Vars] ffprobe JSON decode error on {file_path}: {e}")
         return set(), set()
 
-    if data == {}: # no streams found
+    if data == {}:  # no streams found
         logger.error(f"[Vars] ffprobe found no dubs/subs for {file_path}")
         return set(), set()
 
@@ -407,6 +415,7 @@ def probe_streams(file_path: str, timeout: int):
 
     return audio_langs, sub_langs
 
+
 def sanitize(segment: str) -> str:
     """
     Prepare a path segment for your the filesystem:
@@ -421,19 +430,21 @@ def sanitize(segment: str) -> str:
         logger.debug(f"[Vars] Sanitized '{segment}' to '{cleaned}'")
     return cleaned
 
+
 def get_running_user():
-    uid  = os.getuid()   # real UID
-    gid  = os.getgid()   # real GID
+    uid = os.getuid()   # real UID
+    gid = os.getgid()   # real GID
     euid = os.geteuid()  # effective UID (after set-uid, if any)
     egid = os.getegid()  # effective GID
 
-    user  = pwd.getpwuid(uid).pw_name
+    user = pwd.getpwuid(uid).pw_name
     group = grp.getgrgid(gid).gr_name
 
     logger.info(f"[Vars] Running as UID={uid} ({user}), GID={gid} ({group})")
     logger.info(f"[Vars] Effective UID={euid}, effective GID={egid}")
 
     return (uid, user, gid, group, euid, egid)
+
 
 def format_value(val):
     """
@@ -454,6 +465,7 @@ def format_value(val):
     else:
         return f'"{val}"'
 
+
 def update_mdnx_config():
     logger.info("[Vars] Updating MDNX config files with new settings from config.json...")
 
@@ -472,6 +484,7 @@ def update_mdnx_config():
         logger.debug(f"[Vars] Updated {file_path} with new settings.")
 
     logger.info("[Vars] MDNX config updated.")
+
 
 def update_app_config(key: str, value):
     global config
@@ -523,11 +536,12 @@ def update_app_config(key: str, value):
     logger.debug(f"[Vars] Updated on-disk 'app.{key}' with '{value}'")
     return True
 
+
 def log_manager(log_file_path=LOG_FILE, max_lines: int = 50000, keep_lines: int = 5000) -> None:
     try:
         with open(log_file_path, 'r', encoding='utf-8') as file:
             lines = file.readlines()
-        
+
         total_lines = len(lines)
         if total_lines > max_lines:
             # Keep only the last 'keep_lines' lines.
@@ -539,6 +553,7 @@ def log_manager(log_file_path=LOG_FILE, max_lines: int = 50000, keep_lines: int 
             logger.info("[Vars] Log file is within the allowed size; no truncation performed.")
     except Exception as e:
         logger.error(f"[Vars] Error managing log file: {e}")
+
 
 def build_folder_structure(base_dir: str, series_title: str, season: str, episode: str, episode_name: str, extension: str = ".mkv") -> str:
     template_str = str(config["app"]["FOLDER_STRUCTURE"])
@@ -582,6 +597,7 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
 
     return full_path
 
+
 def get_episode_file_path(queue, series_id, season_key, episode_key, base_dir, extension=".mkv"):
     # Get data from the queue.
     raw_series = queue[series_id]["series"]["series_name"]
@@ -601,6 +617,7 @@ def get_episode_file_path(queue, series_id, season_key, episode_key, base_dir, e
 
     # Combine to form the full file path.
     return file_name
+
 
 def iter_episodes(bucket_data: dict):
     if not isinstance(bucket_data, dict) or not bucket_data:
