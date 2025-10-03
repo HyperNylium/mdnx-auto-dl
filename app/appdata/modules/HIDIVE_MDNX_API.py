@@ -12,7 +12,6 @@ from .Vars import (
 )
 
 
-
 class HIDIVE_MDNX_API:
     def __init__(self) -> None:
         self.mdnx_path = MDNX_SERVICE_BIN_PATH
@@ -231,7 +230,7 @@ class HIDIVE_MDNX_API:
         def _group_matches(count_group: int, count_declared: int) -> bool:
             return (count_group == count_declared) or (count_group == count_declared + 1) or (count_group == count_declared + 2)
 
-        for season_idx, (season_key, meta) in enumerate(ordered_seasons, start=1):
+        for _season_idx, (season_key, meta) in enumerate(ordered_seasons, start=1):
             season_id = meta["season_id"]
             episode_list = episodes_by_season.get(season_key, [])
             declared_count = int(meta.get("eps_count") or 0)
@@ -259,7 +258,7 @@ class HIDIVE_MDNX_API:
                 filtered_episode_rows.append((local_tree_index, episode_id, title, download_num))
 
             episodes_dict = {}
-            for local_index, (_, episode_id, title, download_num) in enumerate(filtered_episode_rows, start=1):
+            for local_index, (_, _episode_id, title, download_num) in enumerate(filtered_episode_rows, start=1):
                 dubs_list, subs_list = self._probe_episode_streams(
                     series_id=current_series_id,
                     season_id=season_id,
@@ -372,9 +371,9 @@ class HIDIVE_MDNX_API:
         json_result = self.process_console_output(result, add2queue=False)
         logger.info(f"[HIDIVE_MDNX_API] Processed console output:\n{json_result}")
 
-        ### This needs to be researched/tested more. I am not sure what anidl outputs on auth errors with HiDive.
-        ### Leaving commented out for now. This means there will be no auto re-auth on auth errors for HiDive.
-        # Check if the output contains authentication errors
+        # --- This needs to be researched/tested more. I am not sure what anidl outputs on auth errors with HiDive.
+        # --- Leaving commented out for now. This means there will be no auto re-auth on auth errors for HiDive.
+        # --- Check if the output contains authentication errors
         # error_triggers = ["invalid_grant", "Token Refresh Failed", "Authentication required", "Anonymous"]
         # if any(trigger in result for trigger in error_triggers):
         #     logger.info("[HIDIVE_MDNX_API] Authentication error detected. Forcing re-authentication...")
@@ -428,7 +427,7 @@ class HIDIVE_MDNX_API:
         logger.debug(f"[HIDIVE_MDNX_API] Updating monitor for series with ID: {series_id} complete.")
         return result.stdout
 
-    def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list = None) -> bool:
+    def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list | None = None) -> bool:
         logger.info(f"[HIDIVE_MDNX_API] Downloading episode {episode_number} for series {series_id} season {season_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id, "-s", season_id, "-e", episode_number]

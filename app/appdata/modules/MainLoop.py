@@ -14,7 +14,6 @@ from .Vars import (
 )
 
 
-
 class MainLoop:
     def __init__(self, cr_mdnx_api, hidive_mdnx_api, notifier) -> None:
         self.cr_mdnx_api = cr_mdnx_api
@@ -28,7 +27,7 @@ class MainLoop:
         self.mainloop_iter = 0
         self.notifications_buffer = []
 
-        logger.debug(f"[MainLoop] MainLoop initialized.")
+        logger.debug("[MainLoop] MainLoop initialized.")
 
         # Event to signal the loop to stop
         self.stop_event = threading.Event()
@@ -237,7 +236,7 @@ class MainLoop:
 
                     download_successful = mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override)
                     if download_successful:
-                        logger.info(f"[MainLoop] Episode downloaded successfully.")
+                        logger.info("[MainLoop] Episode downloaded successfully.")
 
                         temp_path = os.path.join(TEMP_DIR, "output.mkv")
 
@@ -285,7 +284,7 @@ class MainLoop:
             derived = set(local_subs)
             for loc in list(local_subs):
                 if "-" in loc:
-                    derived.add(loc.split("-")[0]) # turn things like "en-in" to "en"
+                    derived.add(loc.split("-")[0])  # turn things like "en-in" to "en"
             local_subs = derived
 
             missing_dubs = wanted_dubs - local_dubs
