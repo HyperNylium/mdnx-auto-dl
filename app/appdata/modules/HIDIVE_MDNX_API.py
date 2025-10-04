@@ -32,7 +32,10 @@ class HIDIVE_MDNX_API:
             re.IGNORECASE
         )
         self.episode_pattern = re.compile(r'^\[E\.(?P<episode_id>\d+)\]\s+(?P<episode_title>.+?)\s*$', re.IGNORECASE)
-        self.flat_episode_pattern = re.compile(r'^\[S(?P<season_code>\d{1,3})\s*E(?P<download_number>\d{1,4})\]\s+(?P<title>.+?)\s*$', re.IGNORECASE)
+        self.flat_episode_pattern = re.compile(r'^\[S(?P<season_code>\d{1,3})\s*E(?P<download_number>\d{1,4}(?:\.\d+)?)\]\s+(?P<title>.+?)\s*$', re.IGNORECASE)
+
+        # Titles like "Coming 10/10/25 15:00 UTC", "TBA", etc.
+        self.unreleased_title_flag = re.compile(r'^\s*(coming|tba|tbd|available\s+on|premieres?|releasing)\b', re.IGNORECASE)
 
         # Probe headers
         self.audio_header = re.compile(r'(?i)\bAudio(?:s|(?:\s+Tracks)?)\s*:\s*')
@@ -104,6 +107,10 @@ class HIDIVE_MDNX_API:
         return None
 
     def process_console_output(self, output: str, add2queue: bool = True):
+
+        def _group_matches(count_group: int, count_declared: int) -> bool:
+            return abs(count_group - count_declared) <= 2
+
         logger.debug("[HIDIVE_MDNX_API] Processing console output...")
         tmp_dict = {}
         current_series_id = None
@@ -204,15 +211,20 @@ class HIDIVE_MDNX_API:
             if flat_match:
                 gd = flat_match.groupdict()
                 season_code_raw = int(gd['season_code'])
-                episode_download_number = int(gd["download_number"])
+                download_str = gd["download_number"]
+                # skip fractional episodes like 7.5 (usually recap/special)
+                if '.' in download_str:
+                    logger.debug(f"[HIDIVE_MDNX_API] Skipping fractional flat episode E{download_str} (treated as special).")
+                    continue
+                episode_download_number = int(download_str)
 
                 if season_code_raw != current_flat_main_code:
                     current_flat_main_code = season_code_raw
-                    flat_groups.append({})
+                    flat_groups.append({"season_code": season_code_raw, "map": {}})
                     current_group_local_index = 0
 
                 current_group_local_index += 1
-                flat_groups[-1][current_group_local_index] = episode_download_number
+                flat_groups[-1]["map"][current_group_local_index] = episode_download_number
                 continue
 
         if not current_series_id:
@@ -224,46 +236,67 @@ class HIDIVE_MDNX_API:
         total_episodes = 0
         ordered_seasons = sorted(seasons_meta.items(), key=lambda kv: int(kv[1]["season_number"]))
 
-        # Walk flat buckets and match by size (tolerate +1/+2 for E0/noise)
         flat_ptr = 0
-
-        def _group_matches(count_group: int, count_declared: int) -> bool:
-            return (count_group == count_declared) or (count_group == count_declared + 1) or (count_group == count_declared + 2)
 
         for _season_idx, (season_key, meta) in enumerate(ordered_seasons, start=1):
             season_id = meta["season_id"]
+            season_number = int(meta["season_number"])
             episode_list = episodes_by_season.get(season_key, [])
             declared_count = int(meta.get("eps_count") or 0)
 
-            flat_map_for_this_season = {}
-            while flat_ptr < len(flat_groups):
-                candidate = flat_groups[flat_ptr]
-                if _group_matches(len(candidate), declared_count):
-                    flat_map_for_this_season = candidate
-                    flat_ptr += 1
+            # pick a flat map for this season
+            download_map = {}
+            i = flat_ptr
+            while i < len(flat_groups):
+                cand = flat_groups[i]  # {"season_code": int, "map": dict}
+                if cand["season_code"] == season_number:
+                    download_map = cand["map"]
+                    flat_ptr = i + 1
                     break
-                flat_ptr += 1
+                i += 1
 
+            # fallback: accept next candidate within tolerance
+            if not download_map:
+                while flat_ptr < len(flat_groups):
+                    cand = flat_groups[flat_ptr]
+                    if _group_matches(len(cand["map"]), declared_count):
+                        download_map = cand["map"]
+                        flat_ptr += 1
+                        break
+                    flat_ptr += 1
+
+            if not download_map:
+                logger.debug(f"[HIDIVE_MDNX_API] No flat map matched for {season_key}; falling back to 1..N.")
+
+            # Build a sequential list of download numbers from the flat map
+            if download_map:
+                flat_order = [download_map[k] for k in sorted(download_map.keys())]
+            else:
+                flat_order = []
+
+            flat_idx = 0  # consume only when we keep a hierarchical episode
             filtered_episode_rows = []
-            for local_tree_index, (episode_id, title) in enumerate(episode_list, start=1):
-                download_num = flat_map_for_this_season.get(local_tree_index, local_tree_index)
 
-                if download_num == 0:
-                    logger.debug(f"[HIDIVE_MDNX_API] Skipping recap/special (E0) at {season_key} idx={local_tree_index} title='{title}'.")
+            for local_tree_index, (episode_id, title) in enumerate(episode_list, start=1):
+                # Skip specials and unreleased
+                if title and (self.special_episode_title_flag.search(title) or self.unreleased_title_flag.search(title)):
+                    logger.debug(f"[HIDIVE_MDNX_API] Skipping unavailable/special at {season_key} idx={local_tree_index} title='{title}'.")
                     continue
-                if title and self.special_episode_title_flag.search(title):
-                    logger.debug(f"[HIDIVE_MDNX_API] Skipping special-like episode by title at {season_key} idx={local_tree_index} title='{title}'.")
-                    continue
+
+                # Pull the next download number only for kept episodes
+                if flat_idx < len(flat_order):
+                    download_num = flat_order[flat_idx]
+                    flat_idx += 1
+                else:
+                    # No flat numbers left. fall back to sequential numbering of kept episodes
+                    download_num = flat_idx + 1
+                    flat_idx += 1
 
                 filtered_episode_rows.append((local_tree_index, episode_id, title, download_num))
 
             episodes_dict = {}
             for local_index, (_, _episode_id, title, download_num) in enumerate(filtered_episode_rows, start=1):
-                dubs_list, subs_list = self._probe_episode_streams(
-                    series_id=current_series_id,
-                    season_id=season_id,
-                    episode_index=download_num
-                )
+                dubs_list, subs_list = self._probe_episode_streams(series_id=current_series_id, season_id=season_id, episode_index=download_num)
 
                 dubs_list = dedupe_casefold(dubs_list)
                 subs_list = dedupe_casefold(subs_list)
