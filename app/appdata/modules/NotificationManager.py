@@ -7,19 +7,19 @@ from email.message import EmailMessage
 from .Vars import logger, config
 
 
-
 class ntfy:
     def __init__(self):
         self.ntfy_script_path = config["app"]["NTFY_SCRIPT_PATH"]
 
     def notify(self, subject, message):
         try:
-            logger.info(f"[Notification][ntfy] Sending ntfy notification...")
+            logger.info("[Notification][ntfy] Sending ntfy notification...")
             subprocess.run([self.ntfy_script_path, subject, message], check=True)
         except Exception as e:
             logger.error(f"[Notification][ntfy] Error sending notification: {e}")
             return False
         return True
+
 
 class SMTP:
     def __init__(self):

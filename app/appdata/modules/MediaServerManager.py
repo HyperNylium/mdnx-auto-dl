@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 
 # Custom imports
 from .Vars import (
-    logger, config, 
+    logger, config,
     update_app_config, format_duration
 )
 
@@ -16,11 +16,11 @@ PLEX_API_BASE = "https://plex.tv/api/v2"
 PLEX_API_AUTH_URL = "https://app.plex.tv/auth"
 PLEX_PRODUCT_NAME = "mdnx-auto-dl"
 PLEX_PIN_TIMEOUT_SECONDS = 180
-MEDIA_SERVER_INSTANCE = None # holds the PLEX_API or JELLYFIN_API class instance once created
+MEDIA_SERVER_INSTANCE = None  # holds the PLEX_API or JELLYFIN_API class instance once created
 
 
 class PLEX_API:
-    def __init__(self, config=config) -> None:
+    def __init__(self) -> None:
         self.token = config["app"]["MEDIASERVER_TOKEN"]
         self.server_url = config["app"]["MEDIASERVER_URL"]
         self.url_override = config["app"]["MEDIASERVER_URL_OVERRIDE"]
@@ -180,10 +180,10 @@ class PLEX_API:
 
 
 class JELLYFIN_API:
-    def __init__(self, config=config) -> None:
-        raw_url = config["app"].get("MEDIASERVER_URL")
+    def __init__(self) -> None:
+        raw_url = config["app"]["MEDIASERVER_URL"]
         self.server_url = raw_url.rstrip("/") if isinstance(raw_url, str) and raw_url.strip() else None
-        self.api_key = config["app"].get("MEDIASERVER_TOKEN")
+        self.api_key = config["app"]["MEDIASERVER_TOKEN"]
 
         if self.server_url is None or self.server_url == "":
             logger.error("[MediaServerManager][JELLYFIN_API] MEDIASERVER_URL is not set or empty. Please set it in config.json. Exiting...")
@@ -216,7 +216,6 @@ class JELLYFIN_API:
             return False
 
 
-
 def _get_media_server():
     global MEDIA_SERVER_INSTANCE
 
@@ -230,9 +229,9 @@ def _get_media_server():
         return None
 
     if server_type == "plex":
-        MEDIA_SERVER_INSTANCE = PLEX_API(config=config)
+        MEDIA_SERVER_INSTANCE = PLEX_API()
     elif server_type == "jellyfin":
-        MEDIA_SERVER_INSTANCE = JELLYFIN_API(config=config)
+        MEDIA_SERVER_INSTANCE = JELLYFIN_API()
     elif server_type == "":
         logger.error("[MediaServerManager] MEDIASERVER_TYPE is not set. Please set it to 'plex' or 'jellyfin' in config.json. Exiting...")
         sys.exit(1)
@@ -251,6 +250,7 @@ def mediaserver_auth(max_wait_seconds: int = 600, poll_interval: float = 1.0) ->
     if isinstance(inst, PLEX_API):
         return inst.wait_for_auth(max_wait_seconds, poll_interval)
     return True
+
 
 def mediaserver_scan_library() -> bool:
     inst = _get_media_server()

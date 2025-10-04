@@ -1,6 +1,6 @@
 import os
 import time
-from shutil import move as shmove
+from shutil import copyfile as shcopy
 
 # Custom imports
 from .Vars import (
@@ -10,12 +10,10 @@ from .Vars import (
 )
 
 
-
 class FileManager:
     def __init__(self):
         self.source = TEMP_DIR
         self.dest = DATA_DIR
-        # These should be configurable from config.json in the future.
         self.readyCheckInterval = 1  # seconds between size checks
         self.readyStableSeconds = 5  # how long size must remain unchanged
         self.readyTimeout = 300      # overall timeout for readiness
@@ -23,6 +21,39 @@ class FileManager:
         self.retryDelay = 5          # seconds between move attempts
 
         logger.info(f"[FileManager] FileManager initialized with: Source: {self.source} | Destination: {self.dest}")
+
+    def test(self) -> bool:
+        logger.info(f"[FileManager] Checking Read/Write permissions for: {self.dest}")
+
+        if not os.path.isdir(self.dest):
+            logger.error(f"[FileManager] Directory not found: {self.dest}")
+            return False
+
+        can_r = os.access(self.dest, os.R_OK)
+        can_w = os.access(self.dest, os.W_OK)
+        logger.info(f"[FileManager] os.access -> R:{can_r} W:{can_w}")
+        if not (can_r and can_w):
+            logger.warning(f"[FileManager] Missing required R/W on {self.dest}")
+            return False
+
+        test_path = os.path.join(self.dest, "permtest.txt")
+        try:
+            with open(test_path, "w", encoding="utf-8") as f:
+                f.write("ok")
+            with open(test_path, "r", encoding="utf-8") as f:
+                data = f.read()
+            success = (data == "ok")
+            logger.info(f"[FileManager] Write/read test {'passed' if success else 'failed'} at {test_path}")
+            return success
+        except Exception as e:
+            logger.error(f"[FileManager] Write/read test failed in {self.dest}: {e}")
+            return False
+        finally:
+            try:
+                if os.path.exists(test_path):
+                    os.remove(test_path)
+            except Exception as e:
+                logger.warning(f"[FileManager] Could not clean up {test_path}\nMay fail when doing episode dub/sub updates\nFull error: {e}")
 
     def transfer(self, src_path: str, dst_path: str, overwrite: bool = False) -> bool:
         logger.info(f"[FileManager] Starting transfer from '{src_path}' to '{dst_path}'")
@@ -75,7 +106,7 @@ class FileManager:
 
         for attempt in range(1, self.moveRetries + 1):
             try:
-                shmove(src_path, final_dst)
+                shcopy(src_path, final_dst)
                 logger.info(f"[FileManager] Moved '{src_basename}' to '{final_dst}'")
                 return True
             except Exception as e:
