@@ -1,6 +1,6 @@
 
-import subprocess
 import smtplib
+import subprocess
 from email.message import EmailMessage
 
 # Custom imports
