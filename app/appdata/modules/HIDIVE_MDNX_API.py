@@ -346,7 +346,6 @@ class HIDIVE_MDNX_API:
             queue_manager.add(tmp_dict, self.queue_service)
         return tmp_dict
 
-
     def _probe_episode_streams(self, series_id: str, season_id: str, episode_index: int):
         logger.info(f"[HIDIVE_MDNX_API] Probing streams for series {series_id} season {season_id} episode {episode_index}...")
 
