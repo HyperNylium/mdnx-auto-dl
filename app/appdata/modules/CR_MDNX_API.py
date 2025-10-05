@@ -64,7 +64,9 @@ class CR_MDNX_API:
         logger.debug("[CR_MDNX_API] Processing console output...")
         tmp_dict = {}             # maps series_id to series info
         episode_counters = {}     # maps season key ("S1", "S2", etc) to episode counter
-        season_num_map = {}       # maps original season_number to mapped season_number (goes from S43, S45  to S1, S2)
+        season_num_map = {}       # CR numeric label -> our mapped number (first occurrence wins)
+        season_id_to_key = {}     # season_id -> "S{n}" based on order of appearance
+        season_order = 0          # running index of seasons as they appear
         current_series_id = None
         active_season_key = None
         active_episode_key = None  # holds the current episode key like "E1"
@@ -122,6 +124,8 @@ class CR_MDNX_API:
                 current_series_id = info["series_id"]
                 tmp_dict[current_series_id] = {"series": info, "seasons": {}}
                 season_num_map.clear()
+                season_id_to_key.clear()
+                season_order = 0
                 episode_counters.clear()
                 active_season_key = None
                 active_episode_key = None
@@ -137,14 +141,20 @@ class CR_MDNX_API:
                 info = match.groupdict()
                 info["season_name"] = sanitize(info["season_name"])
 
-                # turn Crunchyrolls season number into our own
-                # so we dont get S02E13. We would get S02E01.
-                orig_num = int(info["season_number"])
-                if orig_num not in season_num_map:
-                    season_num_map[orig_num] = len(season_num_map) + 1
-                mapped_num = season_num_map[orig_num]
+                # Map seasons strictly by appearance order (or season_id)
+                season_id = info["season_id"]
+                if season_id not in season_id_to_key:
+                    season_order += 1
+                    mapped_num = season_order
+                    season_id_to_key[season_id] = f"S{mapped_num}"
+                    try:
+                        orig_num = int(info["season_number"])
+                        season_num_map.setdefault(orig_num, mapped_num)
+                    except Exception:
+                        pass
 
-                season_key = f"S{mapped_num}"
+                season_key = season_id_to_key[season_id]
+                mapped_num = int(season_key[1:])
                 active_season_key = season_key
                 active_episode_key = None
                 info["season_number"] = str(mapped_num)
@@ -174,18 +184,9 @@ class CR_MDNX_API:
                 if ep_info["full_episode_name"].lstrip().lower().startswith("pv"):
                     continue
 
-                # find season number in full line
-                # only trust numbers declared by season headers.
-                # otherwise fall back to season name
+                # Resolve season for this episode.
                 season_key = None
                 mapped_num = None
-
-                season_num = re.search(r'- Season (\d+) -', line)
-                if season_num:
-                    orig_label = int(season_num.group(1))
-                    if orig_label in season_num_map:
-                        mapped_num = season_num_map[orig_label]
-                        season_key = f"S{mapped_num}"
 
                 # extract season name
                 full_name_guess = ep_info["full_episode_name"]
@@ -193,13 +194,21 @@ class CR_MDNX_API:
                 parts_before = full_name_guess.split(' - Season ', 1)
                 season_name_guess = parts_before[0].strip()
 
-                # fallback by season name (text before " - Season ... -") if number didnt resolve
+                # By season name
+                guessed_key = name_to_season_key.get(sanitize(season_name_guess).lower())
+                if guessed_key:
+                    season_key = guessed_key
+                    mapped_num = int(season_key[1:])
+                    logger.debug(f"[CR_MDNX_API] Resolved episode season by name '{season_name_guess}' -> {season_key}")
+
+                # By numeric label inside the episode line (fallback)
                 if not season_key:
-                    guessed_key = name_to_season_key.get(sanitize(season_name_guess).lower())
-                    if guessed_key:
-                        season_key = guessed_key
-                        mapped_num = int(season_key[1:])
-                        logger.debug(f"[CR_MDNX_API] Resolved episode season by name '{season_name_guess}' -> {season_key}")
+                    season_num = re.search(r'- Season (\d+) -', line)
+                    if season_num:
+                        orig_label = int(season_num.group(1))
+                        if orig_label in season_num_map:
+                            mapped_num = season_num_map[orig_label]
+                            season_key = f"S{mapped_num}"
 
                 if not season_key:
                     # If we still cant resolve the season, warn and create a shell entry
@@ -216,10 +225,10 @@ class CR_MDNX_API:
                         episode_counters[season_key] = 1
 
                     # stabilize future matches for this season (by number and by name)
+                    season_num = re.search(r'- Season (\d+) -', line)
                     if season_num:
                         orig_label = int(season_num.group(1))
-                        if orig_label not in season_num_map:
-                            season_num_map[orig_label] = mapped_num
+                        season_num_map.setdefault(orig_label, mapped_num)
                     name_to_season_key[sanitize(season_name_guess).lower()] = season_key
 
                 # ensure counter exists even if season header never appeared
