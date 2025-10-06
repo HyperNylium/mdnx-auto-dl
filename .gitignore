@@ -167,3 +167,4 @@ appdata/mdnx/widevine/*
 !appdata/mdnx/config/.gitkeep
 !appdata/mdnx/widevine/.gitkeep
 index.html
+notes.txt
