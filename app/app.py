@@ -14,7 +14,7 @@ from appdata.modules.Vars import (
     update_mdnx_config, update_app_config, handle_exception, get_running_user, output_effective_config
 )
 
-_VERSION__ = "2.0.2"
+__VERSION__ = "2.0.3"
 
 
 def app():
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     logger.info("[app] Overriding sys.excepthook to log uncaught exceptions...")
     sys.excepthook = handle_exception
 
-    logger.info(f"[app] mdnx-auto-dl v{_VERSION__} has started.")
+    logger.info(f"[app] mdnx-auto-dl v{__VERSION__} has started.")
     get_running_user()
     update_mdnx_config()
     output_effective_config(config, CONFIG_DEFAULTS)
