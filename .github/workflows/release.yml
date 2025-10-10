@@ -1,0 +1,86 @@
+name: Build image on Release
+run-name: "Build Docker image for ${{ github.event.release.name }}"
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image/tag vars
+        id: vars
+        shell: bash
+        run: |
+          REPO_LC="${GITHUB_REPOSITORY,,}"
+          echo "IMAGE=ghcr.io/${REPO_LC}" >> "$GITHUB_OUTPUT"
+          TAG="${{ github.event.release.tag_name }}"
+          echo "TAG=${TAG}"        >> "$GITHUB_OUTPUT"
+          echo "VERSION=${TAG#v}"  >> "$GITHUB_OUTPUT"
+
+      - name: Extract Docker metadata (labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.vars.outputs.IMAGE }}
+          labels: |
+            org.opencontainers.image.title=${{ github.event.repository.name }}
+            org.opencontainers.image.description=${{ github.event.repository.description }}
+            org.opencontainers.image.source=${{ github.event.repository.html_url }}
+            org.opencontainers.image.version=${{ steps.vars.outputs.VERSION }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build & push (amd64)
+        id: docker_build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          pull: true
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ steps.vars.outputs.IMAGE }}:${{ steps.vars.outputs.VERSION }}
+            ${{ steps.vars.outputs.IMAGE }}:latest
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create release checksum file
+        shell: bash
+        run: |
+          DIGEST="${{ steps.docker_build.outputs.digest }}"
+          {
+            echo "image=${{ steps.vars.outputs.IMAGE }}"
+            echo "tag=${{ steps.vars.outputs.VERSION }}"
+            echo "latest=true"
+            echo "digest=${DIGEST}"
+          } > release-sha256.txt
+          echo "Wrote release-sha256.txt:"
+          cat release-sha256.txt
+
+      - name: Upload checksum to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          files: release-sha256.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
