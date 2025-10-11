@@ -57,12 +57,11 @@ jobs:
           pull: true
           push: true
           platforms: linux/amd64
+          no-cache: true
           tags: |
             ${{ steps.vars.outputs.IMAGE }}:${{ steps.vars.outputs.VERSION }}
             ${{ steps.vars.outputs.IMAGE }}:latest
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Create release checksum file
         shell: bash
