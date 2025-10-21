@@ -154,7 +154,7 @@ class MainLoop:
     def refresh_queue(self) -> bool:
         logger.info("[MainLoop] Getting the current queue IDs...")
 
-        cr_monitor_ids = set(config["cr_monitor_series_id"])
+        cr_monitor_ids = set(config["cr_monitor_series_id"].keys())
         hd_monitor_ids = set(config["hidive_monitor_series_id"])
 
         def process_service(service, enabled, api, monitor_ids):
@@ -214,49 +214,52 @@ class MainLoop:
 
         for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(bucket):
 
-            # Should episode be downloaded?
+            if episode_info["episode_skip"]:
+                logger.info(f"[MainLoop] Episode {episode_info['episode_number']} ({episode_info['episode_name']}) 'episode_skip' is True. Skipping download.")
+                continue
+
             if episode_info["episode_downloaded"]:
                 logger.info(f"[MainLoop] Episode {episode_info['episode_number']} ({episode_info['episode_name']}) 'episode_downloaded' status is True. Skipping download.")
                 continue
+
+            logger.info(f"[MainLoop] Episode {episode_info['episode_number']} ({episode_info['episode_name']}) 'episode_downloaded' status is False. Checking file path to make sure file actually does not exist...")
+
+            # Construct the expected file path using the dynamic template.
+            file_path = get_episode_file_path(bucket, series_id, season_key, episode_key, DATA_DIR)
+            logger.info(f"[MainLoop] Checking for episode at {file_path}.")
+
+            if os.path.exists(file_path):
+                logger.info(f"[MainLoop] Episode already exists at {file_path}. Updating 'episode_downloaded' status to True and skipping download.")
+                queue_manager.update_episode_status(series_id, season_key, episode_key, True, service)
+                continue
             else:
-                logger.info(f"[MainLoop] Episode {episode_info['episode_number']} ({episode_info['episode_name']}) 'episode_downloaded' status is False. Checking file path to make sure file actually does not exist...")
+                logger.info(f"[MainLoop] Episode not found at {file_path} and 'episode_downloaded' status is False. Initiating download.")
 
-                # Construct the expected file path using the dynamic template.
-                file_path = get_episode_file_path(bucket, series_id, season_key, episode_key, DATA_DIR)
-                logger.info(f"[MainLoop] Checking for episode at {file_path}.")
+                dub_override = select_dubs(episode_info)
 
-                if os.path.exists(file_path):
-                    logger.info(f"[MainLoop] Episode already exists at {file_path}. Updating 'episode_downloaded' status to True and skipping download.")
-                    queue_manager.update_episode_status(series_id, season_key, episode_key, True, service)
-                    continue
-                else:
-                    logger.info(f"[MainLoop] Episode not found at {file_path} and 'episode_downloaded' status is False. Initiating download.")
+                download_successful = mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override)
+                if download_successful:
+                    logger.info("[MainLoop] Episode downloaded successfully.")
 
-                    dub_override = select_dubs(episode_info)
+                    temp_path = os.path.join(TEMP_DIR, "output.mkv")
 
-                    download_successful = mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override)
-                    if download_successful:
-                        logger.info("[MainLoop] Episode downloaded successfully.")
-
-                        temp_path = os.path.join(TEMP_DIR, "output.mkv")
-
-                        if file_manager.transfer(temp_path, file_path):
-                            logger.info("[MainLoop] Transfer complete.")
-                            queue_manager.update_episode_status(series_id, season_key, episode_key, True, service)
-                            series_name = bucket[series_id]["series"]["series_name"]
-                            snapshot = self.snapshot_episode(series_name, episode_info, file_path, action_label="new")
-                            self.notifications_buffer.append(snapshot)
-                        else:
-                            logger.error("[MainLoop] Transfer failed.")
-                            queue_manager.update_episode_status(series_id, season_key, episode_key, False, service)
+                    if file_manager.transfer(temp_path, file_path):
+                        logger.info("[MainLoop] Transfer complete.")
+                        queue_manager.update_episode_status(series_id, season_key, episode_key, True, service)
+                        series_name = bucket[series_id]["series"]["series_name"]
+                        snapshot = self.snapshot_episode(series_name, episode_info, file_path, action_label="new")
+                        self.notifications_buffer.append(snapshot)
                     else:
-                        logger.error(f"[MainLoop] Episode download failed for {series_id} season {season_key} - {episode_key}.")
+                        logger.error("[MainLoop] Transfer failed.")
                         queue_manager.update_episode_status(series_id, season_key, episode_key, False, service)
+                else:
+                    logger.error(f"[MainLoop] Episode download failed for {series_id} season {season_key} - {episode_key}.")
+                    queue_manager.update_episode_status(series_id, season_key, episode_key, False, service)
 
-                    file_manager.remove_temp_files()
-                    logger.info(f"[MainLoop] Waiting for {format_duration(self.between_episode_timeout)} before next iteration.")
-                    if self.wait_or_interrupt(timeout=self.between_episode_timeout):
-                        return
+                file_manager.remove_temp_files()
+                logger.info(f"[MainLoop] Waiting for {format_duration(self.between_episode_timeout)} before next iteration.")
+                if self.wait_or_interrupt(timeout=self.between_episode_timeout):
+                    return
 
     def refresh_dub_sub_for_service(self, service, mdnx_api, current_queue):
         logger.info(f"[MainLoop] Checking if already existing episodes have new dubs/subs from {service}...")

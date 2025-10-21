@@ -79,7 +79,7 @@ def output_effective_config(config, default_config, max_chunk=8000):
 
 # Default config values in case config.json is missing any keys.
 CONFIG_DEFAULTS = {
-    "cr_monitor_series_id": [],
+    "cr_monitor_series_id": {},
     "hidive_monitor_series_id": [],
     "app": {
         "TEMP_DIR": "/app/appdata/temp",
