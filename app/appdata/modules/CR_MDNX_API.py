@@ -100,7 +100,8 @@ class CR_MDNX_API:
                 "episode_name": staged_episode["episode_title_clean"],
                 "available_dubs": staged_episode["available_dubs"],
                 "available_subs": staged_episode["available_subs"],
-                "episode_downloaded": False
+                "episode_downloaded": False,
+                "episode_skip": False
             }
 
             logger.debug(f"[CR_MDNX_API] Committed episode {s_id}/{s_key}/{e_key} to tmp_dict.")
@@ -311,6 +312,67 @@ class CR_MDNX_API:
 
         # commit any trailing staged episode once the loop ends
         _commit_staged()
+
+        # apply per-series blacklist to mark episodes to skip
+        cr_cfg = config.get("cr_monitor_series_id", {})
+        if not isinstance(cr_cfg, dict):
+            logger.error("[CR_MDNX_API] cr_monitor_series_id must be a dict in config.")
+            cr_cfg = {}
+
+        # rules are strings like "S:<season_id>" or "S:<season_id>:E:<index>"
+        def _parse_rules(rules):
+            seasons = set()
+            eps = {}
+            if not rules:
+                return seasons, eps
+            if isinstance(rules, str):
+                # empty string means no blacklist
+                if not rules.strip():
+                    return seasons, eps
+                rules = [rules]
+            for raw in rules:
+                if not raw:
+                    continue
+                s = str(raw).strip()
+                m = re.fullmatch(r"S:([^:]+)(?::E:(\d+))?", s)
+                if not m:
+                    continue
+                sid, epi = m.group(1), m.group(2)
+                if epi is None:
+                    seasons.add(sid)
+                else:
+                    eps.setdefault(sid, set()).add(int(epi))
+            return seasons, eps
+
+        for sid, s_info in tmp_dict.items():
+            rules = cr_cfg.get(sid)
+            if rules is None:
+                continue
+            bl_seasons, bl_eps = _parse_rules(rules)
+            if not bl_seasons and not bl_eps:
+                continue
+
+            for season_key, season_info in (s_info.get("seasons") or {}).items():
+                season_id = season_info.get("season_id")
+                if not season_id:
+                    continue
+
+                # season-level blacklist
+                if season_id in bl_seasons:
+                    for ep in (season_info.get("episodes") or {}).values():
+                        ep["episode_skip"] = True
+                    continue
+
+                # episode-level blacklist for this season_id
+                idx_set = bl_eps.get(season_id)
+                if idx_set:
+                    for ep_key, ep in (season_info.get("episodes") or {}).items():
+                        try:
+                            idx = int(str(ep_key).lstrip("E"))
+                            if idx in idx_set:
+                                ep["episode_skip"] = True
+                        except Exception:
+                            pass
 
         # we remove empty seasons and renumber contiguous S1..SX to keep structure compact
         for series_id, series_info in tmp_dict.items():

@@ -77,6 +77,7 @@ class QueueManager:
                 for s in series_info.get("seasons", {}).values():
                     for ep in s.get("episodes", {}).values():
                         ep.setdefault("episode_downloaded", False)
+                        ep.setdefault("episode_skip", False)
                 logger.debug(f"[QueueManager] Added series '{series_id}' to '{bucket_name}'.")
                 continue
 
@@ -95,7 +96,7 @@ class QueueManager:
                         new_ep["episode_downloaded"] = old_ep.get("episode_downloaded", False)
                     else:
                         new_ep.setdefault("episode_downloaded", False)
-
+                    new_ep["episode_skip"] = new_ep.get("episode_skip", False)
                     season["episodes"][ep_key] = new_ep
 
             logger.debug(f"[QueueManager] Updated series '{series_id}' in '{bucket_name}'.")
