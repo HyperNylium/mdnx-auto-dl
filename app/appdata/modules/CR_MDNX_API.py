@@ -319,10 +319,10 @@ class CR_MDNX_API:
             logger.error("[CR_MDNX_API] cr_monitor_series_id must be a dict in config.")
             cr_cfg = {}
 
-        # rules are strings like "S:<season_id>" or "S:<season_id>:E:<index>"
+        # rules are strings like "S:<season_id>", "S:<season_id>:E:<index>", or "S:<season_id>:E:<start>-<end>"
         def _parse_rules(rules):
             seasons = set()
-            eps = {}
+            eps = {}  # season_id -> list of rules where each rule is either an int (single ep) or (start,end) tuple
             if not rules:
                 return seasons, eps
             if isinstance(rules, str):
@@ -334,14 +334,23 @@ class CR_MDNX_API:
                 if not raw:
                     continue
                 s = str(raw).strip()
-                m = re.fullmatch(r"S:([^:]+)(?::E:(\d+))?", s)
+                m = re.fullmatch(r"S:([^:]+)(?::E:(\d+)(?:-(\d+))?)?", s)
                 if not m:
                     continue
-                sid, epi = m.group(1), m.group(2)
-                if epi is None:
+                sid = m.group(1)
+                start = m.group(2)
+                end = m.group(3)
+                if start is None:
                     seasons.add(sid)
                 else:
-                    eps.setdefault(sid, set()).add(int(epi))
+                    lst = eps.setdefault(sid, [])
+                    if end is None:
+                        lst.append(int(start))
+                    else:
+                        a, b = int(start), int(end)
+                        if a > b:
+                            a, b = b, a
+                        lst.append((a, b))
             return seasons, eps
 
         for sid, s_info in tmp_dict.items():
@@ -369,10 +378,17 @@ class CR_MDNX_API:
                     for ep_key, ep in (season_info.get("episodes") or {}).items():
                         try:
                             idx = int(str(ep_key).lstrip("E"))
-                            if idx in idx_set:
-                                ep["episode_skip"] = True
                         except Exception:
-                            pass
+                            continue
+                        for rule in idx_set:
+                            if isinstance(rule, tuple):
+                                if rule[0] <= idx <= rule[1]:
+                                    ep["episode_skip"] = True
+                                    break
+                            else:
+                                if idx == rule:
+                                    ep["episode_skip"] = True
+                                    break
 
         # we remove empty seasons and renumber contiguous S1..SX to keep structure compact
         for series_id, series_info in tmp_dict.items():
