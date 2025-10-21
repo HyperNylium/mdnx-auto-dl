@@ -155,7 +155,7 @@ class MainLoop:
         logger.info("[MainLoop] Getting the current queue IDs...")
 
         cr_monitor_ids = set(config["cr_monitor_series_id"].keys())
-        hd_monitor_ids = set(config["hidive_monitor_series_id"])
+        hd_monitor_ids = set(config["hidive_monitor_series_id"].keys())
 
         def process_service(service, enabled, api, monitor_ids):
             if not enabled or api is None:
