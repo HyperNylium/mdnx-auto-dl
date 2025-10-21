@@ -377,7 +377,7 @@ class HIDIVE_MDNX_API:
             if not bl_seasons and not bl_eps:
                 continue
 
-            for season_key, season_info in (s_info.get("seasons") or {}).items():
+            for _season_key, season_info in (s_info.get("seasons") or {}).items():
                 season_id = season_info.get("season_id")
                 if not season_id:
                     continue
