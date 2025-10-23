@@ -294,7 +294,7 @@ class MainLoop:
             missing_subs = wanted_subs - local_subs
 
             if not missing_dubs and not missing_subs:
-                logger.info(f"[MainLoop] {episode_basename} has all required dubs and subs. No action needed.")
+                logger.info(f"[MainLoop] {episode_basename} is up to date. All requested dubs and subs are present locally. No download needed.")
                 continue
 
             avail_dubs = set()
@@ -333,7 +333,7 @@ class MainLoop:
             )
 
             if skip_download:
-                logger.info(f"[MainLoop] Skipping download for {episode_basename} as all required dubs and subs are present.")
+                logger.info(f"[MainLoop] Skipping re-download for {episode_basename}: requested tracks are missing locally but not offered by {service} yet.")
                 continue
 
             if effective_missing_dubs:
