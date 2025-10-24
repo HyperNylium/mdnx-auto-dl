@@ -3,7 +3,7 @@ run-name: "Build Docker image for ${{ github.event.release.name }}"
 
 on:
   release:
-    types: [published]
+    types: [ published ]
 
 permissions:
   contents: write
