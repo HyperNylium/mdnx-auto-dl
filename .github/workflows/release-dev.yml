@@ -1,0 +1,101 @@
+name: Build dev image
+run-name: "Build Docker image for dev branch"
+
+on:
+  push:
+    branches: [ "dev" ]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: build-dev
+  cancel-in-progress: true
+
+jobs:
+  build-and-push-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image vars
+        id: vars
+        shell: bash
+        run: |
+          REPO_LC="${GITHUB_REPOSITORY,,}"
+          OWNER="${GITHUB_REPOSITORY_OWNER}"
+          PKG_NAME="${GITHUB_REPOSITORY#*/}"
+          PKG_LC="${PKG_NAME,,}"
+          echo "IMAGE=ghcr.io/${REPO_LC}" >> "$GITHUB_OUTPUT"
+          echo "OWNER=${OWNER}" >> "$GITHUB_OUTPUT"
+          echo "PKG=${PKG_LC}" >> "$GITHUB_OUTPUT"
+          echo "SHA7=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Determine next dev tag
+        id: next
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          OWNER="${{ steps.vars.outputs.OWNER }}"
+          PKG="${{ steps.vars.outputs.PKG }}"
+          get_versions() {
+            gh api -H "Accept: application/vnd.github+json" "/orgs/${OWNER}/packages/container/${PKG}/versions?per_page=100" 2>/dev/null || \
+            gh api -H "Accept: application/vnd.github+json" "/users/${OWNER}/packages/container/${PKG}/versions?per_page=100" 2>/dev/null || true
+          }
+          TAGS=$(get_versions | jq -r '.[]?.metadata.container.tags[]?' || true)
+          LAST_NUM=$(printf "%s\n" "$TAGS" | sed -n 's/^dev-\([0-9]\+\)$/\1/p' | sort -n | tail -1 || true)
+          if [[ -z "${LAST_NUM:-}" ]]; then
+            NEXT_NUM=1
+          else
+            NEXT_NUM=$((LAST_NUM + 1))
+          fi
+          echo "DEV_TAG=dev-${NEXT_NUM}" >> "$GITHUB_OUTPUT"
+          echo "Next dev tag: dev-${NEXT_NUM}"
+
+      - name: Extract Docker metadata (labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.vars.outputs.IMAGE }}
+          labels: |
+            org.opencontainers.image.title=${{ github.event.repository.name }}
+            org.opencontainers.image.description=${{ github.event.repository.description }}
+            org.opencontainers.image.source=${{ github.event.repository.html_url }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.ref.name=refs/heads/dev
+
+      - name: Build & push (amd64)
+        id: docker_build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          pull: true
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ steps.vars.outputs.IMAGE }}:dev
+            ${{ steps.vars.outputs.IMAGE }}:${{ steps.next.outputs.DEV_TAG }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Summarize
+        shell: bash
+        run: |
+          echo "Built:"
+          echo "  ${{ steps.vars.outputs.IMAGE }}:dev"
+          echo "  ${{ steps.vars.outputs.IMAGE }}:${{ steps.next.outputs.DEV_TAG }}"
+          echo "Digest: ${{ steps.docker_build.outputs.digest }}"
