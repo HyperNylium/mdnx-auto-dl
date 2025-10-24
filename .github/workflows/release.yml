@@ -33,8 +33,8 @@ jobs:
           REPO_LC="${GITHUB_REPOSITORY,,}"
           echo "IMAGE=ghcr.io/${REPO_LC}" >> "$GITHUB_OUTPUT"
           TAG="${{ github.event.release.tag_name }}"
-          echo "TAG=${TAG}"        >> "$GITHUB_OUTPUT"
-          echo "VERSION=${TAG#v}"  >> "$GITHUB_OUTPUT"
+          echo "TAG=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "VERSION=${TAG#v}" >> "$GITHUB_OUTPUT"
 
       - name: Extract Docker metadata (labels)
         id: meta
