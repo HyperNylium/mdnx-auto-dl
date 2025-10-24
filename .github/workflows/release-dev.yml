@@ -3,7 +3,7 @@ run-name: "Build Docker image for dev branch"
 
 on:
   push:
-    branches: [ "dev" ]
+    branches: [ dev ]
 
 permissions:
   contents: read
