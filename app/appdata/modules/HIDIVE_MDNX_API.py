@@ -324,7 +324,8 @@ class HIDIVE_MDNX_API:
                     "episode_name": sanitize(title) if title else f"Episode {local_index}",
                     "available_dubs": dubs_list,
                     "available_subs": subs_list,
-                    "episode_downloaded": False
+                    "episode_downloaded": False,
+                    "episode_skip": False
                 }
                 total_episodes += 1
 
@@ -336,6 +337,83 @@ class HIDIVE_MDNX_API:
                 "episodes": episodes_dict,
                 "eps_count": str(len(episodes_dict))
             }
+
+        # apply per-series blacklist to mark episodes to skip
+        hd_cfg = config.get("hidive_monitor_series_id", {})
+        if not isinstance(hd_cfg, dict):
+            logger.error("[HIDIVE_MDNX_API] hidive_monitor_series_id must be a dict in config.")
+            hd_cfg = {}
+
+        # rules are strings like "S:<season_id>", "S:<season_id>:E:<index>", or "S:<season_id>:E:<start>-<end>"
+        def _parse_rules(rules):
+            seasons = set()
+            eps = {}  # season_id -> list of rules where each rule is either an int (single ep) or (start,end) tuple
+            if not rules:
+                return seasons, eps
+            if isinstance(rules, str):
+                # empty string means no blacklist
+                if not rules.strip():
+                    return seasons, eps
+                rules = [rules]
+            for raw in rules:
+                if not raw:
+                    continue
+                s = str(raw).strip()
+                m = re.fullmatch(r"S:([^:]+)(?::E:(\d+)(?:-(\d+))?)?", s)
+                if not m:
+                    continue
+                sid = m.group(1)
+                start = m.group(2)
+                end = m.group(3)
+                if start is None:
+                    seasons.add(sid)
+                else:
+                    lst = eps.setdefault(sid, [])
+                    if end is None:
+                        lst.append(int(start))
+                    else:
+                        a, b = int(start), int(end)
+                        if a > b:
+                            a, b = b, a
+                        lst.append((a, b))
+            return seasons, eps
+
+        for sid, s_info in tmp_dict.items():
+            rules = hd_cfg.get(sid)
+            if rules is None:
+                continue
+            bl_seasons, bl_eps = _parse_rules(rules)
+            if not bl_seasons and not bl_eps:
+                continue
+
+            for _season_key, season_info in (s_info.get("seasons") or {}).items():
+                season_id = season_info.get("season_id")
+                if not season_id:
+                    continue
+
+                # season-level blacklist
+                if season_id in bl_seasons:
+                    for ep in (season_info.get("episodes") or {}).values():
+                        ep["episode_skip"] = True
+                    continue
+
+                # episode-level blacklist for this season_id
+                idx_set = bl_eps.get(season_id)
+                if idx_set:
+                    for ep_key, ep in (season_info.get("episodes") or {}).items():
+                        try:
+                            idx = int(str(ep_key).lstrip("E"))
+                        except Exception:
+                            continue
+                        for rule in idx_set:
+                            if isinstance(rule, tuple):
+                                if rule[0] <= idx <= rule[1]:
+                                    ep["episode_skip"] = True
+                                    break
+                            else:
+                                if idx == rule:
+                                    ep["episode_skip"] = True
+                                    break
 
         # fill in total ep count on series metadata
         tmp_dict[current_series_id]["series"]["eps_count"] = str(total_episodes)
