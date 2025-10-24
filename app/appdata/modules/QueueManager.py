@@ -84,9 +84,49 @@ class QueueManager:
             # series exists: merge
             bucket[series_id]["series"] = series_info["series"]
 
+            # canonicalize season keys to the real season_id when available,
+            # and collapse any duplicates already present in the existing queue.
+            existing_seasons = bucket[series_id].setdefault("seasons", {})
+
+            # collapse duplicates already in the bucket (same season_id under different keys)
+            seen = {}
+            for old_key, old_season in list(existing_seasons.items()):
+                sid = old_season.get("season_id")
+                if not sid:
+                    continue
+                if sid in seen:
+                    keep_key = seen[sid]
+                    keep = existing_seasons[keep_key]
+                    for ep_key, ep_val in old_season.get("episodes", {}).items():
+                        if ep_key not in keep.setdefault("episodes", {}):
+                            keep["episodes"][ep_key] = ep_val
+                    del existing_seasons[old_key]
+                else:
+                    seen[sid] = old_key
+
+            # while ingesting new data, migrate target key to the stable season_id
             for season_key, season_info in series_info.get("seasons", {}).items():
-                season = bucket[series_id]["seasons"].setdefault(
-                    season_key, {**season_info, "episodes": {}}
+                canonical_key = season_info.get("season_id") or season_key
+
+                # if we already have this season under another key, move it
+                prev_key = None
+                if season_info.get("season_id"):
+                    prev_key = seen.get(season_info["season_id"])
+                    if prev_key and prev_key != canonical_key and prev_key in existing_seasons:
+                        # if destination key exists, merge. otherwise re-key
+                        if canonical_key in existing_seasons:
+                            dst = existing_seasons[canonical_key]
+                            src = existing_seasons[prev_key]
+                            for ep_key, ep_val in src.get("episodes", {}).items():
+                                if ep_key not in dst.setdefault("episodes", {}):
+                                    dst["episodes"][ep_key] = ep_val
+                            del existing_seasons[prev_key]
+                        else:
+                            existing_seasons[canonical_key] = existing_seasons.pop(prev_key)
+                        seen[season_info["season_id"]] = canonical_key
+
+                season = existing_seasons.setdefault(
+                    canonical_key, {**season_info, "episodes": {}}
                 )
                 season.update({k: v for k, v in season_info.items() if k != "episodes"})
 
