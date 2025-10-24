@@ -57,6 +57,8 @@ jobs:
           pull: true
           push: true
           platforms: linux/amd64
+          provenance: false
+          sbom: false
           no-cache: true
           tags: |
             ${{ steps.vars.outputs.IMAGE }}:${{ steps.vars.outputs.VERSION }}
