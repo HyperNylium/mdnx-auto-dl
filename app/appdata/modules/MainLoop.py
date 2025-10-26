@@ -266,7 +266,7 @@ class MainLoop:
                     logger.debug(f"[MainLoop] Series match: {series_match}")
 
                     if not series_match or series_match[1] < self.fuzzy_threshold:
-                        logger.debug(f"[MainLoop] Series match below threshold or none. Skipping.")
+                        logger.debug("[MainLoop] Series match below threshold or none. Skipping.")
                     else:
                         real_series_directory = os.path.join(DATA_DIR, series_match[0])
                         logger.debug(f"[MainLoop] Series accepted: '{series_match[0]}' (score {series_match[1]}) -> {real_series_directory}")
@@ -291,7 +291,7 @@ class MainLoop:
                         logger.debug(f"[MainLoop] Season match: {season_match}")
 
                         if not season_match or season_match[1] < self.fuzzy_threshold:
-                            logger.debug(f"[MainLoop] Season match below threshold or none. Skipping.")
+                            logger.debug("[MainLoop] Season match below threshold or none. Skipping.")
                         else:
                             real_season_directory = os.path.join(real_series_directory, season_match[0])
                             logger.debug(f"[MainLoop] Season accepted: '{season_match[0]}' (score {season_match[1]}) -> {real_season_directory}")
@@ -316,7 +316,7 @@ class MainLoop:
                             logger.debug(f"[MainLoop] Episode match: {episode_match}")
 
                             if not episode_match or episode_match[1] < self.fuzzy_threshold:
-                                logger.debug(f"[MainLoop] Episode match below threshold or none. Skipping.")
+                                logger.debug("[MainLoop] Episode match below threshold or none. Skipping.")
                             else:
                                 found_episode_full_path = os.path.join(real_season_directory, episode_match[0])
                                 logger.debug(f"[MainLoop] Episode accepted: '{episode_match[0]}' (score {episode_match[1]}) -> {found_episode_full_path}")
