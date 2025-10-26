@@ -20,7 +20,7 @@ services:
       # Only modify the left side, not the right.
       # Example:
       #- /mnt/plexdata/Anime:/data:rw
-      - /mnt/to/your/library:/data:rw
+      - ./appdata/data:/data:rw
     environment:
       - UID=1000
       - GID=1000
