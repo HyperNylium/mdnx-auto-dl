@@ -435,16 +435,16 @@ def sanitize(path_segment: str, ascii_only: bool = False, max_len: int = 255) ->
     normalized = unicodedata.normalize("NFKC", path_segment)
     punctuation_translation = {
         ord('“'): '"', ord('”'): '"', ord('„'): '"', ord('‟'): '"',
-        ord('’'): "'", ord('‘'): "'", ord('‚'): "'", ord('ʼ'): "'",
-        ord('–'): '-', ord('—'): '-', ord('-'): '-',  # non-breaking hyphen maps to hyphen
+        ord('’'): "'", ord('‘'): "'", ord('‚'): "'", ord('ʼ'): "'",  # noqa: RUF001
+        ord('–'): '-', ord('—'): '-', ord('-'): '-',  # non-breaking hyphen maps to hyphen  # noqa: RUF001
         ord('…'): '...', ord('•'): '-', ord('·'): '-', ord('‧'): '-',
-        ord('／'): '/', ord('＼'): '\\', ord('～'): '~',
-        ord('：'): ':', ord('；'): ';', ord('！'): '!', ord('？'): '?',
+        ord('／'): '/', ord('＼'): '\\', ord('～'): '~',  # noqa: RUF001
+        ord('：'): ':', ord('；'): ';', ord('！'): '!', ord('？'): '?',  # noqa: RUF001
     }
     sanitized = normalized.translate(punctuation_translation)
     sanitized = INVALID_CHARS_RE.sub(" ", sanitized)
 
-    # Remove other control chars: DEL (0x7F) and C1 controls (0x80–0x9F)
+    # Remove other control chars: DEL (0x7F) and C1 controls (0x80-0x9F)
     sanitized = re.sub(r"[\x7F-\x9F]", " ", sanitized)
 
     # Drop most Unicode symbols (So/Sm/Sk) and any remaining "Other" categories
