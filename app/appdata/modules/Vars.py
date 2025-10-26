@@ -6,6 +6,7 @@ import grp
 import json
 import logging
 import subprocess
+import unicodedata
 from string import Template
 from io import TextIOWrapper
 from collections import OrderedDict
@@ -416,19 +417,84 @@ def probe_streams(file_path: str, timeout: int):
     return audio_langs, sub_langs
 
 
-def sanitize(segment: str) -> str:
+def sanitize(path_segment: str, ascii_only: bool = False, max_len: int = 255) -> str:
     """
-    Prepare a path segment for your the filesystem:
-      - Replace invalid chars with spaces
-      - Collapse runs of whitespace into single spaces
-      - Trim leading/trailing spaces
+    Sanitize a path segment (file or folder name) by:
+      - Unicode normalize (NFKC) and map smart punctuation
+      - Remove control chars and filesystem-illegal chars
+      - Drop most Unicode symbols (e.g., ♪) -> space
+      - Replace "_" with space, collapse whitespace, trim
+      - Remove spaces around dots so extensions hug filenames
+      - Avoid Windows trailing dot/space and reserved names
+      - Optionally force ASCII only
+      - Truncate to max_len, preserving extension when possible
     """
-    cleaned = INVALID_CHARS_RE.sub(" ", segment)
-    cleaned = cleaned.replace("_", " ")
-    cleaned = re.sub(r"\s+", " ", cleaned).strip()
-    if cleaned != segment:
-        logger.debug(f"[Vars] Sanitized '{segment}' to '{cleaned}'")
-    return cleaned
+    original_segment = path_segment
+
+    # Normalize then translate common unicode punctuation to ASCII
+    normalized = unicodedata.normalize("NFKC", path_segment)
+    punctuation_translation = {
+        ord('“'): '"', ord('”'): '"', ord('„'): '"', ord('‟'): '"',
+        ord('’'): "'", ord('‘'): "'", ord('‚'): "'", ord('ʼ'): "'",
+        ord('–'): '-', ord('—'): '-', ord('-'): '-',  # non-breaking hyphen maps to hyphen
+        ord('…'): '...', ord('•'): '-', ord('·'): '-', ord('‧'): '-',
+        ord('／'): '/', ord('＼'): '\\', ord('～'): '~',
+        ord('：'): ':', ord('；'): ';', ord('！'): '!', ord('？'): '?',
+    }
+    sanitized = normalized.translate(punctuation_translation)
+    sanitized = INVALID_CHARS_RE.sub(" ", sanitized)
+
+    # Remove other control chars: DEL (0x7F) and C1 controls (0x80–0x9F)
+    sanitized = re.sub(r"[\x7F-\x9F]", " ", sanitized)
+
+    # Drop most Unicode symbols (So/Sm/Sk) and any remaining "Other" categories
+    def _drop_symbols(text: str) -> str:
+        builder = []
+        for ch in text:
+            category = unicodedata.category(ch)
+            if category.startswith("C") or category in ("So", "Sm", "Sk"):
+                builder.append(" ")
+            else:
+                builder.append(ch)
+        return "".join(builder)
+
+    sanitized = _drop_symbols(sanitized)
+
+    # underscores -> spaces
+    sanitized = sanitized.replace("_", " ")
+
+    # collapse whitespace and trim ends
+    sanitized = re.sub(r"\s+", " ", sanitized).strip()
+
+    # tighten spaces around dots (prevents "name .txt")
+    sanitized = re.sub(r"\s+\.", ".", sanitized)  # space(s) before a dot
+    sanitized = re.sub(r"\.\s+", ".", sanitized)  # space(s) after a dot
+
+    # trim trailing spaces/dots from the segment
+    sanitized = sanitized.rstrip(" .")
+
+    # Optional strict ASCII mode
+    if ascii_only:
+        sanitized = unicodedata.normalize("NFKD", sanitized).encode("ascii", "ignore").decode("ascii")
+        sanitized = re.sub(r"[^A-Za-z0-9 .()\-[\]{}!@#$%^&+=,;'%~`-]", " ", sanitized)
+        sanitized = re.sub(r"\s+", " ", sanitized).strip()
+        sanitized = re.sub(r"\s+\.", ".", sanitized)
+        sanitized = re.sub(r"\.\s+", ".", sanitized)
+        sanitized = sanitized.rstrip(" .")
+
+    # Truncate safely, preserving extension if present
+    if len(sanitized) > max_len:
+        if "." in sanitized:
+            name_part, dot, ext_part = sanitized.rpartition(".")
+            base = name_part[: max(1, max_len - len(ext_part) - 1)]
+            sanitized = f"{base}{dot}{ext_part}".rstrip(" .")
+        else:
+            sanitized = sanitized[:max_len].rstrip(" .")
+
+    if sanitized != original_segment:
+        logger.debug(f"[Vars] Sanitized {original_segment!r} to {sanitized!r}")
+
+    return sanitized
 
 
 def get_running_user():
