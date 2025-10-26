@@ -314,80 +314,85 @@ class CR_MDNX_API:
         _commit_staged()
 
         # apply per-series blacklist to mark episodes to skip
-        cr_cfg = config.get("cr_monitor_series_id", {})
-        if not isinstance(cr_cfg, dict):
+        crunchy_monitor_series_config = config.get("cr_monitor_series_id", {})
+        if not isinstance(crunchy_monitor_series_config, dict):
             logger.error("[CR_MDNX_API] cr_monitor_series_id must be a dict in config.")
-            cr_cfg = {}
+            crunchy_monitor_series_config = {}
 
         # rules are strings like "S:<season_id>", "S:<season_id>:E:<index>", or "S:<season_id>:E:<start>-<end>"
-        def _parse_rules(rules):
-            seasons = set()
-            eps = {}  # season_id -> list of rules where each rule is either an int (single ep) or (start,end) tuple
+        def parse_blacklist_rules(rules):
+            blacklisted_season_ids = set()
+            episode_blacklist_rules = {}  # season_id -> list of rules; each rule is int (single ep) or (start, end) tuple
             if not rules:
-                return seasons, eps
+                return blacklisted_season_ids, episode_blacklist_rules
+
             if isinstance(rules, str):
-                # empty string means no blacklist
-                if not rules.strip():
-                    return seasons, eps
+                if not rules.strip():  # empty string means no blacklist
+                    return blacklisted_season_ids, episode_blacklist_rules
                 rules = [rules]
-            for raw in rules:
-                if not raw:
+
+            for raw_rule in rules:
+                if not raw_rule:
                     continue
-                s = str(raw).strip()
-                m = re.fullmatch(r"S:([^:]+)(?::E:(\d+)(?:-(\d+))?)?", s)
-                if not m:
+                rule_text = str(raw_rule).strip()
+                match = re.fullmatch(r"S:([^:]+)(?::E:(\d+)(?:-(\d+))?)?", rule_text)
+                if not match:
                     continue
-                sid = m.group(1)
-                start = m.group(2)
-                end = m.group(3)
-                if start is None:
-                    seasons.add(sid)
+
+                season_id_str = match.group(1)
+                start_str = match.group(2)
+                end_str = match.group(3)
+
+                if start_str is None:
+                    blacklisted_season_ids.add(season_id_str)
                 else:
-                    lst = eps.setdefault(sid, [])
-                    if end is None:
-                        lst.append(int(start))
+                    rules_for_season = episode_blacklist_rules.setdefault(season_id_str, [])
+                    if end_str is None:
+                        rules_for_season.append(int(start_str))
                     else:
-                        a, b = int(start), int(end)
-                        if a > b:
-                            a, b = b, a
-                        lst.append((a, b))
-            return seasons, eps
+                        start_idx, end_idx = int(start_str), int(end_str)
+                        if start_idx > end_idx:
+                            start_idx, end_idx = end_idx, start_idx
+                        rules_for_season.append((start_idx, end_idx))
 
-        for sid, s_info in tmp_dict.items():
-            rules = cr_cfg.get(sid)
-            if rules is None:
-                continue
-            bl_seasons, bl_eps = _parse_rules(rules)
-            if not bl_seasons and not bl_eps:
+            return blacklisted_season_ids, episode_blacklist_rules
+
+        for series_id, series_info in tmp_dict.items():
+            rules_value = crunchy_monitor_series_config.get(series_id)
+            if rules_value is None:
                 continue
 
-            for _season_key, season_info in (s_info.get("seasons") or {}).items():
+            blacklisted_season_ids, episode_blacklist_rules = parse_blacklist_rules(rules_value)
+            if not blacklisted_season_ids and not episode_blacklist_rules:
+                continue
+
+            for _season_key, season_info in (series_info.get("seasons") or {}).items():
                 season_id = season_info.get("season_id")
                 if not season_id:
                     continue
 
                 # season-level blacklist
-                if season_id in bl_seasons:
-                    for ep in (season_info.get("episodes") or {}).values():
-                        ep["episode_skip"] = True
+                if season_id in blacklisted_season_ids:
+                    for episode_info in (season_info.get("episodes") or {}).values():
+                        episode_info["episode_skip"] = True
                     continue
 
                 # episode-level blacklist for this season_id
-                idx_set = bl_eps.get(season_id)
-                if idx_set:
-                    for ep_key, ep in (season_info.get("episodes") or {}).items():
+                rules_for_season = episode_blacklist_rules.get(season_id)
+                if rules_for_season:
+                    for episode_key, episode_info in (season_info.get("episodes") or {}).items():
                         try:
-                            idx = int(str(ep_key).lstrip("E"))
+                            episode_index = int(str(episode_key).lstrip("E"))
                         except Exception:
                             continue
-                        for rule in idx_set:
+                        for rule in rules_for_season:
                             if isinstance(rule, tuple):
-                                if rule[0] <= idx <= rule[1]:
-                                    ep["episode_skip"] = True
+                                if rule[0] <= episode_index <= rule[1]:
+                                    episode_info["episode_skip"] = True
                                     break
                             else:
-                                if idx == rule:
-                                    ep["episode_skip"] = True
+                                if episode_index == rule:
+                                    episode_info["episode_skip"] = True
                                     break
 
         # we remove empty seasons and renumber contiguous S1..SX to keep structure compact
