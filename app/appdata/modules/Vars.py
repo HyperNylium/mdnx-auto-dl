@@ -426,7 +426,7 @@ def sanitize(path_segment: str, ascii_only: bool = False, max_len: int = 255) ->
       - Remove control chars and filesystem-illegal chars
       - Drop most Unicode symbols (e.g., ♪) -> space
       - Replace "_" with space, collapse whitespace, trim
-      - Remove spaces around dots so extensions hug filenames
+      - Tighten spaces only around the extension dot
       - Avoid Windows trailing dot/space and reserved names
       - Optionally force ASCII only
       - Truncate to max_len, preserving extension when possible
@@ -468,9 +468,11 @@ def sanitize(path_segment: str, ascii_only: bool = False, max_len: int = 255) ->
     # collapse whitespace and trim ends
     sanitized = re.sub(r"\s+", " ", sanitized).strip()
 
-    # tighten spaces around dots (prevents "name .txt")
-    sanitized = re.sub(r"\s+\.", ".", sanitized)  # space(s) before a dot
-    sanitized = re.sub(r"\.\s+", ".", sanitized)  # space(s) after a dot
+    # remove spaces before the final extension dot
+    sanitized = re.sub(r"\s+(\.[A-Za-z0-9]{1,10})$", r"\1", sanitized)
+
+    # remove spaces after the final extension dot
+    sanitized = re.sub(r"\.(\s+)([A-Za-z0-9]{1,10})$", r".\2", sanitized)
 
     # trim trailing spaces/dots from the segment
     sanitized = sanitized.rstrip(" .")
@@ -480,8 +482,8 @@ def sanitize(path_segment: str, ascii_only: bool = False, max_len: int = 255) ->
         sanitized = unicodedata.normalize("NFKD", sanitized).encode("ascii", "ignore").decode("ascii")
         sanitized = re.sub(r"[^A-Za-z0-9 .()\-[\]{}!@#$%^&+=,;'%~`-]", " ", sanitized)
         sanitized = re.sub(r"\s+", " ", sanitized).strip()
-        sanitized = re.sub(r"\s+\.", ".", sanitized)
-        sanitized = re.sub(r"\.\s+", ".", sanitized)
+        sanitized = re.sub(r"\s+(\.[A-Za-z0-9]{1,10})$", r"\1", sanitized)
+        sanitized = re.sub(r"\.(\s+)([A-Za-z0-9]{1,10})$", r".\2", sanitized)
         sanitized = sanitized.rstrip(" .")
 
     # Truncate safely, preserving extension if present
