@@ -1,4 +1,5 @@
 import os
+import re
 import threading
 from datetime import datetime
 from rapidfuzz import process, fuzz
@@ -283,6 +284,7 @@ class MainLoop:
                             candidate_season_path = os.path.join(real_series_directory, entry_name)
                             if os.path.isdir(candidate_season_path):
                                 season_directory_names.append(entry_name)
+                        logger.debug(f"[MainLoop] Season dirs found: {len(season_directory_names)}")
 
                         # fuzzy match the season directory
                         season_match = None
@@ -296,32 +298,44 @@ class MainLoop:
                             real_season_directory = os.path.join(real_series_directory, season_match[0])
                             logger.debug(f"[MainLoop] Season accepted: '{season_match[0]}' (score {season_match[1]}) -> {real_season_directory}")
 
-                            # gather MKV files under the matched season
-                            episode_filenames = []
-                            try:
-                                season_dir_entries = os.listdir(real_season_directory)
-                            except Exception as list_error:
-                                logger.error(f"[MainLoop] Could not list season dir '{real_season_directory}': {list_error}")
-                                season_dir_entries = []
-
-                            for entry_name in season_dir_entries:
-                                candidate_episode_path = os.path.join(real_season_directory, entry_name)
-                                if os.path.isfile(candidate_episode_path) and entry_name.lower().endswith(".mkv"):
-                                    episode_filenames.append(entry_name)
-
-                            # fuzzy match the episode filename
-                            episode_match = None
-                            if episode_filenames:
-                                episode_match = process.extractOne(expected_episode_filename, episode_filenames, scorer=fuzz.WRatio)
-                            logger.debug(f"[MainLoop] Episode match: {episode_match}")
-
-                            if not episode_match or episode_match[1] < self.fuzzy_threshold:
-                                logger.debug("[MainLoop] Episode match below threshold or none. Skipping.")
+                            # try exact expected filename inside the matched season
+                            candidate_canonical_path = os.path.join(real_season_directory, expected_episode_filename)
+                            if os.path.exists(candidate_canonical_path):
+                                found_episode_full_path = candidate_canonical_path
+                                logger.debug(f"[MainLoop] Exact filename exists in matched season: {candidate_canonical_path}")
                             else:
-                                found_episode_full_path = os.path.join(real_season_directory, episode_match[0])
-                                logger.debug(f"[MainLoop] Episode accepted: '{episode_match[0]}' (score {episode_match[1]}) -> {found_episode_full_path}")
+                                # only consider files with the same SxxEyy tag
+                                episode_tag_pattern = re.compile(r"[sS](\d+)[eE](\d+)")
+                                expected_tag_match = episode_tag_pattern.search(expected_episode_filename)
+                                logger.debug(f"[MainLoop] Exact filename missing. Scanning same-tag candidates in {real_season_directory}.")
 
-                    # if we found a fuzzy match, treat as present
+                                if expected_tag_match:
+                                    expected_season_num = expected_tag_match.group(1)
+                                    expected_episode_num = expected_tag_match.group(2)
+
+                                    same_tag_candidates = []
+                                    try:
+                                        season_dir_entries = os.listdir(real_season_directory)
+                                    except Exception as list_error:
+                                        logger.error(f"[MainLoop] Could not list season dir '{real_season_directory}': {list_error}")
+                                        season_dir_entries = []
+                                    for entry_name in season_dir_entries:
+                                        full_path = os.path.join(real_season_directory, entry_name)
+                                        if os.path.isfile(full_path) and entry_name.lower().endswith(".mkv"):
+                                            tag_match = episode_tag_pattern.search(entry_name)
+                                            if tag_match and tag_match.group(1) == expected_season_num and tag_match.group(2) == expected_episode_num:
+                                                same_tag_candidates.append(full_path)
+                                    logger.debug(f"[MainLoop] Same-tag candidates (S{expected_season_num}E{expected_episode_num}): {len(same_tag_candidates)}")
+
+                                    if len(same_tag_candidates) == 1:
+                                        found_episode_full_path = same_tag_candidates[0]
+                                        logger.debug(f"[MainLoop] Accepted single same-tag candidate: {found_episode_full_path}")
+                                    else:
+                                        logger.debug("[MainLoop] No unique same-tag candidate. Skipping fuzzy episode match.")
+                                else:
+                                    logger.debug("[MainLoop] Expected filename missing SxxEyy tag. Skipping fuzzy episode match.")
+
+                    # if we found a match in the matched season, treat as present
                     if found_episode_full_path is not None and os.path.exists(found_episode_full_path):
                         logger.info(f"[MainLoop] Episode found via fuzzy match at {found_episode_full_path}. Treating as present.")
                         queue_manager.update_episode_status(series_id, season_key, episode_key, True, service)
