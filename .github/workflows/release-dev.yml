@@ -1,24 +1,20 @@
 name: Build dev image
-run-name: "Build Docker image for dev branch"
 
 on:
-  push:
-    branches: [ dev ]
+  workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
 
-concurrency:
-  group: build-dev
-  cancel-in-progress: true
-
 jobs:
   build-and-push-dev:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout dev
+        uses: actions/checkout@v5
+        with:
+          ref: dev
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
