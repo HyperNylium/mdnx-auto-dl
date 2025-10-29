@@ -1,6 +1,6 @@
 {
-    "cr_monitor_series_id": [],
-    "hidive_monitor_series_id": [],
+    "cr_monitor_series_id": {},
+    "hidive_monitor_series_id": {},
     "app": {
         "CR_ENABLED": false,
         "CR_USERNAME": "",
