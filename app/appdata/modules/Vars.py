@@ -117,9 +117,7 @@ CONFIG_DEFAULTS = {
         "MEDIASERVER_TYPE": None,
         "MEDIASERVER_URL": None,
         "MEDIASERVER_TOKEN": None,
-        "MEDIASERVER_URL_OVERRIDE": False,
-        "FUZZY_MATCHING_ENABLED": True,
-        "FUZZY_MATCHING_THRESHOLD": 90
+        "MEDIASERVER_URL_OVERRIDE": False
     },
     "mdnx": {
         "bin-path": {

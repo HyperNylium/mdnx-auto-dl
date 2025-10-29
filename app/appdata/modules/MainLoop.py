@@ -2,7 +2,6 @@ import os
 import re
 import threading
 from datetime import datetime
-from rapidfuzz import process, fuzz
 
 # Custom imports
 from .MediaServerManager import mediaserver_scan_library
@@ -28,8 +27,6 @@ class MainLoop:
         self.between_episode_timeout = int(config["app"]["BETWEEN_EPISODE_DL_WAIT_INTERVAL"])
         self.mainloop_iter = 0
         self.notifications_buffer = []
-        self.fuzzy_matching_enabled = config["app"]["FUZZY_MATCHING_ENABLED"]
-        self.fuzzy_threshold = config["app"]["FUZZY_MATCHING_THRESHOLD"]
 
         logger.debug("[MainLoop] MainLoop initialized.")
 
@@ -237,110 +234,6 @@ class MainLoop:
                 queue_manager.update_episode_status(series_id, season_key, episode_key, True, service)
                 continue
             else:
-                if self.fuzzy_matching_enabled:
-                    expected_series_dirname = os.path.basename(os.path.dirname(os.path.dirname(file_path)))
-                    expected_season_dirname = os.path.basename(os.path.dirname(file_path))
-                    expected_episode_filename = os.path.basename(file_path)
-                    logger.debug(f"[MainLoop] Fuzzy on: series='{expected_series_dirname}', season='{expected_season_dirname}', episode='{expected_episode_filename}', threshold={self.fuzzy_threshold}.")
-
-                    # get series directories under DATA_DIR
-                    series_directory_names = []
-                    try:
-                        data_dir_entries = os.listdir(DATA_DIR)
-                    except Exception as list_error:
-                        logger.error(f"[MainLoop] Could not list DATA_DIR '{DATA_DIR}': {list_error}")
-                        data_dir_entries = []
-                    logger.debug(f"[MainLoop] DATA_DIR entries: {len(data_dir_entries)}")
-
-                    for entry_name in data_dir_entries:
-                        candidate_series_path = os.path.join(DATA_DIR, entry_name)
-                        if os.path.isdir(candidate_series_path):
-                            series_directory_names.append(entry_name)
-                    logger.debug(f"[MainLoop] Series dirs found: {len(series_directory_names)}")
-
-                    found_episode_full_path = None
-
-                    # fuzzy match the series directory
-                    series_match = None
-                    if series_directory_names:
-                        series_match = process.extractOne(expected_series_dirname, series_directory_names, scorer=fuzz.WRatio)
-                    logger.debug(f"[MainLoop] Series match: {series_match}")
-
-                    if not series_match or series_match[1] < self.fuzzy_threshold:
-                        logger.debug("[MainLoop] Series match below threshold or none. Skipping.")
-                    else:
-                        real_series_directory = os.path.join(DATA_DIR, series_match[0])
-                        logger.debug(f"[MainLoop] Series accepted: '{series_match[0]}' (score {series_match[1]}) -> {real_series_directory}")
-
-                        # get season directories under the matched series
-                        season_directory_names = []
-                        try:
-                            series_dir_entries = os.listdir(real_series_directory)
-                        except Exception as list_error:
-                            logger.error(f"[MainLoop] Could not list series dir '{real_series_directory}': {list_error}")
-                            series_dir_entries = []
-
-                        for entry_name in series_dir_entries:
-                            candidate_season_path = os.path.join(real_series_directory, entry_name)
-                            if os.path.isdir(candidate_season_path):
-                                season_directory_names.append(entry_name)
-                        logger.debug(f"[MainLoop] Season dirs found: {len(season_directory_names)}")
-
-                        # fuzzy match the season directory
-                        season_match = None
-                        if season_directory_names:
-                            season_match = process.extractOne(expected_season_dirname, season_directory_names, scorer=fuzz.WRatio)
-                        logger.debug(f"[MainLoop] Season match: {season_match}")
-
-                        if not season_match or season_match[1] < self.fuzzy_threshold:
-                            logger.debug("[MainLoop] Season match below threshold or none. Skipping.")
-                        else:
-                            real_season_directory = os.path.join(real_series_directory, season_match[0])
-                            logger.debug(f"[MainLoop] Season accepted: '{season_match[0]}' (score {season_match[1]}) -> {real_season_directory}")
-
-                            # try exact expected filename inside the matched season
-                            candidate_canonical_path = os.path.join(real_season_directory, expected_episode_filename)
-                            if os.path.exists(candidate_canonical_path):
-                                found_episode_full_path = candidate_canonical_path
-                                logger.debug(f"[MainLoop] Exact filename exists in matched season: {candidate_canonical_path}")
-                            else:
-                                # only consider files with the same SxxEyy tag
-                                episode_tag_pattern = re.compile(r"[sS](\d+)[eE](\d+)")
-                                expected_tag_match = episode_tag_pattern.search(expected_episode_filename)
-                                logger.debug(f"[MainLoop] Exact filename missing. Scanning same-tag candidates in {real_season_directory}.")
-
-                                if expected_tag_match:
-                                    expected_season_num = expected_tag_match.group(1)
-                                    expected_episode_num = expected_tag_match.group(2)
-
-                                    same_tag_candidates = []
-                                    try:
-                                        season_dir_entries = os.listdir(real_season_directory)
-                                    except Exception as list_error:
-                                        logger.error(f"[MainLoop] Could not list season dir '{real_season_directory}': {list_error}")
-                                        season_dir_entries = []
-                                    for entry_name in season_dir_entries:
-                                        full_path = os.path.join(real_season_directory, entry_name)
-                                        if os.path.isfile(full_path) and entry_name.lower().endswith(".mkv"):
-                                            tag_match = episode_tag_pattern.search(entry_name)
-                                            if tag_match and tag_match.group(1) == expected_season_num and tag_match.group(2) == expected_episode_num:
-                                                same_tag_candidates.append(full_path)
-                                    logger.debug(f"[MainLoop] Same-tag candidates (S{expected_season_num}E{expected_episode_num}): {len(same_tag_candidates)}")
-
-                                    if len(same_tag_candidates) == 1:
-                                        found_episode_full_path = same_tag_candidates[0]
-                                        logger.debug(f"[MainLoop] Accepted single same-tag candidate: {found_episode_full_path}")
-                                    else:
-                                        logger.debug("[MainLoop] No unique same-tag candidate. Skipping fuzzy episode match.")
-                                else:
-                                    logger.debug("[MainLoop] Expected filename missing SxxEyy tag. Skipping fuzzy episode match.")
-
-                    # if we found a match in the matched season, treat as present
-                    if found_episode_full_path is not None and os.path.exists(found_episode_full_path):
-                        logger.info(f"[MainLoop] Episode found via fuzzy match at {found_episode_full_path}. Treating as present.")
-                        queue_manager.update_episode_status(series_id, season_key, episode_key, True, service)
-                        continue
-
                 logger.info(f"[MainLoop] Episode not found at {file_path} and 'episode_downloaded' status is False. Initiating download.")
 
                 dub_override = select_dubs(episode_info)
