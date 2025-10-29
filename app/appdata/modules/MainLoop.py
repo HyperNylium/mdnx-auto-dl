@@ -295,7 +295,7 @@ class MainLoop:
             missing_subs = wanted_subs - local_subs
 
             if not missing_dubs and not missing_subs:
-                logger.info(f"[MainLoop] {episode_basename} is up to date. All requested dubs and subs are present locally. No download needed.")
+                logger.info(f"[MainLoop] {episode_basename} is up to date. All requested dubs and subs are locally present. No download needed.")
                 continue
 
             avail_dubs = set()
