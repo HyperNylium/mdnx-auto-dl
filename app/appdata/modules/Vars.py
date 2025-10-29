@@ -105,6 +105,7 @@ CONFIG_DEFAULTS = {
         "HIDIVE_SKIP_API_TEST": False,
         "NOTIFICATION_PREFERENCE": "none",
         "ONLY_CREATE_QUEUE": False,
+        "SKIP_QUEUE_REFRESH": False,
         "LOG_LEVEL": "info",
         "NTFY_SCRIPT_PATH": "/app/appdata/config/ntfy.sh",
         "SMTP_FROM": "",

@@ -24,6 +24,7 @@ class MainLoop:
         self.notifier = notifier
         self.loop_timeout = int(config["app"]["CHECK_FOR_UPDATES_INTERVAL"])
         self.between_episode_timeout = int(config["app"]["BETWEEN_EPISODE_DL_WAIT_INTERVAL"])
+        self.skip_queue_refresh = config["app"]["SKIP_QUEUE_REFRESH"]
         self.mainloop_iter = 0
         self.notifications_buffer = []
 
@@ -365,10 +366,14 @@ class MainLoop:
         try:
             while not self.stop_event.is_set():
                 logger.debug("[MainLoop] Executing main loop task.")
-                refresh_ok = self.refresh_queue()
-                if not refresh_ok:
-                    self.stop()
-                    return
+
+                if self.skip_queue_refresh is True:
+                    logger.info("[MainLoop] SKIP_QUEUE_REFRESH is True. Skipping queue refresh step and using old queue data.")
+                else:
+                    refresh_ok = self.refresh_queue()
+                    if not refresh_ok:
+                        self.stop()
+                        return
 
                 current_queue = queue_manager.output()
 
