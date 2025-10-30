@@ -9,9 +9,18 @@ body:
   - type: input
     id: version
     attributes:
-      label: Program version
-      description: Which version of the program do you use?
-      placeholder: "1.0.0"
+      label: Image version
+      description: Which version/tag of mdnx-auto-dl are you using?
+      placeholder: "1.0.0 or :latest"
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Details about your issue
+      description: Provide any extra details that will help reproduce or understand the bug.
+      placeholder: "Steps to reproduce, expected behavior, actual behavior, screenshots..."
     validations:
       required: true
 
@@ -20,17 +29,7 @@ body:
     attributes:
       label: Logs from app.log
       description: >
-        Please paste the relevant content from `app.log`.
-        You can drag-and-drop the file here or paste its contents directly.
+        Please paste the relevant content from `app.log` here.
       render: shell
-    validations:
-      required: true
-
-  - type: textarea
-    id: details
-    attributes:
-      label: Tell me more about your issue
-      description: Provide any extra details that will help reproduce or understand the bug.
-      placeholder: "Steps to reproduce, expected behavior, actual behavior, screenshots..."
     validations:
       required: true
