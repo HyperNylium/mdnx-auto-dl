@@ -164,6 +164,8 @@ app/test.py
 
 appdata/mdnx/config/*
 appdata/mdnx/widevine/*
+appdata/mdnx/playready/*
 !appdata/mdnx/config/.gitkeep
 !appdata/mdnx/widevine/.gitkeep
+!appdata/mdnx/playready/.gitkeep
 notes.txt
