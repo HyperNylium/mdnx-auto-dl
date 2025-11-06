@@ -19,11 +19,11 @@ services:
       #- /mnt/plexdata/Anime:/data:rw
       - ./appdata/data:/data:rw
 
-      ### This is the CDM part and is required to run
-      ### Please choose what CDM you have (widivine or playready)
+      ### This is the CDM section that is required in order to run.
+      ### Please choose what CDM you have (widevine or playready)
       ### and uncomment the correct bind-mount with your .bin/.pem files or .prd file inside.
 
-      ## Widivine
+      ## Widevine
       #- ./appdata/mdnx/widevine:/app/appdata/bin/mdnx/widevine:rw
 
       ## Playready
