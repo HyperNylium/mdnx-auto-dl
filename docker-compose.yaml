@@ -8,12 +8,9 @@ services:
       - ./appdata/logs:/app/appdata/logs:rw
 
       # mdnx-auto-dl config location.
-      # This will house config.json and queue.json.
       - ./appdata/config:/app/appdata/config:rw
 
-      # multi-download-nx config and widevine folder locations
-      # to keep cr_token.yml and make DRM decryption possible
-      - ./appdata/mdnx/widevine:/app/appdata/bin/mdnx/widevine:rw
+      # multi-download-nx config location
       - ./appdata/mdnx/config:/app/appdata/bin/mdnx/config:rw
 
       # plex/jellyfin/emby anime storage location.
@@ -21,6 +18,17 @@ services:
       # Example:
       #- /mnt/plexdata/Anime:/data:rw
       - ./appdata/data:/data:rw
+
+      ### This is the CDM part and is required to run
+      ### Please choose what CDM you have (widivine or playready)
+      ### and uncomment the correct bind-mount with your .bin/.pem files or .prd file inside.
+
+      ## Widivine
+      #- ./appdata/mdnx/widevine:/app/appdata/bin/mdnx/widevine:rw
+
+      ## Playready
+      #- ./appdata/mdnx/playready:/app/appdata/bin/mdnx/playready:rw
+
     environment:
       - UID=1000
       - GID=1000
