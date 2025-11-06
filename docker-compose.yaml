@@ -24,10 +24,10 @@ services:
       ### and uncomment the correct bind-mount with your .bin/.pem files or .prd file inside.
 
       ## Widivine
-      #- ./appdata/mdnx/widevine:/app/appdata/bin/mdnx/widevine:ro
+      #- ./appdata/mdnx/widevine:/app/appdata/bin/mdnx/widevine:rw
 
       ## Playready
-      #- ./appdata/mdnx/playready:/app/appdata/bin/mdnx/playready:ro
+      #- ./appdata/mdnx/playready:/app/appdata/bin/mdnx/playready:rw
 
     environment:
       - UID=1000
