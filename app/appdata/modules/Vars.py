@@ -418,6 +418,95 @@ def probe_streams(file_path: str, timeout: int):
     return audio_langs, sub_langs
 
 
+def apply_series_blacklist(tmp_dict: dict, monitor_series_config: dict, service: str) -> dict:
+    if not isinstance(monitor_series_config, dict):
+        logger.error(f"[Vars] {service}_monitor_series_id must be a dict.")
+        monitor_series_config = {}
+
+    # rules are strings like "S:<season_id>", "S:<season_id>:E:<index>", or "S:<season_id>:E:<start>-<end>"
+    def parse_blacklist_rules(rules):
+        blacklisted_season_ids = set()
+        # season_id -> list of rules; each rule is int (single ep) or (start, end) tuple
+        episode_blacklist_rules = {}
+        if not rules:
+            return blacklisted_season_ids, episode_blacklist_rules
+
+        if isinstance(rules, str):
+            if not rules.strip():  # empty string means no blacklist
+                return blacklisted_season_ids, episode_blacklist_rules
+            rules = [rules]
+
+        for raw_rule in rules:
+            if not raw_rule:
+                continue
+            rule_text = str(raw_rule).strip()
+            match = re.fullmatch(r"S:([^:]+)(?::E:(\d+)(?:-(\d+))?)?", rule_text)
+            if not match:
+                continue
+
+            season_id_str = match.group(1)
+            start_str = match.group(2)
+            end_str = match.group(3)
+
+            if start_str is None:
+                # whole season blacklist
+                blacklisted_season_ids.add(season_id_str)
+            else:
+                rules_for_season = episode_blacklist_rules.setdefault(season_id_str, [])
+                if end_str is None:
+                    # single episode
+                    rules_for_season.append(int(start_str))
+                else:
+                    # episode range
+                    start_idx, end_idx = int(start_str), int(end_str)
+                    if start_idx > end_idx:
+                        start_idx, end_idx = end_idx, start_idx
+                    rules_for_season.append((start_idx, end_idx))
+
+        return blacklisted_season_ids, episode_blacklist_rules
+
+    for series_id, series_info in (tmp_dict or {}).items():
+        rules_value = monitor_series_config.get(series_id)
+        if rules_value is None:
+            continue
+
+        blacklisted_season_ids, episode_blacklist_rules = parse_blacklist_rules(rules_value)
+        if not blacklisted_season_ids and not episode_blacklist_rules:
+            continue
+
+        for _season_key, season_info in (series_info.get("seasons") or {}).items():
+            season_id = season_info.get("season_id")
+            if not season_id:
+                continue
+
+            # season-level blacklist
+            if season_id in blacklisted_season_ids:
+                for episode_info in (season_info.get("episodes") or {}).values():
+                    episode_info["episode_skip"] = True
+                continue
+
+            # episode-level blacklist for this season_id
+            rules_for_season = episode_blacklist_rules.get(season_id)
+            if rules_for_season:
+                for episode_key, episode_info in (season_info.get("episodes") or {}).items():
+                    try:
+                        episode_index = int(str(episode_key).lstrip("E"))
+                    except Exception:
+                        continue
+
+                    for rule in rules_for_season:
+                        if isinstance(rule, tuple):
+                            if rule[0] <= episode_index <= rule[1]:
+                                episode_info["episode_skip"] = True
+                                break
+                        else:
+                            if episode_index == rule:
+                                episode_info["episode_skip"] = True
+                                break
+
+    return tmp_dict
+
+
 def sanitize(path_segment: str, ascii_only: bool = False, max_len: int = 255) -> str:
     """
     Sanitize a path segment (file or folder name) by:
