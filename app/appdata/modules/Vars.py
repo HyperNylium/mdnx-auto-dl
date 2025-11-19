@@ -85,7 +85,7 @@ CONFIG_DEFAULTS = {
     "app": {
         "TEMP_DIR": "/app/appdata/temp",
         "BIN_DIR": "/app/appdata/bin",
-        "LOG_FILE": "/app/appdata/logs/app.log",
+        "LOG_DIR": "/app/appdata/logs",
         "DATA_DIR": "/data",
         "CR_ENABLED": False,
         "CR_USERNAME": "",
@@ -107,6 +107,7 @@ CONFIG_DEFAULTS = {
         "ONLY_CREATE_QUEUE": False,
         "SKIP_QUEUE_REFRESH": False,
         "LOG_LEVEL": "info",
+        "MAX_LOG_ARCHIVES": 5,
         "NTFY_SCRIPT_PATH": "/app/appdata/config/ntfy.sh",
         "SMTP_FROM": "",
         "SMTP_TO": "",
