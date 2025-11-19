@@ -4,9 +4,9 @@ import sys
 import subprocess
 
 # Custom imports
-from .Globals import queue_manager
+from .Globals import queue_manager, log_manager
 from .Vars import (
-    logger, config,
+    config,
     VALID_LOCALES, CODE_TO_LOCALE, LANG_MAP, MDNX_SERVICE_BIN_PATH, MDNX_API_OK_LOGS,
     sanitize, dedupe_casefold, apply_series_blacklist
 )
@@ -51,12 +51,12 @@ class HIDIVE_MDNX_API:
         # stdout line-buffering if available
         if os.path.exists("/usr/bin/stdbuf"):
             self.stdbuf_exists = True
-            logger.debug("[HIDIVE_MDNX_API] Using stdbuf to ensure live output streaming.")
+            log_manager.log("Using stdbuf to ensure live output streaming.", level="debug")
         else:
             self.stdbuf_exists = False
-            logger.debug("[HIDIVE_MDNX_API] stdbuf not found, using default command without buffering.")
+            log_manager.log("stdbuf not found, using default command without buffering.", level="debug")
 
-        logger.info(f"[HIDIVE_MDNX_API] MDNX API initialized with: Path: {self.mdnx_path} | Service: {self.mdnx_service}")
+        log_manager.log(f"MDNX API initialized with: Path: {self.mdnx_path} | Service: {self.mdnx_service}")
 
     def _clean_tokens(self, text: str):
         """Split a comma-separated list, trim, drop empties."""
@@ -111,7 +111,7 @@ class HIDIVE_MDNX_API:
             # allow small mismatch between flat group size and declared eps to pick a best-fit map
             return abs(count_group - count_declared) <= 2
 
-        logger.debug("[HIDIVE_MDNX_API] Processing console output...")
+        log_manager.log("Processing console output...", level="debug")
         tmp_dict = {}
         current_series_id = None
         current_season_key = None
@@ -188,7 +188,7 @@ class HIDIVE_MDNX_API:
 
                 if skip_current_season:
                     # drop special seasons like OVA, Recap, Movie
-                    logger.debug(f"[HIDIVE_MDNX_API] Skipping special season [{gd['season_id']}] '{label_text}' (S{season_number}).")
+                    log_manager.log(f"Skipping special season [{gd['season_id']}] '{label_text}' (S{season_number}).", level="debug")
                     continue
 
                 # keep normal season metadata and init episode list
@@ -222,7 +222,7 @@ class HIDIVE_MDNX_API:
 
                 # skip fractional entries like 7.5 which are usually recaps or extras
                 if '.' in download_str:
-                    logger.debug(f"[HIDIVE_MDNX_API] Skipping fractional flat episode E{download_str} (treated as special).")
+                    log_manager.log(f"Skipping fractional flat episode E{download_str} (treated as special).", level="debug")
                     continue
 
                 episode_download_number = int(download_str)
@@ -240,7 +240,7 @@ class HIDIVE_MDNX_API:
 
         # if we never saw a series header, return an empty result
         if not current_series_id:
-            logger.warning("[HIDIVE_MDNX_API] No HiDive series detected in output.")
+            log_manager.log("No HiDive series detected in output.", level="warning")
             if add2queue:
                 queue_manager.add(tmp_dict, self.queue_service)
             return tmp_dict
@@ -280,7 +280,7 @@ class HIDIVE_MDNX_API:
 
             if not download_map:
                 # fall back to sequential download numbering later
-                logger.debug(f"[HIDIVE_MDNX_API] No flat map matched for {season_key}; falling back to 1..N.")
+                log_manager.log(f"No flat map matched for {season_key}; falling back to 1..N.", level="debug")
 
             # produce a list of download indices in tree order
             if download_map:
@@ -294,7 +294,7 @@ class HIDIVE_MDNX_API:
             for local_tree_index, (episode_id, title) in enumerate(episode_list, start=1):
                 # drop unreleased and special episodes based on title cues
                 if title and (self.special_episode_title_flag.search(title) or self.unreleased_title_flag.search(title)):
-                    logger.debug(f"[HIDIVE_MDNX_API] Skipping unavailable/special at {season_key} idx={local_tree_index} title='{title}'.")
+                    log_manager.log(f"Skipping unavailable/special at {season_key} idx={local_tree_index} title='{title}'.", level="debug")
                     continue
 
                 # choose the download number from flat mapping if available
@@ -345,27 +345,27 @@ class HIDIVE_MDNX_API:
         # fill in total ep count on series metadata
         tmp_dict[current_series_id]["series"]["eps_count"] = str(total_episodes)
 
-        logger.debug("[HIDIVE_MDNX_API] Console output processed.")
+        log_manager.log("Console output processed.", level="debug")
         if add2queue:
             # push the parsed result to the queue for downstream consumers
             queue_manager.add(tmp_dict, self.queue_service)
         return tmp_dict
 
     def _probe_episode_streams(self, series_id: str, season_id: str, episode_index: int):
-        logger.info(f"[HIDIVE_MDNX_API] Probing streams for series {series_id} season {season_id} episode {episode_index}...")
+        log_manager.log(f"Probing streams for series {series_id} season {season_id} episode {episode_index}...")
 
         # "--dubLang und" returns the available dubs/subs without actually downloading the episode
         cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", str(series_id), "-s", str(season_id), "-e", str(episode_index), "--dubLang", "und"]
 
-        logger.debug(f"[HIDIVE_MDNX_API] Probing streams: {' '.join(cmd)}")
+        log_manager.log(f"Probing streams: {' '.join(cmd)}", level="debug")
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
             # combine streams because MDNX sometimes prints headers on stderr
             combined_text = (result.stdout or "") + "\n" + (result.stderr or "")
-            logger.debug(f"[HIDIVE_MDNX_API] Probe output:\n{combined_text}")
+            log_manager.log(f"Probe output:\n{combined_text}", level="debug")
         except Exception as exc:
             # if the probe fails we return empty lists so the caller can decide how to proceed
-            logger.error(f"[HIDIVE_MDNX_API] Probe failed (series {series_id} season {season_id} episode {episode_index}): {exc}")
+            log_manager.log(f"Probe failed (series {series_id} season {season_id} episode {episode_index}): {exc}", level="error")
             return [], []
 
         available_dubs = []  # collected normalized audio codes like "eng", "jpn"
@@ -426,88 +426,88 @@ class HIDIVE_MDNX_API:
         dubs_deduped = dedupe_casefold(available_dubs)
         subs_deduped = dedupe_casefold(available_subs)
 
-        logger.info(f"[HIDIVE_MDNX_API] Probe S{season_id}E{episode_index}: dubs={dubs_deduped}, subs={subs_deduped}")
+        log_manager.log(f"Probe S{season_id}E{episode_index}: dubs={dubs_deduped}, subs={subs_deduped}")
 
         return dubs_deduped, subs_deduped
 
     def test(self) -> None:
-        logger.info("[HIDIVE_MDNX_API] Testing MDNX API...")
+        log_manager.log("Testing MDNX API...")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", "1244"]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8").stdout
-        logger.debug(f"[HIDIVE_MDNX_API] MDNX API test result:\n{result}")
+        log_manager.log(f"MDNX API test result:\n{result}", level="debug")
 
         json_result = self.process_console_output(result, add2queue=False)
-        logger.info(f"[HIDIVE_MDNX_API] Processed console output:\n{json_result}")
+        log_manager.log(f"Processed console output:\n{json_result}")
 
         # --- This needs to be researched/tested more. I am not sure what anidl outputs on auth errors with HiDive.
         # --- Leaving commented out for now. This means there will be no auto re-auth on auth errors for HiDive.
         # --- Check if the output contains authentication errors
         # error_triggers = ["invalid_grant", "Token Refresh Failed", "Authentication required", "Anonymous"]
         # if any(trigger in result for trigger in error_triggers):
-        #     logger.info("[HIDIVE_MDNX_API] Authentication error detected. Forcing re-authentication...")
+        #     log_manager.log("Authentication error detected. Forcing re-authentication...")
         #     self.auth()
         # else:
-        #     logger.info("[HIDIVE_MDNX_API] MDNX API test successful.")
+        #     log_manager.log("MDNX API test successful.")
 
-        logger.info("[HIDIVE_MDNX_API] MDNX API test successful.")
+        log_manager.log("MDNX API test successful.")
         return
 
     def auth(self) -> str:
-        logger.info(f"[HIDIVE_MDNX_API] Authenticating with {self.mdnx_service}...")
+        log_manager.log(f"Authenticating with {self.mdnx_service}...")
 
         if not self.username or not self.password:
-            logger.error("[HIDIVE_MDNX_API] MDNX service username or password not found.\nPlease check the config.json file and enter your credentials in the following keys:\nHIDIVE_USERNAME\nHIDIVE_PASSWORD\nExiting...")
+            log_manager.log("MDNX service username or password not found.\nPlease check the config.json file and enter your credentials in the following keys:\nHIDIVE_USERNAME\nHIDIVE_PASSWORD\nExiting...", level="error")
             sys.exit(1)
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--auth", "--username", self.username, "--password", self.password, "--silentAuth"]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
-        logger.info(f"[HIDIVE_MDNX_API] Console output for auth process:\n{result.stdout}")
+        log_manager.log(f"Console output for auth process:\n{result.stdout}")
 
-        logger.info(f"[HIDIVE_MDNX_API] Authentication with {self.mdnx_service} complete.")
+        log_manager.log(f"Authentication with {self.mdnx_service} complete.")
         return result.stdout
 
     def start_monitor(self, series_id: str) -> str:
-        logger.info(f"[HIDIVE_MDNX_API] Monitoring series with ID: {series_id}")
+        log_manager.log(f"Monitoring series with ID: {series_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
-        logger.debug(f"[HIDIVE_MDNX_API] Console output for start_monitor process:\n{result.stdout}")
+        log_manager.log(f"Console output for start_monitor process:\n{result.stdout}", level="debug")
 
         self.process_console_output(result.stdout)
 
-        logger.debug(f"[HIDIVE_MDNX_API] Monitoring for series with ID: {series_id} complete.")
+        log_manager.log(f"Monitoring for series with ID: {series_id} complete.", level="debug")
         return result.stdout
 
     def stop_monitor(self, series_id: str) -> None:
         queue_manager.remove(series_id, self.queue_service)
-        logger.info(f"[HIDIVE_MDNX_API] Stopped monitoring series with ID: {series_id}")
+        log_manager.log(f"Stopped monitoring series with ID: {series_id}")
         return
 
     def update_monitor(self, series_id: str) -> str:
-        logger.info(f"[HIDIVE_MDNX_API] Updating monitor for series with ID: {series_id}")
+        log_manager.log(f"Updating monitor for series with ID: {series_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
-        logger.debug(f"[HIDIVE_MDNX_API] Console output for update_monitor process:\n{result.stdout}")
+        log_manager.log(f"Console output for update_monitor process:\n{result.stdout}", level="debug")
 
         self.process_console_output(result.stdout)
 
-        logger.debug(f"[HIDIVE_MDNX_API] Updating monitor for series with ID: {series_id} complete.")
+        log_manager.log(f"Updating monitor for series with ID: {series_id} complete.", level="debug")
         return result.stdout
 
     def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list | None = None) -> bool:
-        logger.info(f"[HIDIVE_MDNX_API] Downloading episode {episode_number} for series {series_id} season {season_id}")
+        log_manager.log(f"Downloading episode {episode_number} for series {series_id} season {season_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id, "-s", season_id, "-e", episode_number]
 
         if dub_override is False:
-            logger.info("[HIDIVE_MDNX_API] No dubs were found for this episode, skipping download.")
+            log_manager.log("No dubs were found for this episode, skipping download.")
             return False
 
         if dub_override:
             tmp_cmd += ["--dubLang", *dub_override]
-            logger.info(f"[HIDIVE_MDNX_API] Using dubLang override: {' '.join(dub_override)}")
+            log_manager.log(f"Using dubLang override: {' '.join(dub_override)}")
 
         # Hardcoded options.
         # These can not be modified by config.json, or things will break/not work as expected.
@@ -519,24 +519,24 @@ class HIDIVE_MDNX_API:
         else:
             cmd = tmp_cmd
 
-        logger.info(f"[HIDIVE_MDNX_API] Executing command: {' '.join(cmd)}")
+        log_manager.log(f"Executing command: {' '.join(cmd)}")
 
         success = False
         with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
             for line in proc.stdout:
                 cleaned = line.rstrip()
-                logger.info(f"[HIDIVE_MDNX_API][multi-downloader-nx] {cleaned}")
+                log_manager.log(cleaned)
 
                 if any(ok_log.lower() in cleaned.lower() for ok_log in MDNX_API_OK_LOGS):
                     success = True
 
         if proc.returncode != 0:
-            logger.error(f"[HIDIVE_MDNX_API] Download failed with exit code {proc.returncode}")
+            log_manager.log(f"Download failed with exit code {proc.returncode}", level="error")
             return False
 
         if not success:
-            logger.error("[HIDIVE_MDNX_API] Download did not report successful download. Assuming failure.")
+            log_manager.log("Download did not report successful download. Assuming failure.", level="error")
             return False
 
-        logger.info("[HIDIVE_MDNX_API] Download finished successfully.")
+        log_manager.log("Download finished successfully.")
         return True

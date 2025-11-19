@@ -4,16 +4,26 @@ import sys
 import pwd
 import grp
 import json
-import logging
 import subprocess
 import unicodedata
 from string import Template
-from io import TextIOWrapper
 from collections import OrderedDict
 
 
 CONFIG_PATH = os.getenv("CONFIG_FILE", "appdata/config/config.json")
 QUEUE_PATH = os.getenv("QUEUE_FILE", "appdata/config/queue.json")
+
+
+def _log(message: str, level: str = "info") -> None:
+    try:
+        from .Globals import log_manager
+    except Exception:
+        return
+
+    try:
+        log_manager.log(message, level=level)
+    except Exception:
+        pass
 
 
 def merge_config(defaults: dict, overrides: dict) -> dict:
@@ -39,7 +49,7 @@ def merge_config(defaults: dict, overrides: dict) -> dict:
 
 
 def output_effective_config(config, default_config, max_chunk=8000):
-    logger.info("[Vars] Effective config: ")
+    _log("Effective config: ")
     try:
         SKIP_ORDERING_KEYS = {"cr_monitor_series_id", "hidive_monitor_series_id", "mdnx"}
 
@@ -69,13 +79,13 @@ def output_effective_config(config, default_config, max_chunk=8000):
 
         ordered_config = _order_like_defaults(config, default_config)
     except Exception as e:
-        logger.debug(f"[Vars] Could not order config by defaults: {e}")
+        _log(f"Could not order config by defaults: {e}", level="debug")
         ordered_config = config  # fall back without reordering
 
     formatted_json = json.dumps(ordered_config, indent=4)
     for line in formatted_json.splitlines():
         for i in range(0, len(line), max_chunk):
-            logger.info(line[i:i + max_chunk])
+            _log(line[i:i + max_chunk])
 
 
 # Default config values in case config.json is missing any keys.
@@ -160,10 +170,10 @@ config = merge_config(defaults=CONFIG_DEFAULTS, overrides=LOCAL_CONFIG)
 del LOCAL_CONFIG
 
 # App settings
-LOG_FILE = config["app"]["LOG_FILE"]
 TEMP_DIR = config["app"]["TEMP_DIR"]
-DATA_DIR = config["app"]["DATA_DIR"]
 BIN_DIR = config["app"]["BIN_DIR"]
+LOG_DIR = config["app"]["LOG_DIR"]
+DATA_DIR = config["app"]["DATA_DIR"]
 
 # MDNX config settings
 MDNX_CONFIG = config["mdnx"]
@@ -231,29 +241,6 @@ for _name, vals in LANG_MAP.items():
     loc = vals[1].lower()
     CODE_TO_LOCALE[code] = loc
 
-# Set up logging
-LEVEL_MAP = {
-    "CRITICAL": logging.CRITICAL,
-    "ERROR": logging.ERROR,
-    "WARNING": logging.WARNING,
-    "INFO": logging.INFO,
-    "DEBUG": logging.DEBUG,
-}
-LOG_LEVEL = LEVEL_MAP.get(config["app"]["LOG_LEVEL"].upper(), "INFO")
-
-logging.basicConfig(
-    level=LOG_LEVEL,
-    format='[%(asctime)s] %(message)s',
-    datefmt='%I:%M:%S %p %d/%m/%Y',
-    handlers=[
-        logging.StreamHandler(TextIOWrapper(sys.stdout.buffer, encoding="utf-8")),
-        logging.FileHandler(LOG_FILE, encoding="utf-8")
-    ]
-)
-
-# Create a logger for all modules to use
-logger = logging.getLogger(__name__)
-
 
 def handle_exception(exc_type, exc_value, exc_traceback):
     # skip logging for KeyboardInterrupt and SystemExit. Use the default handler.
@@ -261,7 +248,7 @@ def handle_exception(exc_type, exc_value, exc_traceback):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
 
-    logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+    _log("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback), level="error")
 
 
 def dedupe_preserve_order(items, key=None):
@@ -327,55 +314,55 @@ def select_dubs(episode_info: dict):
     for dub in episode_info["available_dubs"]:
         available_dubs.add(dub)
 
-    logger.debug(f"[Vars] Desired dubs: {desired_dubs}")
-    logger.debug(f"[Vars] Backup dubs: {backup_dubs}")
-    logger.debug(f"[Vars] Available dubs: {available_dubs}")
+    _log(f"Desired dubs: {desired_dubs}", level="debug")
+    _log(f"Backup dubs: {backup_dubs}", level="debug")
+    _log(f"Available dubs: {available_dubs}", level="debug")
 
     # If desired dub is available, use the default already present.
     if desired_dubs & available_dubs:
-        logger.debug(f"[Vars] Desired dubs available: {desired_dubs & available_dubs}")
+        _log(f"Desired dubs available: {desired_dubs & available_dubs}", level="debug")
         return None
 
     # If backups are available but not the desired dubs, override with that intersection.
     if backup_dubs & available_dubs:
-        logger.debug(f"[Vars] Desired dubs not available, but backup dubs are: {backup_dubs & available_dubs}")
+        _log(f"Desired dubs not available, but backup dubs are: {backup_dubs & available_dubs}", level="debug")
         return list(backup_dubs & available_dubs)
 
     # Otherwise fall back to the alphabetically first available dub.
     if available_dubs:
-        logger.debug("[Vars] Neither desired nor backup dubs are available. Falling back to first available dub.")
+        _log("Neither desired nor backup dubs are available. Falling back to first available dub.", level="debug")
         first_dub = next(iter(sorted(available_dubs)))
         return [first_dub]
 
     # No dubs at all, which is unexpected tbh.
     # But, you never know with Crunchyroll...
     # Will skip the episode.
-    logger.debug("[Vars] No dubs available at all for this episode. Skipping it.")
+    _log("No dubs available at all for this episode. Skipping it.", level="debug")
     return False
 
 
 def probe_streams(file_path: str, timeout: int):
     cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", file_path]
 
-    logger.debug(f"[Vars] Running ffprobe on {file_path} with command: {' '.join(cmd)}")
+    _log(f"Running ffprobe on {file_path} with command: {' '.join(cmd)}", level="debug")
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
-        logger.error(f"[Vars] ffprobe timed out after {timeout}s on {file_path}")
+        _log(f"ffprobe timed out after {timeout}s on {file_path}", level="error")
         return set(), set()
 
     try:
         data = json.loads(result.stdout)
     except json.JSONDecodeError as e:
-        logger.error(f"[Vars] ffprobe JSON decode error on {file_path}: {e}")
+        _log(f"ffprobe JSON decode error on {file_path}: {e}", level="error")
         return set(), set()
 
     if data == {}:  # no streams found
-        logger.error(f"[Vars] ffprobe found no dubs/subs for {file_path}")
+        _log(f"ffprobe found no dubs/subs for {file_path}", level="error")
         return set(), set()
 
-    logger.debug(f"[Vars] ffprobe output for {file_path}: {data}")
+    _log(f"ffprobe output for {file_path}: {data}", level="debug")
 
     audio_langs = set()
     sub_langs = set()
@@ -414,14 +401,14 @@ def probe_streams(file_path: str, timeout: int):
 
             sub_langs.add(lang)
 
-    logger.debug(f"[Vars] Probed {file_path}: audio languages: {audio_langs}, subtitle languages: {sub_langs}")
+    _log(f"Probed {file_path}: audio languages: {audio_langs}, subtitle languages: {sub_langs}", level="debug")
 
     return audio_langs, sub_langs
 
 
 def apply_series_blacklist(tmp_dict: dict, monitor_series_config: dict, service: str) -> dict:
     if not isinstance(monitor_series_config, dict):
-        logger.error(f"[Vars] {service}_monitor_series_id must be a dict.")
+        _log(f"{service}_monitor_series_id must be a dict.", level="error")
         monitor_series_config = {}
 
     # rules are strings like "S:<season_id>", "S:<season_id>:E:<index>", or "S:<season_id>:E:<start>-<end>"
@@ -585,7 +572,7 @@ def sanitize(path_segment: str, ascii_only: bool = False, max_len: int = 255) ->
             sanitized = sanitized[:max_len].rstrip(" .")
 
     if sanitized != original_segment:
-        logger.debug(f"[Vars] Sanitized {original_segment!r} to {sanitized!r}")
+        _log(f"Sanitized {original_segment!r} to {sanitized!r}", level="debug")
 
     return sanitized
 
@@ -599,8 +586,8 @@ def get_running_user():
     user = pwd.getpwuid(uid).pw_name
     group = grp.getgrgid(gid).gr_name
 
-    logger.info(f"[Vars] Running as UID={uid} ({user}), GID={gid} ({group})")
-    logger.info(f"[Vars] Effective UID={euid}, effective GID={egid}")
+    _log(f"Running as UID={uid} ({user}), GID={gid} ({group})")
+    _log(f"Effective UID={euid}, effective GID={egid}")
 
     return (uid, user, gid, group, euid, egid)
 
@@ -626,7 +613,7 @@ def format_value(val):
 
 
 def update_mdnx_config():
-    logger.info("[Vars] Updating MDNX config files with new settings from config.json...")
+    _log("Updating MDNX config files with new settings from config.json...")
 
     for mdnx_config_file, mdnx_config_settings in MDNX_CONFIG.items():
         file_path = os.path.join(BIN_DIR, "mdnx", "config", f"{mdnx_config_file}.yml")
@@ -640,9 +627,9 @@ def update_mdnx_config():
         with open(file_path, "w") as file:
             file.writelines(lines)
 
-        logger.debug(f"[Vars] Updated {file_path} with new settings.")
+        _log(f"Updated {file_path} with new settings.", level="debug")
 
-    logger.info("[Vars] MDNX config updated.")
+    _log("MDNX config updated.")
 
 
 def update_app_config(key: str, value):
@@ -652,12 +639,12 @@ def update_app_config(key: str, value):
         with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
             on_disk = json.load(f, object_pairs_hook=OrderedDict)
     except Exception as e:
-        logger.error(f"[Vars] Failed to read config file: {e}")
+        _log(f"Failed to read config file: {e}", level="error")
         return False
 
     app_section = on_disk.get("app")
     if not isinstance(app_section, dict):
-        logger.error("[Vars] Invalid config: missing 'app' object.")
+        _log("Invalid config: missing 'app' object.", level="error")
         return False
 
     app_section[key] = value
@@ -677,41 +664,23 @@ def update_app_config(key: str, value):
                 ordered_app[existing_key] = existing_value
         on_disk["app"] = ordered_app
     except Exception as e:
-        logger.warning(f"[Vars] Unable to apply defaults order to 'app' section: {e}")
+        _log(f"Unable to apply defaults order to 'app' section: {e}", level="warning")
 
     try:
         with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
             json.dump(on_disk, f, indent=4)
             f.write("\n")
     except Exception as e:
-        logger.error(f"[Vars] Failed to write config file: {e}")
+        _log(f"Failed to write config file: {e}", level="error")
         return False
 
     try:
         config["app"][key] = value
     except Exception:
-        logger.debug("[Vars] In-memory config structure unexpected. Could not mirror update cleanly.")
+        _log("In-memory config structure unexpected. Could not mirror update cleanly.", level="debug")
 
-    logger.debug(f"[Vars] Updated on-disk 'app.{key}' with '{value}'")
+    _log(f"Updated on-disk 'app.{key}' with '{value}'", level="debug")
     return True
-
-
-def log_manager(log_file_path=LOG_FILE, max_lines: int = 50000, keep_lines: int = 5000) -> None:
-    try:
-        with open(log_file_path, 'r', encoding='utf-8') as file:
-            lines = file.readlines()
-
-        total_lines = len(lines)
-        if total_lines > max_lines:
-            # Keep only the last 'keep_lines' lines.
-            new_lines = lines[-keep_lines:]
-            with open(log_file_path, 'w', encoding='utf-8') as file:
-                file.writelines(new_lines)
-            logger.info(f"[Vars] Log file truncated: was {total_lines} lines, now {keep_lines} lines kept.")
-        else:
-            logger.info("[Vars] Log file is within the allowed size; no truncation performed.")
-    except Exception as e:
-        logger.error(f"[Vars] Error managing log file: {e}")
 
 
 def build_folder_structure(base_dir: str, series_title: str, season: str, episode: str, episode_name: str, extension: str = ".mkv") -> str:
@@ -752,7 +721,7 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
     if not full_path.lower().endswith(extension.lower()):
         full_path = f"{full_path}{extension}"
 
-    logger.debug(f"[Vars] Built file path: {full_path}")
+    _log(f"Built file path: {full_path}", level="debug")
 
     return full_path
 
@@ -772,7 +741,7 @@ def get_episode_file_path(queue, series_id, season_key, episode_key, base_dir, e
     # Build the folder structure and file name.
     file_name = build_folder_structure(base_dir, raw_series, season, episode, raw_episode_name, extension)
 
-    logger.debug(f"[Vars] Built file path for series ID {series_id}, season {season_key}, episode {episode_key}: {file_name}")
+    _log(f"Built file path for series ID {series_id}, season {season_key}, episode {episode_key}: {file_name}", level="debug")
 
     # Combine to form the full file path.
     return file_name
