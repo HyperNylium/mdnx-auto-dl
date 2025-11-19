@@ -6,7 +6,8 @@ from datetime import datetime
 from zipfile import ZipFile, ZIP_DEFLATED
 
 # Custom imports
-from .Vars import config
+from .Vars import config, LOG_DIR
+
 
 LEVEL_VALUES = {
     "DEBUG": 10,
@@ -19,7 +20,7 @@ LEVEL_VALUES = {
 
 class LogManager:
     def __init__(self) -> None:
-        self.log_dir = config["app"]["LOG_DIR"]
+        self.log_dir = LOG_DIR
         self.log_file = os.path.join(self.log_dir, "mdnx-auto-dl.log")
 
         # make sure log directory exists
@@ -61,7 +62,7 @@ class LogManager:
         time_str = now.strftime("%I:%M:%S %p")
         date_str = now.strftime("%d/%m/%Y")
 
-        line = f"[{time_str} {date_str}] [{level_name}] [{filename}: {funcname}] - [{message}]"
+        line = f"[{time_str} {date_str}] [{level_name}] [{filename}<{funcname}>] - {message}"
 
         self._write_line(line)
 
@@ -153,5 +154,8 @@ class LogManager:
         code = frame.f_code
         filename = os.path.basename(code.co_filename)
         funcname = code.co_name
+
+        if funcname == "<module>":
+            funcname = "__root__"
 
         return filename, funcname
