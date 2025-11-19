@@ -116,6 +116,7 @@ CONFIG_DEFAULTS = {
         "NOTIFICATION_PREFERENCE": "none",
         "ONLY_CREATE_QUEUE": False,
         "SKIP_QUEUE_REFRESH": False,
+        "DRY_RUN": False,
         "LOG_LEVEL": "info",
         "MAX_LOG_ARCHIVES": 5,
         "NTFY_SCRIPT_PATH": "/app/appdata/config/ntfy.sh",
