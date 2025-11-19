@@ -22,7 +22,9 @@ class MainLoop:
         self.notifier = notifier
         self.loop_timeout = int(config["app"]["CHECK_FOR_UPDATES_INTERVAL"])
         self.between_episode_timeout = int(config["app"]["BETWEEN_EPISODE_DL_WAIT_INTERVAL"])
+        self.only_create_queue = config["app"]["ONLY_CREATE_QUEUE"]
         self.skip_queue_refresh = config["app"]["SKIP_QUEUE_REFRESH"]
+        self.dry_run = config["app"]["DRY_RUN"]
         self.mainloop_iter = 0
         self.notifications_buffer = []
 
@@ -232,6 +234,10 @@ class MainLoop:
                 queue_manager.update_episode_status(series_id, season_key, episode_key, True, service)
                 continue
             else:
+                if self.dry_run:
+                    log_manager.log(f"DRY_RUN is True. Would have downloaded episode for {series_id} season {season_key} episode {episode_key} that would have been stored at {file_path}.\nSkipping actual download.")
+                    continue
+
                 log_manager.log(f"Episode not found at {file_path} and 'episode_downloaded' status is False. Initiating download.")
 
                 dub_override = select_dubs(episode_info)
@@ -332,6 +338,10 @@ class MainLoop:
                 level="debug"
             )
 
+            if self.dry_run:
+                log_manager.log(f"DRY_RUN is True. Would have re-downloaded episode for {episode_basename} to acquire missing tracks: dubs={','.join(effective_missing_dubs) or 'None'}, subs={','.join(effective_missing_subs) or 'None'}.\nSkipping actual download.")
+                continue
+
             if skip_download:
                 log_manager.log(f"Skipping re-download for {episode_basename}: requested tracks are missing locally but not offered by {service} yet.")
                 continue
@@ -376,7 +386,7 @@ class MainLoop:
 
                 current_queue = queue_manager.output()
 
-                if config["app"]["ONLY_CREATE_QUEUE"] == True:
+                if self.only_create_queue == True:
                     log_manager.log("ONLY_CREATE_QUEUE is True. Exiting after queue creation.\nIf docker-compose.yaml has 'restart: always/unless-stopped', please change it to 'restart: no' to prevent restart loop.")
                     self.stop()
                     return
@@ -400,6 +410,11 @@ class MainLoop:
                         self.refresh_dub_sub_for_service("HiDive", self.hidive_mdnx_api, current_queue)
                     else:
                         log_manager.log("CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification for HiDive.")
+
+                if self.dry_run:
+                    log_manager.log("DRY_RUN is True. Exiting after one iteration of the main loop.\nIf docker-compose.yaml has 'restart: always/unless-stopped', please change it to 'restart: no' to prevent restart loop.")
+                    self.stop()
+                    return
 
                 # house-keeping and loop control
                 self.mainloop_iter += 1
