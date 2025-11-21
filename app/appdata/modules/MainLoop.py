@@ -284,6 +284,11 @@ class MainLoop:
 
             file_path = get_episode_file_path(bucket, series_id, season_key, episode_key, DATA_DIR)
             episode_basename = os.path.basename(file_path)
+
+            if episode_info["has_all_dubs_subs"]:
+                log_manager.info(f"{episode_basename} already marked as having all requested dubs/subs (has_all_dubs_subs=True). Skipping dub/sub check for this episode.")
+                continue
+
             if not os.path.exists(file_path):
                 continue
 
@@ -300,6 +305,7 @@ class MainLoop:
 
             if not missing_dubs and not missing_subs:
                 log_manager.info(f"{episode_basename} is up to date. All requested dubs and subs are locally present. No download needed.")
+                queue_manager.update_episode_has_all_dubs_subs(series_id, season_key, episode_key, True, service)
                 continue
 
             avail_dubs = set()
