@@ -154,20 +154,19 @@ class LogManager:
 
     def _get_caller(self):
         """
-        Returns (filename, function_name) of the caller of self.log().
+        Returns (filename, function_name) of the caller of self._log().
 
-        Because this function itself is another stack frame, we look
-        two frames up:
-          0 -> _get_caller
-          1 -> log
-          2 -> user code that called log()
+        Stack frames:
+        0 -> _get_caller
+        1 -> _log
+        2 -> info/debug/etc
+        3 -> user code
         """
         try:
             stack = inspect.stack()
-            if len(stack) < 3:
+            if len(stack) < 4:
                 return "<unknown>", "<unknown>"
-
-            frame = stack[2].frame
+            frame = stack[3].frame
         except Exception:
             return "<unknown>", "<unknown>"
 
