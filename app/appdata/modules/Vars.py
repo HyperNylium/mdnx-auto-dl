@@ -21,7 +21,14 @@ def _log(message: str, level: str = "info") -> None:
         return
 
     try:
-        log_manager.log(message, level=level)
+        if level == "debug":
+            log_manager.debug(message)
+        elif level == "warning":
+            log_manager.warning(message)
+        elif level == "error":
+            log_manager.error(message)
+        else:
+            log_manager.info(message)
     except Exception:
         pass
 

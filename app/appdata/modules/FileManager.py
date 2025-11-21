@@ -20,20 +20,20 @@ class FileManager:
         self.moveRetries = 3         # number of attempts to move file
         self.retryDelay = 5          # seconds between move attempts
 
-        log_manager.log(f"FileManager initialized with: Source: {self.source} | Destination: {self.dest}")
+        log_manager.info(f"FileManager initialized with: Source: {self.source} | Destination: {self.dest}")
 
     def test(self) -> bool:
-        log_manager.log(f"Checking Read/Write permissions for: {self.dest}")
+        log_manager.info(f"Checking Read/Write permissions for: {self.dest}")
 
         if not os.path.isdir(self.dest):
-            log_manager.log(f"Directory not found: {self.dest}", level="error")
+            log_manager.error(f"Directory not found: {self.dest}")
             return False
 
         can_r = os.access(self.dest, os.R_OK)
         can_w = os.access(self.dest, os.W_OK)
-        log_manager.log(f"os.access -> R:{can_r} W:{can_w}")
+        log_manager.info(f"os.access -> R:{can_r} W:{can_w}")
         if not (can_r and can_w):
-            log_manager.log(f"Missing required R/W on {self.dest}", level="warning")
+            log_manager.warning(f"Missing required R/W on {self.dest}")
             return False
 
         test_path = os.path.join(self.dest, "permtest.txt")
@@ -43,31 +43,31 @@ class FileManager:
             with open(test_path, "r", encoding="utf-8") as f:
                 data = f.read()
             success = (data == "ok")
-            log_manager.log(f"Write/read test {'passed' if success else 'failed'} at {test_path}")
+            log_manager.info(f"Write/read test {'passed' if success else 'failed'} at {test_path}")
             return success
         except Exception as e:
-            log_manager.log(f"Write/read test failed in {self.dest}: {e}", level="error")
+            log_manager.error(f"Write/read test failed in {self.dest}: {e}")
             return False
         finally:
             try:
                 if os.path.exists(test_path):
                     os.remove(test_path)
             except Exception as e:
-                log_manager.log(f"Could not clean up {test_path}\nMay fail when doing episode dub/sub updates\nFull error: {e}", level="warning")
+                log_manager.warning(f"Could not clean up {test_path}\nMay fail when doing episode dub/sub updates\nFull error: {e}")
 
     def transfer(self, src_path: str, dst_path: str, overwrite: bool = False) -> bool:
-        log_manager.log(f"Starting transfer from '{src_path}' to '{dst_path}'")
+        log_manager.info(f"Starting transfer from '{src_path}' to '{dst_path}'")
 
         src_basename = os.path.basename(src_path)
 
         if not os.path.exists(src_path):
-            log_manager.log(f"Downloaded file not found: {src_path}", level="error")
+            log_manager.error(f"Downloaded file not found: {src_path}")
             return False
 
-        log_manager.log(f"Found source file: {src_path}. Checking readiness...")
+        log_manager.info(f"Found source file: {src_path}. Checking readiness...")
 
         if not self.waitForReady(src_path):
-            log_manager.log(f"'{src_basename}' not ready within {self.readyTimeout} seconds, skipping.", level="warning")
+            log_manager.warning(f"'{src_basename}' not ready within {self.readyTimeout} seconds, skipping.")
             return False
 
         parts = dst_path.split(os.sep)
@@ -77,7 +77,7 @@ class FileManager:
                 continue
             sanitized.append(sanitize(part))
 
-        log_manager.log(f"Sanitized destination path parts: {sanitized}", level="debug")
+        log_manager.debug(f"Sanitized destination path parts: {sanitized}")
 
         if dst_path.startswith(os.sep):
             parent = os.sep + os.path.join(*sanitized[:-1])
@@ -85,35 +85,35 @@ class FileManager:
             parent = os.path.join(*sanitized[:-1])
         final_dst = os.path.join(parent, sanitized[-1])
 
-        log_manager.log(f"Final destination path: {final_dst}", level="debug")
+        log_manager.debug(f"Final destination path: {final_dst}")
 
         try:
             os.makedirs(parent, exist_ok=True)
-            log_manager.log(f"Ensured directory exists: {parent}", level="debug")
+            log_manager.debug(f"Ensured directory exists: {parent}")
         except Exception as e:
-            log_manager.log(f"Could not create directory {parent}: {e}", level="error")
+            log_manager.error(f"Could not create directory {parent}: {e}")
             return False
 
         if overwrite == True and os.path.exists(final_dst):
             try:
                 os.remove(final_dst)
-                log_manager.log(f"Removed existing file at destination: {final_dst}")
+                log_manager.info(f"Removed existing file at destination: {final_dst}")
             except Exception as e:
-                log_manager.log(f"Could not remove existing file {final_dst}: {e}", level="error")
+                log_manager.error(f"Could not remove existing file {final_dst}: {e}")
                 return False
 
-        log_manager.log(f"Moving '{src_basename}' to '{final_dst}'")
+        log_manager.info(f"Moving '{src_basename}' to '{final_dst}'")
 
         for attempt in range(1, self.moveRetries + 1):
             try:
                 shcopy(src_path, final_dst)
-                log_manager.log(f"Moved '{src_basename}' to '{final_dst}'")
+                log_manager.info(f"Moved '{src_basename}' to '{final_dst}'")
                 return True
             except Exception as e:
-                log_manager.log(f"(attempt {attempt}) Move failed for '{src_basename}' to '{final_dst}': {e}", level="error")
+                log_manager.error(f"(attempt {attempt}) Move failed for '{src_basename}' to '{final_dst}': {e}")
                 time.sleep(self.retryDelay)
 
-        log_manager.log(f"Failed to move '{src_basename}' after {self.moveRetries} attempts.", level="error")
+        log_manager.error(f"Failed to move '{src_basename}' after {self.moveRetries} attempts.")
         return False
 
     def waitForReady(self, path):
@@ -125,33 +125,33 @@ class FileManager:
             try:
                 size = os.path.getsize(path)
             except Exception as e:
-                log_manager.log(f"Error getting size for {path}: {e}", level="error")
+                log_manager.error(f"Error getting size for {path}: {e}")
                 return False
 
             if size == lastSize:
                 stableTime += self.readyCheckInterval
-                log_manager.log(f"Size unchanged for {stableTime} seconds (size={size} bytes)", level="debug")
+                log_manager.debug(f"Size unchanged for {stableTime} seconds (size={size} bytes)")
                 if stableTime >= self.readyStableSeconds:
-                    log_manager.log(f"File '{path}' deemed ready after {stableTime} seconds of stability.", level="debug")
+                    log_manager.debug(f"File '{path}' deemed ready after {stableTime} seconds of stability.")
                     return True
             else:
-                log_manager.log(f"Size changed: {lastSize} → {size} bytes", level="debug")
+                log_manager.debug(f"Size changed: {lastSize} → {size} bytes")
                 stableTime = 0
                 lastSize = size
 
             time.sleep(self.readyCheckInterval)
-        log_manager.log(f"File '{path}' not ready within {self.readyTimeout} seconds timeout.", level="warning")
+        log_manager.warning(f"File '{path}' not ready within {self.readyTimeout} seconds timeout.")
         return False
 
     def remove_temp_files(self):
         for name in os.listdir(self.source):
             path = os.path.join(self.source, name)
-            log_manager.log(f"removing {path}", level="debug")
+            log_manager.debug(f"removing {path}")
             try:
                 os.remove(path)
-                log_manager.log(f"Removed {path}", level="debug")
+                log_manager.debug(f"Removed {path}")
             except Exception as e:
-                log_manager.log(f"Error removing {path}: {e}", level="error")
+                log_manager.error(f"Error removing {path}: {e}")
 
-        log_manager.log(f"Temporary files in {self.source} removed.")
+        log_manager.info(f"Temporary files in {self.source} removed.")
         return True

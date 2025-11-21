@@ -18,7 +18,7 @@ class QueueManager:
             return "Crunchyroll"
         if key in {"hd", "hidive"}:
             return "HiDive"
-        log_manager.log(f"Unknown service '{service}'.", level="error")
+        log_manager.error(f"Unknown service '{service}'.")
         return None
 
     def _ensure_roots(self, data: dict) -> dict:
@@ -27,7 +27,7 @@ class QueueManager:
 
         # migrate legacy format
         if "Crunchyroll" not in data and "HiDive" not in data:
-            log_manager.log("Migrating legacy queue format to namespaced layout under 'Crunchyroll'.")
+            log_manager.info("Migrating legacy queue format to namespaced layout under 'Crunchyroll'.")
             data = {"Crunchyroll": data, "HiDive": {}}
 
         # ensure both roots exist
@@ -38,18 +38,18 @@ class QueueManager:
     def load_queue(self) -> dict:
         if os.path.exists(self.queue_path):
             try:
-                log_manager.log(f"Loading queue from {self.queue_path}.", level="debug")
+                log_manager.debug(f"Loading queue from {self.queue_path}.")
                 with open(self.queue_path, "r", encoding="utf-8") as data_file:
                     loaded = json.load(data_file)
                 loaded = self._ensure_roots(loaded)
-                log_manager.log(f"Queue loaded from {self.queue_path}.", level="debug")
+                log_manager.debug(f"Queue loaded from {self.queue_path}.")
                 return loaded
             except json.JSONDecodeError:
-                log_manager.log("Malformed JSON in queue file. Starting with an empty queue.", level="error")
+                log_manager.error("Malformed JSON in queue file. Starting with an empty queue.")
             except Exception as e:
-                log_manager.log(f"Error loading queue. Starting with an empty queue.\n{e}", level="error")
+                log_manager.error(f"Error loading queue. Starting with an empty queue.\n{e}")
         else:
-            log_manager.log(f"Queue file not found at {self.queue_path}. Starting with an empty queue.", level="debug")
+            log_manager.debug(f"Queue file not found at {self.queue_path}. Starting with an empty queue.")
 
         init = {"Crunchyroll": {}, "HiDive": {}}
         with open(self.queue_path, "w", encoding="utf-8") as f:
@@ -57,16 +57,16 @@ class QueueManager:
         return init
 
     def save_queue(self) -> None:
-        log_manager.log("Saving queue.", level="debug")
+        log_manager.debug("Saving queue.")
         with open(self.queue_path, "w", encoding="utf-8") as f:
             json.dump(self.queue_data, f, indent=4, ensure_ascii=False)
-        log_manager.log(f"Queue saved to {self.queue_path}.", level="debug")
+        log_manager.debug(f"Queue saved to {self.queue_path}.")
 
     def add(self, new_data: dict, service: str):
         bucket_name = self._normalize_service(service)
         if bucket_name is None:
             return
-        log_manager.log(f"Adding series to the queue under '{bucket_name}'.", level="debug")
+        log_manager.debug(f"Adding series to the queue under '{bucket_name}'.")
         bucket = self.queue_data.setdefault(bucket_name, {})
 
         for series_id, series_info in new_data.items():
@@ -76,7 +76,7 @@ class QueueManager:
                     for ep in s.get("episodes", {}).values():
                         ep.setdefault("episode_downloaded", False)
                         ep.setdefault("episode_skip", False)
-                log_manager.log(f"Added series '{series_id}' to '{bucket_name}'.", level="debug")
+                log_manager.debug(f"Added series '{series_id}' to '{bucket_name}'.")
                 continue
 
             # series exists: merge
@@ -137,21 +137,21 @@ class QueueManager:
                     new_ep["episode_skip"] = new_ep.get("episode_skip", False)
                     season["episodes"][ep_key] = new_ep
 
-            log_manager.log(f"Updated series '{series_id}' in '{bucket_name}'.", level="debug")
+            log_manager.debug(f"Updated series '{series_id}' in '{bucket_name}'.")
         self.save_queue()
 
     def remove(self, series_id: str, service: str) -> None:
         bucket_name = self._normalize_service(service)
         if bucket_name is None:
             return
-        log_manager.log(f"Removing series {series_id} from '{bucket_name}'.", level="debug")
+        log_manager.debug(f"Removing series {series_id} from '{bucket_name}'.")
         bucket = self.queue_data.setdefault(bucket_name, {})
         if series_id in bucket:
             del bucket[series_id]
             self.save_queue()
-            log_manager.log(f"Removed series '{series_id}' from '{bucket_name}'.", level="debug")
+            log_manager.debug(f"Removed series '{series_id}' from '{bucket_name}'.")
         else:
-            log_manager.log(f"Series '{series_id}' not found in '{bucket_name}'.", level="warning")
+            log_manager.warning(f"Series '{series_id}' not found in '{bucket_name}'.")
 
     def update_episode_status(self, series_id: str, season_id: str, episode_id: str, status: bool, service: str) -> None:
         bucket_name = self._normalize_service(service)
@@ -160,21 +160,21 @@ class QueueManager:
         bucket = self.queue_data.setdefault(bucket_name, {})
 
         if series_id not in bucket:
-            log_manager.log(f"Series '{series_id}' not found in '{bucket_name}'.", level="warning")
+            log_manager.warning(f"Series '{series_id}' not found in '{bucket_name}'.")
             return
 
         if season_id not in bucket[series_id]["seasons"]:
-            log_manager.log(f"Season '{season_id}' not found in series '{series_id}' ({bucket_name}).", level="warning")
+            log_manager.warning(f"Season '{season_id}' not found in series '{series_id}' ({bucket_name}).")
             return
 
         episodes = bucket[series_id]["seasons"][season_id].get("episodes", {})
         if episode_id not in episodes:
-            log_manager.log(f"Episode '{episode_id}' not found in season '{season_id}' for series '{series_id}' ({bucket_name}).", level="warning")
+            log_manager.warning(f"Episode '{episode_id}' not found in season '{season_id}' for series '{series_id}' ({bucket_name}).")
             return
 
         episodes[episode_id]["episode_downloaded"] = status
         self.save_queue()
-        log_manager.log(f"Updated episode '{episode_id}' in series '{series_id}', season '{season_id}' to downloaded={status} ({bucket_name}).")
+        log_manager.info(f"Updated episode '{episode_id}' in series '{series_id}', season '{season_id}' to downloaded={status} ({bucket_name}).")
 
     def output(self, service: str | None = None) -> dict | None:
         if not self.queue_data:
