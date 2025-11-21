@@ -76,6 +76,7 @@ class QueueManager:
                     for ep in s.get("episodes", {}).values():
                         ep.setdefault("episode_downloaded", False)
                         ep.setdefault("episode_skip", False)
+                        ep.setdefault("has_all_dubs_subs", False)
                 log_manager.debug(f"Added series '{series_id}' to '{bucket_name}'.")
                 continue
 
@@ -132,9 +133,13 @@ class QueueManager:
                     old_ep = season["episodes"].get(ep_key)
                     if old_ep:
                         new_ep["episode_downloaded"] = old_ep.get("episode_downloaded", False)
+                        new_ep["episode_skip"] = old_ep.get("episode_skip", False)
+                        new_ep["has_all_dubs_subs"] = old_ep.get("has_all_dubs_subs", False)
                     else:
                         new_ep.setdefault("episode_downloaded", False)
-                    new_ep["episode_skip"] = new_ep.get("episode_skip", False)
+                        new_ep.setdefault("episode_skip", False)
+                        new_ep.setdefault("has_all_dubs_subs", False)
+
                     season["episodes"][ep_key] = new_ep
 
             log_manager.debug(f"Updated series '{series_id}' in '{bucket_name}'.")
@@ -175,6 +180,29 @@ class QueueManager:
         episodes[episode_id]["episode_downloaded"] = status
         self.save_queue()
         log_manager.info(f"Updated episode '{episode_id}' in series '{series_id}', season '{season_id}' to downloaded={status} ({bucket_name}).")
+
+    def update_episode_has_all_dubs_subs(self, series_id: str, season_id: str, episode_id: str, status: bool, service: str) -> None:
+        bucket_name = self._normalize_service(service)
+        if bucket_name is None:
+            return
+        bucket = self.queue_data.setdefault(bucket_name, {})
+
+        if series_id not in bucket:
+            log_manager.warning(f"Series '{series_id}' not found in '{bucket_name}'.")
+            return
+
+        if season_id not in bucket[series_id]["seasons"]:
+            log_manager.warning(f"Season '{season_id}' not found in series '{series_id}' ({bucket_name}).")
+            return
+
+        episodes = bucket[series_id]["seasons"][season_id].get("episodes", {})
+        if episode_id not in episodes:
+            log_manager.warning(f"Episode '{episode_id}' not found in season '{season_id}' for series '{series_id}' ({bucket_name}).")
+            return
+
+        episodes[episode_id]["has_all_dubs_subs"] = status
+        self.save_queue()
+        log_manager.info(f"Updated episode '{episode_id}' in series '{series_id}', season '{season_id}' to has_all_dubs_subs={status} ({bucket_name}).")
 
     def output(self, service: str | None = None) -> dict | None:
         if not self.queue_data:
