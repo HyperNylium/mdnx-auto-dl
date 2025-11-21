@@ -14,10 +14,10 @@ class ntfy:
 
     def notify(self, subject, message):
         try:
-            log_manager.log("Sending ntfy notification...")
+            log_manager.info("Sending ntfy notification...")
             subprocess.run([self.ntfy_script_path, subject, message], check=True)
         except Exception as e:
-            log_manager.log(f"Error sending notification: {e}", level="error")
+            log_manager.error(f"Error sending notification: {e}")
             return False
         return True
 
@@ -34,7 +34,7 @@ class SMTP:
 
     def notify(self, subject, message):
         try:
-            log_manager.log(f"Sending email notification to {self.SMTP_TO}...", level="debug")
+            log_manager.debug(f"Sending email notification to {self.SMTP_TO}...")
             msg = EmailMessage()
             msg["Subject"] = subject
             msg["From"] = self.SMTP_FROM
@@ -48,7 +48,7 @@ class SMTP:
                 server.send_message(msg)
 
         except Exception as e:
-            log_manager.log(f"Error sending email: {e}", level="error")
+            log_manager.error(f"Error sending email: {e}")
             return False
 
         return True

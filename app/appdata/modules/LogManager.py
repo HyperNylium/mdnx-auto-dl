@@ -39,7 +39,27 @@ class LogManager:
         self._rotate()
         return
 
-    def log(self, message: str, level: str = "INFO") -> None:
+    def debug(self, message: str) -> None:
+        self._log(message, level="DEBUG")
+        return
+
+    def info(self, message: str) -> None:
+        self._log(message, level="INFO")
+        return
+
+    def warning(self, message: str) -> None:
+        self._log(message, level="WARNING")
+        return
+
+    def error(self, message: str) -> None:
+        self._log(message, level="ERROR")
+        return
+
+    def critical(self, message: str) -> None:
+        self._log(message, level="CRITICAL")
+        return
+
+    def _log(self, message: str, level: str = "INFO") -> None:
         level_name = level.upper()
         level_value = LEVEL_VALUES.get(level_name)
 

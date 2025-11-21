@@ -51,12 +51,12 @@ class HIDIVE_MDNX_API:
         # stdout line-buffering if available
         if os.path.exists("/usr/bin/stdbuf"):
             self.stdbuf_exists = True
-            log_manager.log("Using stdbuf to ensure live output streaming.", level="debug")
+            log_manager.debug("Using stdbuf to ensure live output streaming.")
         else:
             self.stdbuf_exists = False
-            log_manager.log("stdbuf not found, using default command without buffering.", level="debug")
+            log_manager.debug("stdbuf not found, using default command without buffering.")
 
-        log_manager.log(f"MDNX API initialized with: Path: {self.mdnx_path} | Service: {self.mdnx_service}")
+        log_manager.info(f"MDNX API initialized with: Path: {self.mdnx_path} | Service: {self.mdnx_service}")
 
     def _clean_tokens(self, text: str):
         """Split a comma-separated list, trim, drop empties."""
@@ -111,7 +111,7 @@ class HIDIVE_MDNX_API:
             # allow small mismatch between flat group size and declared eps to pick a best-fit map
             return abs(count_group - count_declared) <= 2
 
-        log_manager.log("Processing console output...", level="debug")
+        log_manager.debug("Processing console output...")
         tmp_dict = {}
         current_series_id = None
         current_season_key = None
@@ -188,7 +188,7 @@ class HIDIVE_MDNX_API:
 
                 if skip_current_season:
                     # drop special seasons like OVA, Recap, Movie
-                    log_manager.log(f"Skipping special season [{gd['season_id']}] '{label_text}' (S{season_number}).", level="debug")
+                    log_manager.debug(f"Skipping special season [{gd['season_id']}] '{label_text}' (S{season_number}).")
                     continue
 
                 # keep normal season metadata and init episode list
@@ -222,7 +222,7 @@ class HIDIVE_MDNX_API:
 
                 # skip fractional entries like 7.5 which are usually recaps or extras
                 if '.' in download_str:
-                    log_manager.log(f"Skipping fractional flat episode E{download_str} (treated as special).", level="debug")
+                    log_manager.debug(f"Skipping fractional flat episode E{download_str} (treated as special).")
                     continue
 
                 episode_download_number = int(download_str)
@@ -240,7 +240,7 @@ class HIDIVE_MDNX_API:
 
         # if we never saw a series header, return an empty result
         if not current_series_id:
-            log_manager.log("No HiDive series detected in output.", level="warning")
+            log_manager.warning("No HiDive series detected in output.")
             if add2queue:
                 queue_manager.add(tmp_dict, self.queue_service)
             return tmp_dict
@@ -280,7 +280,7 @@ class HIDIVE_MDNX_API:
 
             if not download_map:
                 # fall back to sequential download numbering later
-                log_manager.log(f"No flat map matched for {season_key}; falling back to 1..N.", level="debug")
+                log_manager.debug(f"No flat map matched for {season_key}; falling back to 1..N.")
 
             # produce a list of download indices in tree order
             if download_map:
@@ -294,7 +294,7 @@ class HIDIVE_MDNX_API:
             for local_tree_index, (episode_id, title) in enumerate(episode_list, start=1):
                 # drop unreleased and special episodes based on title cues
                 if title and (self.special_episode_title_flag.search(title) or self.unreleased_title_flag.search(title)):
-                    log_manager.log(f"Skipping unavailable/special at {season_key} idx={local_tree_index} title='{title}'.", level="debug")
+                    log_manager.debug(f"Skipping unavailable/special at {season_key} idx={local_tree_index} title='{title}'.")
                     continue
 
                 # choose the download number from flat mapping if available
@@ -345,27 +345,27 @@ class HIDIVE_MDNX_API:
         # fill in total ep count on series metadata
         tmp_dict[current_series_id]["series"]["eps_count"] = str(total_episodes)
 
-        log_manager.log("Console output processed.", level="debug")
+        log_manager.debug("Console output processed.")
         if add2queue:
             # push the parsed result to the queue for downstream consumers
             queue_manager.add(tmp_dict, self.queue_service)
         return tmp_dict
 
     def _probe_episode_streams(self, series_id: str, season_id: str, episode_index: int):
-        log_manager.log(f"Probing streams for series {series_id} season {season_id} episode {episode_index}...")
+        log_manager.info(f"Probing streams for series {series_id} season {season_id} episode {episode_index}...")
 
         # "--dubLang und" returns the available dubs/subs without actually downloading the episode
         cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", str(series_id), "-s", str(season_id), "-e", str(episode_index), "--dubLang", "und"]
 
-        log_manager.log(f"Probing streams: {' '.join(cmd)}", level="debug")
+        log_manager.debug(f"Probing streams: {' '.join(cmd)}")
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
             # combine streams because MDNX sometimes prints headers on stderr
             combined_text = (result.stdout or "") + "\n" + (result.stderr or "")
-            log_manager.log(f"Probe output:\n{combined_text}", level="debug")
+            log_manager.debug(f"Probe output:\n{combined_text}")
         except Exception as exc:
             # if the probe fails we return empty lists so the caller can decide how to proceed
-            log_manager.log(f"Probe failed (series {series_id} season {season_id} episode {episode_index}): {exc}", level="error")
+            log_manager.error(f"Probe failed (series {series_id} season {season_id} episode {episode_index}): {exc}")
             return [], []
 
         available_dubs = []  # collected normalized audio codes like "eng", "jpn"
@@ -426,88 +426,88 @@ class HIDIVE_MDNX_API:
         dubs_deduped = dedupe_casefold(available_dubs)
         subs_deduped = dedupe_casefold(available_subs)
 
-        log_manager.log(f"Probe S{season_id}E{episode_index}: dubs={dubs_deduped}, subs={subs_deduped}")
+        log_manager.info(f"Probe S{season_id}E{episode_index}: dubs={dubs_deduped}, subs={subs_deduped}")
 
         return dubs_deduped, subs_deduped
 
     def test(self) -> None:
-        log_manager.log("Testing MDNX API...")
+        log_manager.info("Testing MDNX API...")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", "1244"]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8").stdout
-        log_manager.log(f"MDNX API test result:\n{result}", level="debug")
+        log_manager.debug(f"MDNX API test result:\n{result}")
 
         json_result = self.process_console_output(result, add2queue=False)
-        log_manager.log(f"Processed console output:\n{json_result}")
+        log_manager.info(f"Processed console output:\n{json_result}")
 
         # --- This needs to be researched/tested more. I am not sure what anidl outputs on auth errors with HiDive.
         # --- Leaving commented out for now. This means there will be no auto re-auth on auth errors for HiDive.
         # --- Check if the output contains authentication errors
         # error_triggers = ["invalid_grant", "Token Refresh Failed", "Authentication required", "Anonymous"]
         # if any(trigger in result for trigger in error_triggers):
-        #     log_manager.log("Authentication error detected. Forcing re-authentication...")
+        #     log_manager.info("Authentication error detected. Forcing re-authentication...")
         #     self.auth()
         # else:
-        #     log_manager.log("MDNX API test successful.")
+        #     log_manager.info("MDNX API test successful.")
 
-        log_manager.log("MDNX API test successful.")
+        log_manager.info("MDNX API test successful.")
         return
 
     def auth(self) -> str:
-        log_manager.log(f"Authenticating with {self.mdnx_service}...")
+        log_manager.info(f"Authenticating with {self.mdnx_service}...")
 
         if not self.username or not self.password:
-            log_manager.log("MDNX service username or password not found.\nPlease check the config.json file and enter your credentials in the following keys:\nHIDIVE_USERNAME\nHIDIVE_PASSWORD\nExiting...", level="error")
+            log_manager.error("MDNX service username or password not found.\nPlease check the config.json file and enter your credentials in the following keys:\nHIDIVE_USERNAME\nHIDIVE_PASSWORD\nExiting...")
             sys.exit(1)
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--auth", "--username", self.username, "--password", self.password, "--silentAuth"]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
-        log_manager.log(f"Console output for auth process:\n{result.stdout}")
+        log_manager.info(f"Console output for auth process:\n{result.stdout}")
 
-        log_manager.log(f"Authentication with {self.mdnx_service} complete.")
+        log_manager.info(f"Authentication with {self.mdnx_service} complete.")
         return result.stdout
 
     def start_monitor(self, series_id: str) -> str:
-        log_manager.log(f"Monitoring series with ID: {series_id}")
+        log_manager.info(f"Monitoring series with ID: {series_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
-        log_manager.log(f"Console output for start_monitor process:\n{result.stdout}", level="debug")
+        log_manager.debug(f"Console output for start_monitor process:\n{result.stdout}")
 
         self.process_console_output(result.stdout)
 
-        log_manager.log(f"Monitoring for series with ID: {series_id} complete.", level="debug")
+        log_manager.debug(f"Monitoring for series with ID: {series_id} complete.")
         return result.stdout
 
     def stop_monitor(self, series_id: str) -> None:
         queue_manager.remove(series_id, self.queue_service)
-        log_manager.log(f"Stopped monitoring series with ID: {series_id}")
+        log_manager.info(f"Stopped monitoring series with ID: {series_id}")
         return
 
     def update_monitor(self, series_id: str) -> str:
-        log_manager.log(f"Updating monitor for series with ID: {series_id}")
+        log_manager.info(f"Updating monitor for series with ID: {series_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
-        log_manager.log(f"Console output for update_monitor process:\n{result.stdout}", level="debug")
+        log_manager.debug(f"Console output for update_monitor process:\n{result.stdout}")
 
         self.process_console_output(result.stdout)
 
-        log_manager.log(f"Updating monitor for series with ID: {series_id} complete.", level="debug")
+        log_manager.debug(f"Updating monitor for series with ID: {series_id} complete.")
         return result.stdout
 
     def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list | None = None) -> bool:
-        log_manager.log(f"Downloading episode {episode_number} for series {series_id} season {season_id}")
+        log_manager.info(f"Downloading episode {episode_number} for series {series_id} season {season_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id, "-s", season_id, "-e", episode_number]
 
         if dub_override is False:
-            log_manager.log("No dubs were found for this episode, skipping download.")
+            log_manager.info("No dubs were found for this episode, skipping download.")
             return False
 
         if dub_override:
             tmp_cmd += ["--dubLang", *dub_override]
-            log_manager.log(f"Using dubLang override: {' '.join(dub_override)}")
+            log_manager.info(f"Using dubLang override: {' '.join(dub_override)}")
 
         # Hardcoded options.
         # These can not be modified by config.json, or things will break/not work as expected.
@@ -519,24 +519,24 @@ class HIDIVE_MDNX_API:
         else:
             cmd = tmp_cmd
 
-        log_manager.log(f"Executing command: {' '.join(cmd)}")
+        log_manager.info(f"Executing command: {' '.join(cmd)}")
 
         success = False
         with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
             for line in proc.stdout:
                 cleaned = line.rstrip()
-                log_manager.log(cleaned)
+                log_manager.info(cleaned)
 
                 if any(ok_log.lower() in cleaned.lower() for ok_log in MDNX_API_OK_LOGS):
                     success = True
 
         if proc.returncode != 0:
-            log_manager.log(f"Download failed with exit code {proc.returncode}", level="error")
+            log_manager.error(f"Download failed with exit code {proc.returncode}")
             return False
 
         if not success:
-            log_manager.log("Download did not report successful download. Assuming failure.", level="error")
+            log_manager.error("Download did not report successful download. Assuming failure.")
             return False
 
-        log_manager.log("Download finished successfully.")
+        log_manager.info("Download finished successfully.")
         return True
