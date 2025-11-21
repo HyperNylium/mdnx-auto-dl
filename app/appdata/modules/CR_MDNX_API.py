@@ -101,7 +101,8 @@ class CR_MDNX_API:
                 "available_dubs": staged_episode["available_dubs"],
                 "available_subs": staged_episode["available_subs"],
                 "episode_downloaded": False,
-                "episode_skip": False
+                "episode_skip": False,
+                "has_all_dubs_subs": False,
             }
 
             log_manager.debug(f"Committed episode {s_id}/{s_key}/{e_key} to tmp_dict.")

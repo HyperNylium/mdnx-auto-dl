@@ -325,7 +325,8 @@ class HIDIVE_MDNX_API:
                     "available_dubs": dubs_list,
                     "available_subs": subs_list,
                     "episode_downloaded": False,
-                    "episode_skip": False
+                    "episode_skip": False,
+                    "has_all_dubs_subs": False,
                 }
                 total_episodes += 1
 
