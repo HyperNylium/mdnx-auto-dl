@@ -144,7 +144,7 @@ def app():
 
     mainloop.start()
 
-    ### I NEED TO REMOVE THIS THREADING SHIT ASAP ###
+    # I NEED TO REMOVE THIS THREADING SHIT ASAP
     # capture uncaught exceptions from threads (Py 3.8+), so we can exit non-zero
     exit_code = {"code": 0}
     if hasattr(threading, "excepthook"):
