@@ -36,7 +36,7 @@ class LogManager:
         self.lock = threading.Lock()
 
         # rotate any existing log from the previous run.
-        self._rotate()
+        self.rotate()
         return
 
     def debug(self, message: str) -> None:
@@ -91,10 +91,6 @@ class LogManager:
         return
 
     def rotate(self) -> None:
-        self._rotate()
-        return
-
-    def _rotate(self) -> None:
         with self.lock:
             if not os.path.exists(self.log_file):
                 return
