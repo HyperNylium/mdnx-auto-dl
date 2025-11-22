@@ -151,6 +151,7 @@ def app():
 
     mainloop.mainloop()
 
+
 if __name__ == "__main__":
     log_manager.info("Overriding sys.excepthook to log uncaught exceptions...")
     sys.excepthook = handle_exception
