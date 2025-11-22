@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import subprocess
+import threading
 
 # Custom imports
 from .Globals import queue_manager, log_manager
@@ -19,6 +20,9 @@ class HIDIVE_MDNX_API:
         self.queue_service = "hidive"
         self.username = str(config["app"]["HIDIVE_USERNAME"])
         self.password = str(config["app"]["HIDIVE_PASSWORD"])
+        self.download_thread = None
+        self.download_proc = None
+        self.download_lock = threading.Lock()
 
         # Series, season, episode, flat-list
         self.series_pattern = re.compile(r'^\[Z\.(?P<series_id>\d+)\]\s+(?P<series_name>.+)\s+\((?P<seasons_count>\d+)\s+Seasons?\)\s*$', re.IGNORECASE)
@@ -497,6 +501,65 @@ class HIDIVE_MDNX_API:
         log_manager.debug(f"Updating monitor for series with ID: {series_id} complete.")
         return result.stdout
 
+    def cancel_active_download(self) -> None:
+        proc = None
+        thread = None
+
+        with self.download_lock:
+            proc = self.download_proc
+            thread = self.download_thread
+
+        # kill the process if its still running
+        if proc is not None:
+            try:
+                if proc.poll() is None:
+                    log_manager.info("Killing active mdnx download process...")
+                    proc.kill()
+            except Exception as e:
+                log_manager.error(f"Failed to kill active mdnx process: {e}")
+
+        # wait a bit for the worker thread to exit
+        if thread is not None and thread.is_alive():
+            log_manager.info("Waiting for download worker thread to exit...")
+            thread.join(timeout=5.0)
+
+        # clear handles
+        with self.download_lock:
+            if self.download_thread is thread:
+                self.download_thread = None
+            if self.download_proc is proc:
+                self.download_proc = None
+
+    def _run_download(self, cmd: list, result: dict) -> None:
+        success = False
+        returncode = -1
+        proc = None
+
+        try:
+            log_manager.info(f"Executing command: {' '.join(cmd)}")
+
+            with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
+                with self.download_lock:
+                    self.download_proc = proc
+
+                for line in proc.stdout:
+                    cleaned = line.rstrip()
+                    log_manager.info(cleaned)
+
+                    if any(ok_log.lower() in cleaned.lower() for ok_log in MDNX_API_OK_LOGS):
+                        success = True
+
+                returncode = proc.returncode
+
+        except Exception as e:
+            log_manager.error(f"Download crashed with exception: {e}")
+        finally:
+            with self.download_lock:
+                self.download_proc = None
+
+            result["success"] = success
+            result["returncode"] = returncode
+
     def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list | None = None) -> bool:
         log_manager.info(f"Downloading episode {episode_number} for series {series_id} season {season_id}")
 
@@ -520,19 +583,36 @@ class HIDIVE_MDNX_API:
         else:
             cmd = tmp_cmd
 
-        log_manager.info(f"Executing command: {' '.join(cmd)}")
+        # make sure we dont start two downloads at once
+        with self.download_lock:
+            if self.download_thread and self.download_thread.is_alive():
+                log_manager.error("A download is already in progress. refusing to start a second one.")
+                return False
 
-        success = False
-        with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
-            for line in proc.stdout:
-                cleaned = line.rstrip()
-                log_manager.info(cleaned)
+        result = {"success": False, "returncode": None}
 
-                if any(ok_log.lower() in cleaned.lower() for ok_log in MDNX_API_OK_LOGS):
-                    success = True
+        worker = threading.Thread(
+            target=self._run_download,
+            args=(cmd, result),
+            name=f"{self.mdnx_service}-download",
+            daemon=True,
+        )
 
-        if proc.returncode != 0:
-            log_manager.error(f"Download failed with exit code {proc.returncode}")
+        with self.download_lock:
+            self.download_thread = worker
+
+        worker.start()
+
+        # wait for download to finish
+        while worker.is_alive():
+            worker.join(timeout=1.0)
+
+        # retrieve results
+        rc = result["returncode"]
+        success = result["success"]
+
+        if rc not in (0, None):
+            log_manager.error(f"Download failed with exit code {rc}")
             return False
 
         if not success:
