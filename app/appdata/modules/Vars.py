@@ -144,7 +144,7 @@ CONFIG_DEFAULTS = {
             "ffmpeg": "ffmpeg",
             "ffprobe": "ffprobe",
             "mkvmerge": "mkvmerge",
-            "mp4decrypt": "/app/appdata/bin/Bento4-SDK/bin/mp4decrypt"
+            "mp4decrypt": "/app/appdata/bin/Bento4-SDK/mp4decrypt"
         },
         "cli-defaults": {
             "q": 0,
