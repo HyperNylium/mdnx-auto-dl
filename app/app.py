@@ -1,8 +1,6 @@
 import os
 import sys
 import signal
-import logging
-import threading
 
 # Custom imports
 from appdata.modules.MainLoop import MainLoop
@@ -142,43 +140,16 @@ def app():
         log_manager.error("Both CR_ENABLED and HIDIVE_ENABLED are set to False. Nothing to do. Exiting...")
         sys.exit(1)
 
-    mainloop.start()
-
-    # I NEED TO REMOVE THIS THREADING SHIT ASAP
-    # capture uncaught exceptions from threads (Py 3.8+), so we can exit non-zero
-    exit_code = {"code": 0}
-    if hasattr(threading, "excepthook"):
-        def _thread_excepthook(args):
-            # Treat SystemExit as intentional shutdown.
-            if issubclass(args.exc_type, SystemExit):
-                code = getattr(args.exc_value, "code", 1)
-                try:
-                    exit_code["code"] = int(code)
-                except Exception:
-                    exit_code["code"] = 1
-                return
-
-            # Real crash: log it and force non-zero
-            log_manager.error(f"Uncaught exception in thread {args.thread.name}\n{args.exc_type}\n{args.exc_value}\n{args.exc_traceback}")
-            exit_code["code"] = 1
-        threading.excepthook = _thread_excepthook
-    else:
-        log_manager.warning("threading.excepthook unavailable. Worker crash exit codes may not propagate.")
-
     def shutdown(signum, frame):
         log_manager.info(f"Received signal {signum}. Start to shutdown...")
         mainloop.stop()
-        log_manager.info("mdnx-auto-dl has stopped cleanly. Exiting...")
+        log_manager.info("Shutdown requested. Waiting for MainLoop to exit...")
 
     # catch both Ctrl-C and Docker SIGTERM
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
-    # block main thread until the worker ends (normal or crash)
-    mainloop.thread.join()
-    logging.shutdown()
-    sys.exit(exit_code["code"])
-
+    mainloop.mainloop()
 
 if __name__ == "__main__":
     log_manager.info("Overriding sys.excepthook to log uncaught exceptions...")
