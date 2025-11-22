@@ -1,5 +1,5 @@
 import os
-import threading
+import time
 from datetime import datetime
 
 # Custom imports
@@ -27,31 +27,29 @@ class MainLoop:
         self.dry_run = config["app"]["DRY_RUN"]
         self.mainloop_iter = 0
         self.notifications_buffer = []
+        self.stop_requested = False
 
         log_manager.debug("MainLoop initialized.")
 
-        # Event to signal the loop to stop
-        self.stop_event = threading.Event()
-
-        # Thread that will run the loop
-        self.thread = threading.Thread(target=self.mainloop, name="MainLoop")
-
-    def start(self) -> None:
-        log_manager.info("Starting MainLoop...")
-        self.thread.start()
-        return
-
     def stop(self) -> None:
         log_manager.info("Stopping MainLoop...")
-        self.stop_event.set()
-        if threading.current_thread() is not self.thread:  # avoid joining self
-            self.thread.join()
-        log_manager.info("MainLoop stopped.")
+        self.stop_requested = True
+
+        # cancel any active downloads
+        if self.cr_mdnx_api is not None:
+            self.cr_mdnx_api.cancel_active_download()
+        if self.hidive_mdnx_api is not None:
+            self.hidive_mdnx_api.cancel_active_download()
+
+        log_manager.info("MainLoop stop requested.")
         return
 
     def wait_or_interrupt(self, timeout: int) -> bool:
-        if self.stop_event.wait(timeout=timeout):
-            log_manager.info("Stop event set. Exiting MainLoop...")
+        end = time.time() + timeout
+        while not self.stop_requested and time.time() < end:
+            time.sleep(1)
+        if self.stop_requested:
+            log_manager.info("Stop requested. Exiting wait early.")
             return True
         return False
 
@@ -209,11 +207,19 @@ class MainLoop:
         return ok_cr and ok_hd
 
     def download_for_service(self, service, mdnx_api, current_queue):
+        if self.stop_requested:
+            log_manager.info(f"Stop requested. Skipping download for {service}.")
+            return
+
         log_manager.info(f"Checking for episodes to download from {service}...")
 
         bucket = current_queue.get(service, {})
 
         for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(bucket):
+
+            if self.stop_requested:
+                log_manager.info(f"Stop requested. Skipping download for {service}.")
+                return
 
             if episode_info["episode_skip"]:
                 log_manager.info(f"Episode {episode_info['episode_number']} ({episode_info['episode_name']}) 'episode_skip' is True. Skipping download.")
@@ -267,6 +273,10 @@ class MainLoop:
                     return
 
     def refresh_dub_sub_for_service(self, service, mdnx_api, current_queue):
+        if self.stop_requested:
+            log_manager.info(f"Stop requested. Skipping dub/sub verification for {service}.")
+            return
+
         log_manager.info(f"Checking if already existing episodes have new dubs/subs from {service}...")
 
         bucket = current_queue.get(service, {})
@@ -281,6 +291,10 @@ class MainLoop:
 
         log_manager.info("Verifying language tracks in downloaded files.")
         for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(bucket):
+
+            if self.stop_requested:
+                log_manager.info(f"Stop requested. Skipping dub/sub verification for {service}.")
+                return
 
             file_path = get_episode_file_path(bucket, series_id, season_key, episode_key, DATA_DIR)
             episode_basename = os.path.basename(file_path)
@@ -378,8 +392,8 @@ class MainLoop:
 
     def mainloop(self) -> None:
         try:
-            while not self.stop_event.is_set():
-                log_manager.debug("Executing main loop task.")
+            while not self.stop_requested:
+                log_manager.debug("Executing MainLoop task.")
 
                 if self.skip_queue_refresh is True:
                     log_manager.info("SKIP_QUEUE_REFRESH is True. Skipping queue refresh step and using old queue data.")
