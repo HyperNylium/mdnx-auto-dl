@@ -25,7 +25,6 @@ class MainLoop:
         self.only_create_queue = config["app"]["ONLY_CREATE_QUEUE"]
         self.skip_queue_refresh = config["app"]["SKIP_QUEUE_REFRESH"]
         self.dry_run = config["app"]["DRY_RUN"]
-        self.mainloop_iter = 0
         self.notifications_buffer = []
         self.stop_requested = False
 
@@ -434,10 +433,6 @@ class MainLoop:
                     log_manager.info("DRY_RUN is True. Exiting after one iteration of the main loop.\nIf docker-compose.yaml has 'restart: always/unless-stopped', please change it to 'restart: no' to prevent restart loop.")
                     self.stop()
                     return
-
-                # house-keeping and loop control
-                self.mainloop_iter += 1
-                log_manager.info(f"Current MainLoop iteration: {self.mainloop_iter}")
 
                 # Trigger media server scan if configured and there are new items in the notifications buffer.
                 if len(self.notifications_buffer) > 0 and config["app"]["MEDIASERVER_TYPE"] is not None:
