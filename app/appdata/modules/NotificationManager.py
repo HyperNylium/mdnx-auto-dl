@@ -4,7 +4,8 @@ import subprocess
 from email.message import EmailMessage
 
 # Custom imports
-from .Vars import logger, config
+from .Globals import log_manager
+from .Vars import config
 
 
 class ntfy:
@@ -13,10 +14,10 @@ class ntfy:
 
     def notify(self, subject, message):
         try:
-            logger.info("[Notification][ntfy] Sending ntfy notification...")
+            log_manager.info("Sending ntfy notification...")
             subprocess.run([self.ntfy_script_path, subject, message], check=True)
         except Exception as e:
-            logger.error(f"[Notification][ntfy] Error sending notification: {e}")
+            log_manager.error(f"Error sending notification: {e}")
             return False
         return True
 
@@ -33,7 +34,7 @@ class SMTP:
 
     def notify(self, subject, message):
         try:
-            logger.debug(f"[Notification][SMTP] Sending email notification to {self.SMTP_TO}...")
+            log_manager.debug(f"Sending email notification to {self.SMTP_TO}...")
             msg = EmailMessage()
             msg["Subject"] = subject
             msg["From"] = self.SMTP_FROM
@@ -47,7 +48,7 @@ class SMTP:
                 server.send_message(msg)
 
         except Exception as e:
-            logger.error(f"[Notification][SMTP] Error sending email: {e}")
+            log_manager.error(f"Error sending email: {e}")
             return False
 
         return True

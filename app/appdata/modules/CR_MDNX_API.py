@@ -2,13 +2,14 @@ import os
 import re
 import sys
 import subprocess
+import threading
 
 # Custom imports
-from .Globals import queue_manager
+from .Globals import queue_manager, log_manager
 from .Vars import (
-    logger, config,
+    config,
     VALID_LOCALES, NAME_TO_CODE, MDNX_SERVICE_BIN_PATH, MDNX_API_OK_LOGS,
-    sanitize
+    sanitize, apply_series_blacklist
 )
 
 
@@ -19,6 +20,9 @@ class CR_MDNX_API:
         self.queue_service = "crunchy"
         self.username = str(config["app"]["CR_USERNAME"])
         self.password = str(config["app"]["CR_PASSWORD"])
+        self.download_thread = None
+        self.download_proc = None
+        self.download_lock = threading.Lock()
 
         # Series: lines starting with [Z...]
         self.series_pattern = re.compile(
@@ -47,21 +51,21 @@ class CR_MDNX_API:
 
         if os.path.exists("/usr/bin/stdbuf"):
             self.stdbuf_exists = True
-            logger.debug("[CR_MDNX_API] Using stdbuf to ensure live output streaming.")
+            log_manager.debug("Using stdbuf to ensure live output streaming.")
         else:
             self.stdbuf_exists = False
-            logger.debug("[CR_MDNX_API] stdbuf not found, using default command without buffering.")
+            log_manager.debug("stdbuf not found, using default command without buffering.")
 
         # Skip API test if user wants to
         if config["app"]["CR_SKIP_API_TEST"] == False:
             self.test()
         else:
-            logger.info("[CR_MDNX_API] API test skipped by user.")
+            log_manager.info("API test skipped by user.")
 
-        logger.info(f"[CR_MDNX_API] MDNX API initialized with: Path: {self.mdnx_path} | Service: {self.mdnx_service}")
+        log_manager.info(f"MDNX API initialized with: Path: {self.mdnx_path} | Service: {self.mdnx_service}")
 
     def process_console_output(self, output: str, add2queue: bool = True):
-        logger.debug("[CR_MDNX_API] Processing console output...")
+        log_manager.debug("Processing console output...")
         tmp_dict = {}             # maps series_id to series info
         episode_counters = {}     # maps season key ("S1", "S2", etc) to episode counter
         season_num_map = {}       # we keep the first numeric label we see as a hint for fallback resolution
@@ -101,10 +105,11 @@ class CR_MDNX_API:
                 "available_dubs": staged_episode["available_dubs"],
                 "available_subs": staged_episode["available_subs"],
                 "episode_downloaded": False,
-                "episode_skip": False
+                "episode_skip": False,
+                "has_all_dubs_subs": False,
             }
 
-            logger.debug(f"[CR_MDNX_API] Committed episode {s_id}/{s_key}/{e_key} to tmp_dict.")
+            log_manager.debug(f"Committed episode {s_id}/{s_key}/{e_key} to tmp_dict.")
             staged_episode = None
             return
 
@@ -206,7 +211,7 @@ class CR_MDNX_API:
                 if guessed_key:
                     season_key = guessed_key
                     mapped_num = int(season_key[1:])
-                    logger.debug(f"[CR_MDNX_API] Resolved episode season by name '{season_name_guess}' -> {season_key}")
+                    log_manager.debug(f"Resolved episode season by name '{season_name_guess}' -> {season_key}")
 
                 # fallback to the numeric label found in the episode line if name lookup failed
                 if not season_key:
@@ -219,7 +224,7 @@ class CR_MDNX_API:
 
                 if not season_key:
                     # if we still cannot resolve, we create a shell season so the episode is not lost
-                    logger.warning(f"[CR_MDNX_API] Season not resolved by number or name in line: {line}")
+                    log_manager.warning(f"Season not resolved by number or name in line: {line}")
                     mapped_num = len(tmp_dict[current_series_id]["seasons"]) + 1
                     season_key = f"S{mapped_num}"
                     if season_key not in tmp_dict[current_series_id]["seasons"]:
@@ -270,7 +275,7 @@ class CR_MDNX_API:
                     "available_dubs": [],
                     "available_subs": []
                 }
-                logger.debug(f"[CR_MDNX_API] Staged new episode {current_series_id}/{season_key}/{ep_key}: '{episode_title_clean}'")
+                log_manager.debug(f"Staged new episode {current_series_id}/{season_key}/{ep_key}: '{episode_title_clean}'")
                 continue
 
             # versions line like "- Versions: en, es-419, ..."
@@ -286,7 +291,7 @@ class CR_MDNX_API:
                         dub_codes.append(NAME_TO_CODE[lang])
 
                 staged_episode["available_dubs"] = dub_codes
-                logger.debug(f"[CR_MDNX_API] Staged episode-level dubs for {current_series_id}/{active_season_key}/{active_episode_key}: {dub_codes}")
+                log_manager.debug(f"Staged episode-level dubs for {current_series_id}/{active_season_key}/{active_episode_key}: {dub_codes}")
                 continue
 
             # subtitles line like "- Subtitles: en-US, es-ES, ..."
@@ -307,7 +312,7 @@ class CR_MDNX_API:
                             subs_locales.append(base)
 
                 staged_episode["available_subs"] = subs_locales
-                logger.debug(f"[CR_MDNX_API] Staged episode-level subtitles for {current_series_id}/{active_season_key}/{active_episode_key}: {subs_locales}")
+                log_manager.debug(f"Staged episode-level subtitles for {current_series_id}/{active_season_key}/{active_episode_key}: {subs_locales}")
                 continue
 
         # commit any trailing staged episode once the loop ends
@@ -315,85 +320,7 @@ class CR_MDNX_API:
 
         # apply per-series blacklist to mark episodes to skip
         crunchy_monitor_series_config = config.get("cr_monitor_series_id", {})
-        if not isinstance(crunchy_monitor_series_config, dict):
-            logger.error("[CR_MDNX_API] cr_monitor_series_id must be a dict in config.")
-            crunchy_monitor_series_config = {}
-
-        # rules are strings like "S:<season_id>", "S:<season_id>:E:<index>", or "S:<season_id>:E:<start>-<end>"
-        def parse_blacklist_rules(rules):
-            blacklisted_season_ids = set()
-            episode_blacklist_rules = {}  # season_id -> list of rules; each rule is int (single ep) or (start, end) tuple
-            if not rules:
-                return blacklisted_season_ids, episode_blacklist_rules
-
-            if isinstance(rules, str):
-                if not rules.strip():  # empty string means no blacklist
-                    return blacklisted_season_ids, episode_blacklist_rules
-                rules = [rules]
-
-            for raw_rule in rules:
-                if not raw_rule:
-                    continue
-                rule_text = str(raw_rule).strip()
-                match = re.fullmatch(r"S:([^:]+)(?::E:(\d+)(?:-(\d+))?)?", rule_text)
-                if not match:
-                    continue
-
-                season_id_str = match.group(1)
-                start_str = match.group(2)
-                end_str = match.group(3)
-
-                if start_str is None:
-                    blacklisted_season_ids.add(season_id_str)
-                else:
-                    rules_for_season = episode_blacklist_rules.setdefault(season_id_str, [])
-                    if end_str is None:
-                        rules_for_season.append(int(start_str))
-                    else:
-                        start_idx, end_idx = int(start_str), int(end_str)
-                        if start_idx > end_idx:
-                            start_idx, end_idx = end_idx, start_idx
-                        rules_for_season.append((start_idx, end_idx))
-
-            return blacklisted_season_ids, episode_blacklist_rules
-
-        for series_id, series_info in tmp_dict.items():
-            rules_value = crunchy_monitor_series_config.get(series_id)
-            if rules_value is None:
-                continue
-
-            blacklisted_season_ids, episode_blacklist_rules = parse_blacklist_rules(rules_value)
-            if not blacklisted_season_ids and not episode_blacklist_rules:
-                continue
-
-            for _season_key, season_info in (series_info.get("seasons") or {}).items():
-                season_id = season_info.get("season_id")
-                if not season_id:
-                    continue
-
-                # season-level blacklist
-                if season_id in blacklisted_season_ids:
-                    for episode_info in (season_info.get("episodes") or {}).values():
-                        episode_info["episode_skip"] = True
-                    continue
-
-                # episode-level blacklist for this season_id
-                rules_for_season = episode_blacklist_rules.get(season_id)
-                if rules_for_season:
-                    for episode_key, episode_info in (season_info.get("episodes") or {}).items():
-                        try:
-                            episode_index = int(str(episode_key).lstrip("E"))
-                        except Exception:
-                            continue
-                        for rule in rules_for_season:
-                            if isinstance(rule, tuple):
-                                if rule[0] <= episode_index <= rule[1]:
-                                    episode_info["episode_skip"] = True
-                                    break
-                            else:
-                                if episode_index == rule:
-                                    episode_info["episode_skip"] = True
-                                    break
+        tmp_dict = apply_series_blacklist(tmp_dict, crunchy_monitor_series_config, service="cr")
 
         # we remove empty seasons and renumber contiguous S1..SX to keep structure compact
         for series_id, series_info in tmp_dict.items():
@@ -412,7 +339,7 @@ class CR_MDNX_API:
             for old_key, season_info in kept_seasons:
                 new_key = f"S{new_idx}"
                 if new_key != old_key:
-                    logger.debug(f"[CR_MDNX_API] Renaming season {old_key} to {new_key} in series {series_id}")
+                    log_manager.debug(f"Renaming season {old_key} to {new_key} in series {series_id}")
                 season_info["season_number"] = str(new_idx)
                 season_info["eps_count"] = str(len(season_info["episodes"]))
                 new_seasons[new_key] = season_info
@@ -420,86 +347,145 @@ class CR_MDNX_API:
 
             series_info["seasons"] = new_seasons
 
-        logger.debug("[CR_MDNX_API] Console output processed.")
+        log_manager.debug("Console output processed.")
         if add2queue:
             queue_manager.add(tmp_dict, self.queue_service)
         return tmp_dict
 
     def test(self) -> None:
-        logger.info("[CR_MDNX_API] Testing MDNX API...")
+        log_manager.info("Testing MDNX API...")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", "G8DHV78ZM"]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8").stdout
-        logger.info(f"[CR_MDNX_API] MDNX API test result:\n{result}")
+        log_manager.info(f"MDNX API test result:\n{result}")
 
         json_result = self.process_console_output(result, add2queue=False)
-        logger.info(f"[CR_MDNX_API] Processed console output:\n{json_result}")
+        log_manager.info(f"Processed console output:\n{json_result}")
 
         # Check if the output contains authentication errors
         error_triggers = ["invalid_grant", "Token Refresh Failed", "Authentication required", "Anonymous"]
         if any(trigger in result for trigger in error_triggers):
-            logger.info("[CR_MDNX_API] Authentication error detected. Forcing re-authentication...")
+            log_manager.info("Authentication error detected. Forcing re-authentication...")
             self.auth()
         else:
-            logger.info("[CR_MDNX_API] MDNX API test successful.")
+            log_manager.info("MDNX API test successful.")
 
         return
 
     def auth(self) -> str:
-        logger.info(f"[CR_MDNX_API] Authenticating with {self.mdnx_service}...")
+        log_manager.info(f"Authenticating with {self.mdnx_service}...")
 
         if not self.username or not self.password:
-            logger.error("[CR_MDNX_API] MDNX service username or password not found.\nPlease check the config.json file and enter your credentials in the following keys:\nCR_USERNAME\nCR_PASSWORD\nExiting...")
+            log_manager.error("MDNX service username or password not found.\nPlease check the config.json file and enter your credentials in the following keys:\nCR_USERNAME\nCR_PASSWORD\nExiting...")
             sys.exit(1)
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--auth", "--username", self.username, "--password", self.password, "--silentAuth"]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
-        logger.info(f"[CR_MDNX_API] Console output for auth process:\n{result.stdout}")
+        log_manager.info(f"Console output for auth process:\n{result.stdout}")
 
-        logger.info(f"[CR_MDNX_API] Authentication with {self.mdnx_service} complete.")
+        log_manager.info(f"Authentication with {self.mdnx_service} complete.")
         return result.stdout
 
     def start_monitor(self, series_id: str) -> str:
-        logger.info(f"[CR_MDNX_API] Monitoring series with ID: {series_id}")
+        log_manager.info(f"Monitoring series with ID: {series_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
-        logger.debug(f"[CR_MDNX_API] Console output for start_monitor process:\n{result.stdout}")
+        log_manager.debug(f"Console output for start_monitor process:\n{result.stdout}")
 
         self.process_console_output(result.stdout)
 
-        logger.debug(f"[CR_MDNX_API] Monitoring for series with ID: {series_id} complete.")
+        log_manager.debug(f"Monitoring for series with ID: {series_id} complete.")
         return result.stdout
 
     def stop_monitor(self, series_id: str) -> None:
         queue_manager.remove(series_id, self.queue_service)
-        logger.info(f"[CR_MDNX_API] Stopped monitoring series with ID: {series_id}")
+        log_manager.info(f"Stopped monitoring series with ID: {series_id}")
         return
 
     def update_monitor(self, series_id: str) -> str:
-        logger.info(f"[CR_MDNX_API] Updating monitor for series with ID: {series_id}")
+        log_manager.info(f"Updating monitor for series with ID: {series_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
-        logger.debug(f"[CR_MDNX_API] Console output for update_monitor process:\n{result.stdout}")
+        log_manager.debug(f"Console output for update_monitor process:\n{result.stdout}")
 
         self.process_console_output(result.stdout)
 
-        logger.debug(f"[CR_MDNX_API] Updating monitor for series with ID: {series_id} complete.")
+        log_manager.debug(f"Updating monitor for series with ID: {series_id} complete.")
         return result.stdout
 
+    def cancel_active_download(self) -> None:
+        proc = None
+        thread = None
+
+        with self.download_lock:
+            proc = self.download_proc
+            thread = self.download_thread
+
+        # kill the process if its still running
+        if proc is not None:
+            try:
+                if proc.poll() is None:
+                    log_manager.info("Killing active mdnx download process...")
+                    proc.kill()
+            except Exception as e:
+                log_manager.error(f"Failed to kill active mdnx process: {e}")
+
+        # wait a bit for the worker thread to exit
+        if thread is not None and thread.is_alive():
+            log_manager.info("Waiting for download worker thread to exit...")
+            thread.join(timeout=5.0)
+
+        # clear handles
+        with self.download_lock:
+            if self.download_thread is thread:
+                self.download_thread = None
+            if self.download_proc is proc:
+                self.download_proc = None
+
+    def _run_download(self, cmd: list, result: dict) -> None:
+        success = False
+        returncode = -1
+        proc = None
+
+        try:
+            log_manager.info(f"Executing command: {' '.join(cmd)}")
+
+            with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
+                with self.download_lock:
+                    self.download_proc = proc
+
+                for line in proc.stdout:
+                    cleaned = line.rstrip()
+                    log_manager.info(cleaned)
+
+                    if any(ok_log.lower() in cleaned.lower() for ok_log in MDNX_API_OK_LOGS):
+                        success = True
+
+                returncode = proc.returncode
+
+        except Exception as e:
+            log_manager.error(f"Download crashed with exception: {e}")
+        finally:
+            with self.download_lock:
+                self.download_proc = None
+
+            result["success"] = success
+            result["returncode"] = returncode
+
     def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list | None = None) -> bool:
-        logger.info(f"[CR_MDNX_API] Downloading episode {episode_number} for series {series_id} season {season_id}")
+        log_manager.info(f"Downloading episode {episode_number} for series {series_id} season {season_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id, "-s", season_id, "-e", episode_number]
 
         if dub_override is False:
-            logger.info("[CR_MDNX_API] No dubs were found for this episode, skipping download.")
+            log_manager.info("No dubs were found for this episode, skipping download.")
             return False
 
         if dub_override:
             tmp_cmd += ["--dubLang", *dub_override]
-            logger.info(f"[CR_MDNX_API] Using dubLang override: {' '.join(dub_override)}")
+            log_manager.info(f"Using dubLang override: {' '.join(dub_override)}")
 
         # Hardcoded options.
         # These can not be modified by config.json, or things will break/not work as expected.
@@ -511,24 +497,41 @@ class CR_MDNX_API:
         else:
             cmd = tmp_cmd
 
-        logger.info(f"[CR_MDNX_API] Executing command: {' '.join(cmd)}")
+        # make sure we dont start two downloads at once
+        with self.download_lock:
+            if self.download_thread and self.download_thread.is_alive():
+                log_manager.error("A download is already in progress. refusing to start a second one.")
+                return False
 
-        success = False
-        with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
-            for line in proc.stdout:
-                cleaned = line.rstrip()
-                logger.info(f"[CR_MDNX_API][multi-downloader-nx] {cleaned}")
+        result = {"success": False, "returncode": None}
 
-                if any(ok_log.lower() in cleaned.lower() for ok_log in MDNX_API_OK_LOGS):
-                    success = True
+        worker = threading.Thread(
+            target=self._run_download,
+            args=(cmd, result),
+            name=f"{self.mdnx_service}-download",
+            daemon=True,
+        )
 
-        if proc.returncode != 0:
-            logger.error(f"[CR_MDNX_API] Download failed with exit code {proc.returncode}")
+        with self.download_lock:
+            self.download_thread = worker
+
+        worker.start()
+
+        # wait for download to finish
+        while worker.is_alive():
+            worker.join(timeout=1.0)
+
+        # retrieve results
+        rc = result["returncode"]
+        success = result["success"]
+
+        if rc not in (0, None):
+            log_manager.error(f"Download failed with exit code {rc}")
             return False
 
         if not success:
-            logger.error("[CR_MDNX_API] Download did not report successful download. Assuming failure.")
+            log_manager.error("Download did not report successful download. Assuming failure.")
             return False
 
-        logger.info("[CR_MDNX_API] Download finished successfully.")
+        log_manager.info("Download finished successfully.")
         return True
