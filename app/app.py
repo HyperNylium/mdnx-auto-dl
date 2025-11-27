@@ -12,7 +12,7 @@ from appdata.modules.Vars import (
     update_mdnx_config, update_app_config, handle_exception, get_running_user, output_effective_config
 )
 
-__VERSION__ = "2.2.1"
+__VERSION__ = "2.2.2"
 
 
 def app():
