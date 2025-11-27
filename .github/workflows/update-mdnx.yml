@@ -2,6 +2,8 @@ name: Update mdnx
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 * * * *'  # At minute 0 of every hour
 
 permissions:
   contents: write
