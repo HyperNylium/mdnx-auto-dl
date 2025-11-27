@@ -1,0 +1,209 @@
+name: Update mdnx
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-mdnx:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install system tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y p7zip-full jq zip
+
+      - name: Get latest mdnx release info
+        id: get_release
+        run: |
+          API_URL="https://api.github.com/repos/anidl/multi-downloader-nx/releases/latest"
+          response=$(curl -sSL "$API_URL")
+
+          raw_tag=$(echo "$response" | jq -r '.tag_name')
+          version=$(echo "$raw_tag" | sed 's/^v//')
+
+          asset_url=$(echo "$response" | jq -r '
+            .assets[] |
+            select(.name == "multi-downloader-nx-linux-x64-cli.7z") |
+            .browser_download_url
+          ')
+
+          if [ -z "$asset_url" ] || [ "$asset_url" = "null" ]; then
+            echo "Could not find multi-downloader-nx-linux-x64-cli.7z asset in latest release" >&2
+            exit 1
+          fi
+
+          echo "Latest version: $version"
+          echo "Asset URL: $asset_url"
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "asset_url=$asset_url" >> "$GITHUB_OUTPUT"
+
+      - name: Read current mdnx version from versions.txt
+        id: current_version
+        working-directory: app/appdata/bin
+        run: |
+          current="unknown"
+          if [ -f versions.txt ]; then
+            line=$(grep '^mdnx.zip=' versions.txt | head -n1 || true)
+            if [ -n "$line" ]; then
+              current=$(echo "$line" | cut -d= -f2)
+            fi
+          fi
+          echo "Current mdnx.zip version on master: $current"
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+
+      - name: Read mdnx version from update branch
+        id: pr_branch_version
+        run: |
+          pr_branch="chore/update-mdnx-binary"
+          pr_version="unknown"
+
+          # Does the branch exist on origin?
+          if git ls-remote --exit-code --heads origin "$pr_branch" >/dev/null 2>&1; then
+            echo "Found remote branch $pr_branch, fetching..."
+            git fetch origin "$pr_branch":"$pr_branch"
+            if git cat-file -e "$pr_branch:app/appdata/bin/versions.txt" 2>/dev/null; then
+              line=$(git show "$pr_branch:app/appdata/bin/versions.txt" | grep '^mdnx.zip=' | head -n1 || true)
+              if [ -n "$line" ]; then
+                pr_version=$(echo "$line" | cut -d= -f2)
+              fi
+            fi
+          else
+            echo "No remote branch $pr_branch found."
+          fi
+
+          echo "PR branch mdnx.zip version: $pr_version"
+          echo "pr_version=$pr_version" >> "$GITHUB_OUTPUT"
+
+      - name: Decide whether update is needed
+        id: check_update
+        run: |
+          latest="${{ steps.get_release.outputs.version }}"
+          current="${{ steps.current_version.outputs.current }}"
+          pr_version="${{ steps.pr_branch_version.outputs.pr_version }}"
+
+          [ -z "$pr_version" ] && pr_version="unknown"
+
+          echo "Latest upstream version : $latest"
+          echo "Master mdnx.zip version : $current"
+          echo "Branch mdnx.zip version : $pr_version"
+
+          needs_update="false"
+
+          if [ "$current" != "unknown" ] && [ "$latest" = "$current" ]; then
+            echo "Master already on latest mdnx version ($current). No update."
+            needs_update="false"
+          elif [ "$pr_version" != "unknown" ] && [ "$latest" = "$pr_version" ]; then
+            echo "Update branch already at latest mdnx version ($pr_version). No update."
+            needs_update="false"
+          else
+            echo "Update needed (master=$current, branch=$pr_version, latest=$latest)."
+            needs_update="true"
+          fi
+
+          echo "needs_update=$needs_update" >> "$GITHUB_OUTPUT"
+          echo "from_version=$current" >> "$GITHUB_OUTPUT"
+
+      - name: Download mdnx linux x64 CLI archive
+        if: steps.check_update.outputs.needs_update == 'true'
+        working-directory: app/appdata/bin
+        run: |
+          curl -L "${{ steps.get_release.outputs.asset_url }}" -o multi-downloader-nx-linux-x64-cli.7z
+
+      - name: Unpack, rename folder to mdnx, and re-zip
+        if: steps.check_update.outputs.needs_update == 'true'
+        working-directory: app/appdata/bin
+        run: |
+          rm -rf mdnx
+          rm -f mdnx.zip
+
+          mkdir extracted
+          7z x multi-downloader-nx-linux-x64-cli.7z -oextracted
+
+          inner_dir=$(find extracted -mindepth 1 -maxdepth 1 -type d | head -n 1)
+
+          if [ -z "$inner_dir" ]; then
+            echo "No directory found inside extracted archive" >&2
+            ls -R
+            exit 1
+          fi
+
+          mv "$inner_dir" mdnx
+          rm -f multi-downloader-nx-linux-x64-cli.7z
+
+          zip -r mdnx.zip mdnx
+
+          rm -rf mdnx
+          rm -rf extracted
+
+      - name: Update versions.txt for mdnx.zip
+        if: steps.check_update.outputs.needs_update == 'true'
+        working-directory: app/appdata/bin
+        run: |
+          version="${{ steps.get_release.outputs.version }}"
+          if [ -z "$version" ]; then
+            echo "Version not available from previous step" >&2
+            exit 1
+          fi
+
+          if grep -q '^mdnx.zip=' versions.txt; then
+            sed -i 's/^mdnx.zip=.*/mdnx.zip='"$version"'/' versions.txt
+          else
+            echo "mdnx.zip=$version" >> versions.txt
+          fi
+
+          echo "Updated versions.txt:"
+          cat versions.txt
+
+      - name: Bump __VERSION__ in app/app.py
+        if: steps.check_update.outputs.needs_update == 'true'
+        run: |
+          python - << 'PY'
+          import re
+          from pathlib import Path
+
+          path = Path("app/app.py")
+          text = path.read_text(encoding="utf-8")
+
+          pattern = r'(__VERSION__\s*=\s*")(\d+)\.(\d+)\.(\d+)(")'
+
+          def bump_patch(match: re.Match) -> str:
+              major, minor, patch = map(int, match.group(2, 3, 4))
+              patch += 1
+              return f'{match.group(1)}{major}.{minor}.{patch}{match.group(5)}'
+
+          new_text, count = re.subn(pattern, bump_patch, text, count=1)
+          if count == 0:
+              raise SystemExit("Could not find __VERSION__ assignment in app/app.py")
+
+          path.write_text(new_text, encoding="utf-8")
+          PY
+
+      - name: Show changed files
+        if: steps.check_update.outputs.needs_update == 'true'
+        run: |
+          git status
+          git diff
+
+      - name: Create or update Pull Request
+        if: steps.check_update.outputs.needs_update == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            chore: update multi-downloader-nx to v${{ steps.get_release.outputs.version }}
+          title: Dependency update
+          body: |
+            ## Dependencies:
+            - Updated multi-downloader-nx from [${{ steps.check_update.outputs.from_version }} -> ${{ steps.get_release.outputs.version }}](https://github.com/anidl/multi-downloader-nx/releases/tag/v${{ steps.get_release.outputs.version }})
+          base: master
+          branch: chore/update-mdnx-binary
+          delete-branch: true
