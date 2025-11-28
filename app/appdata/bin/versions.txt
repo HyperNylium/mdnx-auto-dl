@@ -1,2 +1,2 @@
 Bento4-SDK.zip=1.6.0-641
-mdnx.zip=5.6.7
+mdnx.zip=5.6.8
