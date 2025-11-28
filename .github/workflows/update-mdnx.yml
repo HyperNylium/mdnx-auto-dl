@@ -204,6 +204,8 @@ jobs:
             chore: update multi-downloader-nx to v${{ steps.get_release.outputs.version }}
           title: Dependency update
           body: |
+            # What's Changed
+
             ## Dependencies:
             - Updated multi-downloader-nx from [${{ steps.check_update.outputs.from_version }} -> ${{ steps.get_release.outputs.version }}](https://github.com/anidl/multi-downloader-nx/releases/tag/v${{ steps.get_release.outputs.version }})
           base: master
