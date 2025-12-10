@@ -1,4 +1,3 @@
-
 import smtplib
 import subprocess
 from email.message import EmailMessage

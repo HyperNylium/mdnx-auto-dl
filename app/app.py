@@ -23,7 +23,7 @@ def app():
 
     if config["app"]["CR_ENABLED"] == True:
         log_manager.info("Starting CR_MDNX_API...")
-        from appdata.modules.CR_MDNX_API import CR_MDNX_API
+        from appdata.modules.API.MDNX.crunchy import CR_MDNX_API
         cr_mdnx_api = CR_MDNX_API()
 
         # Authenticate with CR MDNX service if needed or force auth if user wants to
@@ -39,7 +39,7 @@ def app():
 
     if config["app"]["HIDIVE_ENABLED"] == True:
         log_manager.info("Starting HIDIVE_MDNX_API...")
-        from appdata.modules.HIDIVE_MDNX_API import HIDIVE_MDNX_API
+        from appdata.modules.API.MDNX.hidive import HIDIVE_MDNX_API
         hidive_mdnx_api = HIDIVE_MDNX_API()
 
         log_manager.info("Checking to see if user is authenticated with MDNX service (hd_new_token.yml exists?)...")
@@ -122,8 +122,6 @@ def app():
         log_manager.info("MEDIASERVER_TYPE not set. Skipping media server auth/scan.")
 
     # Start MainLoop
-    log_manager.info("Starting MainLoop...")
-
     if config["app"]["CR_ENABLED"] == True and config["app"]["HIDIVE_ENABLED"] == True:
         log_manager.info("Both CR and HIDIVE are enabled. Starting MainLoop with both services...")
         mainloop = MainLoop(cr_mdnx_api=cr_mdnx_api, hidive_mdnx_api=hidive_mdnx_api, notifier=notifier)
