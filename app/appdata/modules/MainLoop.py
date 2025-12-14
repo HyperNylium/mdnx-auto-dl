@@ -217,7 +217,7 @@ class MainLoop:
         for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(bucket):
 
             if self.stop_requested:
-                log_manager.info(f"Stop requested. Skipping dub/sub verification for {service}.")
+                log_manager.info(f"Stop requested. Skipping download for {service}.")
                 return
 
             file_path = get_episode_file_path(bucket, series_id, season_key, episode_key, DATA_DIR)
