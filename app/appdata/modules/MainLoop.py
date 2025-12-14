@@ -224,7 +224,7 @@ class MainLoop:
             episode_basename = os.path.basename(file_path)
 
             if episode_info["episode_skip"]:
-                log_manager.info(f"{episode_basename} is blacklisted (episode_skip=True). Skipping dub/sub check for this episode.")
+                log_manager.info(f"{episode_basename} is blacklisted (episode_skip=True). Skipping download.")
                 continue
 
             if episode_info["episode_downloaded"]:
