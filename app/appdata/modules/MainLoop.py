@@ -288,7 +288,6 @@ class MainLoop:
         for lang in config["mdnx"]["cli-defaults"]["dlsubs"]:
             wanted_subs.add(lang.lower())
 
-        log_manager.info("Verifying language tracks in downloaded files.")
         for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(bucket):
 
             if self.stop_requested:
@@ -297,6 +296,10 @@ class MainLoop:
 
             file_path = get_episode_file_path(bucket, series_id, season_key, episode_key, DATA_DIR)
             episode_basename = os.path.basename(file_path)
+
+            if episode_info["episode_skip"]:
+                log_manager.info(f"{episode_basename} is blacklisted (episode_skip=True). Skipping dub/sub check for this episode.")
+                continue
 
             if episode_info["has_all_dubs_subs"]:
                 log_manager.info(f"{episode_basename} already marked as having all requested dubs/subs (has_all_dubs_subs=True). Skipping dub/sub check for this episode.")
