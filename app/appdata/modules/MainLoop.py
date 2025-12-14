@@ -217,22 +217,21 @@ class MainLoop:
         for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(bucket):
 
             if self.stop_requested:
-                log_manager.info(f"Stop requested. Skipping download for {service}.")
+                log_manager.info(f"Stop requested. Skipping dub/sub verification for {service}.")
                 return
 
+            file_path = get_episode_file_path(bucket, series_id, season_key, episode_key, DATA_DIR)
+            episode_basename = os.path.basename(file_path)
+
             if episode_info["episode_skip"]:
-                log_manager.info(f"Episode {episode_info['episode_number']} ({episode_info['episode_name']}) 'episode_skip' is True. Skipping download.")
+                log_manager.info(f"{episode_basename} is blacklisted (episode_skip=True). Skipping dub/sub check for this episode.")
                 continue
 
             if episode_info["episode_downloaded"]:
-                log_manager.info(f"Episode {episode_info['episode_number']} ({episode_info['episode_name']}) 'episode_downloaded' status is True. Skipping download.")
+                log_manager.info(f"{episode_basename} is marked as already downloaded (episode_downloaded=True). Skipping download.")
                 continue
 
-            log_manager.info(f"Episode {episode_info['episode_number']} ({episode_info['episode_name']}) 'episode_downloaded' status is False. Checking file path to make sure file actually does not exist...")
-
-            # Construct the expected file path using the dynamic template.
-            file_path = get_episode_file_path(bucket, series_id, season_key, episode_key, DATA_DIR)
-            log_manager.info(f"Checking for episode at {file_path}.")
+            log_manager.info(f"Checking for {episode_basename} at {file_path}.")
 
             if os.path.exists(file_path):
                 log_manager.info(f"Episode already exists at {file_path}. Updating 'episode_downloaded' status to True and skipping download.")
