@@ -5,8 +5,8 @@ import subprocess
 import threading
 
 # Custom imports
-from .Globals import queue_manager, log_manager
-from .Vars import (
+from appdata.modules.Globals import queue_manager, log_manager
+from appdata.modules.Vars import (
     config,
     VALID_LOCALES, CODE_TO_LOCALE, LANG_MAP, MDNX_SERVICE_BIN_PATH, MDNX_API_OK_LOGS,
     sanitize, dedupe_casefold, apply_series_blacklist

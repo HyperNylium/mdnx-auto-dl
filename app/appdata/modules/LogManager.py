@@ -82,11 +82,12 @@ class LogManager:
         time_str = now.strftime("%I:%M:%S %p")
         date_str = now.strftime("%d/%m/%Y")
 
-        line = f"[{time_str} {date_str}] [{level_name}] [{filename}<{funcname}>] - {message}"
+        terminal_line = f"[{level_name}] {message}"
+        logfile_line = f"[{time_str} {date_str}] [{level_name}] [{filename}<{funcname}>] - {message}"
 
-        self._write_line(line)
+        self._write_line(logfile_line)
 
-        print(line, file=sys.stdout, flush=True)
+        print(terminal_line, file=sys.stdout, flush=True)
 
         return
 
