@@ -302,6 +302,8 @@ def dedupe_preserve_order(items, key=None):
 
 
 def dedupe_casefold(items):
+    """Deduplicate a list of strings in a case-insensitive manner while preserving order."""
+
     return dedupe_preserve_order(items, key=lambda s: (s or "").casefold())
 
 
