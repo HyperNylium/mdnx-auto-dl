@@ -14,7 +14,7 @@ CONFIG_PATH = os.getenv("CONFIG_FILE", "appdata/config/config.json")
 QUEUE_PATH = os.getenv("QUEUE_FILE", "appdata/config/queue.json")
 
 
-def _log(message: str, level: str = "info") -> None:
+def _log(message: str, level: str = "info", exc_info=None) -> None:
     """Internal logging helper function. Needed to avoid circular imports."""
 
     try:
@@ -24,13 +24,13 @@ def _log(message: str, level: str = "info") -> None:
 
     try:
         if level == "debug":
-            log_manager.debug(message)
+            log_manager.debug(message, exc_info=exc_info)
         elif level == "warning":
-            log_manager.warning(message)
+            log_manager.warning(message, exc_info=exc_info)
         elif level == "error":
-            log_manager.error(message)
+            log_manager.error(message, exc_info=exc_info)
         else:
-            log_manager.info(message)
+            log_manager.info(message, exc_info=exc_info)
     except Exception:
         pass
 
@@ -268,7 +268,10 @@ def handle_exception(exc_type, exc_value, exc_traceback):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
 
-    _log("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback), level="error")
+    _log("Uncaught exception", level="error", exc_info=(exc_type, exc_value, exc_traceback))
+
+    # call the default excepthook as well
+    sys.__excepthook__(exc_type, exc_value, exc_traceback)
 
 
 def dedupe_preserve_order(items, key=None):
