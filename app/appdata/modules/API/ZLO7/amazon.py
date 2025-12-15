@@ -1,15 +1,8 @@
-import os
-import re
-import sys
-import subprocess
-import threading
 
-from appdata.modules.Globals import queue_manager, log_manager
-from appdata.modules.Vars import config
 
 class AMAZON_ZLO_API:
     def __init__(self): ...
-    
+
     def process_console_output(self): ...
 
     def test(self): ...
