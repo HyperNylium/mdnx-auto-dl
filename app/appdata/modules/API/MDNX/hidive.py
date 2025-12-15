@@ -114,7 +114,7 @@ class HIDIVE_MDNX_API:
 
         return None
 
-    def process_console_output(self, output: str, add2queue: bool = True):
+    def _process_console_output(self, output: str, add2queue: bool = True):
         """Parse the console output from MDNX CLI and build structured series/season/episode data."""
 
         def _group_matches(count_group: int, count_declared: int) -> bool:
@@ -465,7 +465,7 @@ class HIDIVE_MDNX_API:
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8").stdout
         log_manager.debug(f"MDNX API test result:\n{result}")
 
-        json_result = self.process_console_output(result, add2queue=False)
+        json_result = self._process_console_output(result, add2queue=False)
         log_manager.info(f"Processed console output:\n{json_result}")
 
         # --- This needs to be researched/tested more. I am not sure what anidl outputs on auth errors with HiDive.
@@ -506,7 +506,7 @@ class HIDIVE_MDNX_API:
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
         log_manager.debug(f"Console output for start_monitor process:\n{result.stdout}")
 
-        self.process_console_output(result.stdout)
+        self._process_console_output(result.stdout)
 
         log_manager.debug(f"Monitoring for series with ID: {series_id} complete.")
         return result.stdout
@@ -527,7 +527,7 @@ class HIDIVE_MDNX_API:
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
         log_manager.debug(f"Console output for update_monitor process:\n{result.stdout}")
 
-        self.process_console_output(result.stdout)
+        self._process_console_output(result.stdout)
 
         log_manager.debug(f"Updating monitor for series with ID: {series_id} complete.")
         return result.stdout

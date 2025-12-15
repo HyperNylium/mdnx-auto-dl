@@ -36,7 +36,7 @@ class LogManager:
         self.lock = threading.Lock()
 
         # rotate any existing log from the previous run.
-        self.rotate()
+        self._rotate()
         return
 
     def debug(self, message: str, exc_info=None) -> None:
@@ -64,22 +64,20 @@ class LogManager:
         self._log(message, level="CRITICAL", exc_info=exc_info)
         return
 
-    def _normalize_exc_info(self, exc_info):
-        """Normalize exc_info into (exc_type, exc_value, tb) tuple or None."""
+    def _rotate(self) -> None:
+        """Archives the current log file and prunes old archives if necessary."""
 
-        if exc_info is None:
-            return None
+        with self.lock:
+            if not os.path.exists(self.log_file):
+                return
 
-        if exc_info is True:
-            return sys.exc_info()
+            if os.path.getsize(self.log_file) == 0:
+                return
 
-        if isinstance(exc_info, BaseException):
-            return (type(exc_info), exc_info, exc_info.__traceback__)
+            self._archive_current_log_locked()
+            self._prune_archives_locked()
 
-        if isinstance(exc_info, tuple) and len(exc_info) == 3:
-            return exc_info
-
-        return None
+        return
 
     def _log(self, message: str, level: str = "INFO", exc_info=None) -> None:
         """Logs a message with the specified level to both terminal and log file."""
@@ -126,20 +124,22 @@ class LogManager:
 
         return
 
-    def rotate(self) -> None:
-        """Archives the current log file and prunes old archives if necessary."""
+    def _normalize_exc_info(self, exc_info):
+        """Normalize exc_info into (exc_type, exc_value, tb) tuple or None."""
 
-        with self.lock:
-            if not os.path.exists(self.log_file):
-                return
+        if exc_info is None:
+            return None
 
-            if os.path.getsize(self.log_file) == 0:
-                return
+        if exc_info is True:
+            return sys.exc_info()
 
-            self._archive_current_log_locked()
-            self._prune_archives_locked()
+        if isinstance(exc_info, BaseException):
+            return (type(exc_info), exc_info, exc_info.__traceback__)
 
-        return
+        if isinstance(exc_info, tuple) and len(exc_info) == 3:
+            return exc_info
+
+        return None
 
     def _archive_current_log_locked(self) -> None:
         """Archives the current log file into a zip with a timestamped name."""

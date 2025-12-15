@@ -71,7 +71,7 @@ class FileManager:
 
         log_manager.info(f"Found source file: {src_path}. Checking readiness...")
 
-        if not self.waitForReady(src_path):
+        if not self._waitForReady(src_path):
             log_manager.warning(f"'{src_basename}' not ready within {self.readyTimeout} seconds, skipping.")
             return False
 
@@ -121,7 +121,22 @@ class FileManager:
         log_manager.error(f"Failed to move '{src_basename}' after {self.moveRetries} attempts.")
         return False
 
-    def waitForReady(self, path):
+    def remove_temp_files(self):
+        """Remove all files in the temporary source directory."""
+
+        for name in os.listdir(self.source):
+            path = os.path.join(self.source, name)
+            log_manager.debug(f"removing {path}")
+            try:
+                os.remove(path)
+                log_manager.debug(f"Removed {path}")
+            except Exception as e:
+                log_manager.error(f"Error removing {path}: {e}")
+
+        log_manager.info(f"Temporary files in {self.source} removed.")
+        return True
+
+    def _waitForReady(self, path):
         """Wait for a file to become ready by monitoring its size stability over time."""
 
         lastSize = -1
@@ -149,18 +164,3 @@ class FileManager:
             time.sleep(self.readyCheckInterval)
         log_manager.warning(f"File '{path}' not ready within {self.readyTimeout} seconds timeout.")
         return False
-
-    def remove_temp_files(self):
-        """Remove all files in the temporary source directory."""
-
-        for name in os.listdir(self.source):
-            path = os.path.join(self.source, name)
-            log_manager.debug(f"removing {path}")
-            try:
-                os.remove(path)
-                log_manager.debug(f"Removed {path}")
-            except Exception as e:
-                log_manager.error(f"Error removing {path}: {e}")
-
-        log_manager.info(f"Temporary files in {self.source} removed.")
-        return True

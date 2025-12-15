@@ -63,7 +63,7 @@ class CR_MDNX_API:
 
         log_manager.info(f"MDNX API initialized with: Path: {self.mdnx_path} | Service: {self.mdnx_service}")
 
-    def process_console_output(self, output: str, add2queue: bool = True):
+    def _process_console_output(self, output: str, add2queue: bool = True):
         """Parses the console output from the MDNX CLI and constructs a structured dictionary of series, seasons, and episodes."""
 
         log_manager.debug("Processing console output...")
@@ -373,7 +373,7 @@ class CR_MDNX_API:
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8").stdout
         log_manager.info(f"MDNX API test result:\n{result}")
 
-        json_result = self.process_console_output(result, add2queue=False)
+        json_result = self._process_console_output(result, add2queue=False)
         log_manager.info(f"Processed console output:\n{json_result}")
 
         # check if the output contains authentication errors
@@ -411,7 +411,7 @@ class CR_MDNX_API:
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
         log_manager.debug(f"Console output for start_monitor process:\n{result.stdout}")
 
-        self.process_console_output(result.stdout)
+        self._process_console_output(result.stdout)
 
         log_manager.debug(f"Monitoring for series with ID: {series_id} complete.")
         return result.stdout
@@ -432,7 +432,7 @@ class CR_MDNX_API:
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
         log_manager.debug(f"Console output for update_monitor process:\n{result.stdout}")
 
-        self.process_console_output(result.stdout)
+        self._process_console_output(result.stdout)
 
         log_manager.debug(f"Updating monitor for series with ID: {series_id} complete.")
         return result.stdout
