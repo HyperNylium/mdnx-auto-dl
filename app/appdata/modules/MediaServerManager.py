@@ -226,6 +226,7 @@ class JELLYFIN_API:
         if self.server_url is None or self.server_url == "":
             log_manager.error("MEDIASERVER_URL is not set or empty. Please set it in config.json. Exiting...")
             sys.exit(1)
+
         if self.api_key is None or self.api_key == "":
             log_manager.error("MEDIASERVER_TOKEN (API key) is not set or empty. Please set it in config.json. Exiting...")
             sys.exit(1)
@@ -260,7 +261,7 @@ class JELLYFIN_API:
             return False
 
 
-def _get_media_server():
+def _get_media_server() -> PLEX_API | JELLYFIN_API | None:
     """Get or create the media server API instance based on config and save it globally."""
 
     global MEDIA_SERVER_INSTANCE
@@ -300,6 +301,8 @@ def mediaserver_auth(max_wait_seconds: int = 600, poll_interval: float = 1.0) ->
     if isinstance(inst, PLEX_API):
         return inst.wait_for_auth(max_wait_seconds, poll_interval)
 
+    # for jellyfin, no auth process needed because of the API key.
+    # just return success.
     return True
 
 

@@ -29,6 +29,68 @@ class MainLoop:
 
         log_manager.debug("MainLoop initialized.")
 
+    def mainloop(self) -> None:
+        try:
+            while not self.stop_requested:
+                log_manager.debug("Executing MainLoop task.")
+
+                if self.skip_queue_refresh is True:
+                    log_manager.info("SKIP_QUEUE_REFRESH is True. Skipping queue refresh step and using old queue data.")
+                else:
+                    refresh_ok = self._refresh_queue()
+                    if not refresh_ok:
+                        self.stop()
+                        return
+
+                current_queue = queue_manager.output()
+
+                if self.only_create_queue == True:
+                    log_manager.info("ONLY_CREATE_QUEUE is True. Exiting after queue creation.\nIf docker-compose.yaml has 'restart: always/unless-stopped', please change it to 'restart: no' to prevent restart loop.")
+                    self.stop()
+                    return
+
+                # download any missing / not yet downloaded episodes for Crunchyroll
+                if self.cr_enabled:
+                    self._download_for_service("Crunchyroll", self.cr_mdnx_api, current_queue)
+
+                    # check for missing dubs and subs in downloaded files for Crunchyroll series
+                    if self.check_missing_dub_sub == True:
+                        self._refresh_dub_sub_for_service("Crunchyroll", self.cr_mdnx_api, current_queue)
+                    else:
+                        log_manager.info("CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification for Crunchyroll.")
+
+                # download any missing / not yet downloaded episodes for HiDive
+                if self.hidive_enabled:
+                    self._download_for_service("HiDive", self.hidive_mdnx_api, current_queue)
+
+                    # check for missing dubs and subs in downloaded files for HiDive series
+                    if self.check_missing_dub_sub == True:
+                        self._refresh_dub_sub_for_service("HiDive", self.hidive_mdnx_api, current_queue)
+                    else:
+                        log_manager.info("CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification for HiDive.")
+
+                if self.dry_run:
+                    log_manager.info("DRY_RUN is True. Exiting after one iteration of the main loop.\nIf docker-compose.yaml has 'restart: always/unless-stopped', please change it to 'restart: no' to prevent restart loop.")
+                    self.stop()
+                    return
+
+                # trigger media server scan if configured and there are new items in the notifications buffer.
+                if len(self.notifications_buffer) > 0 and config["app"]["MEDIASERVER_TYPE"] is not None:
+                    log_manager.info("Triggering media server scan.")
+                    mediaserver_scan_library()
+
+                # flush notifications buffer if it has items.
+                if self.notifications_buffer:
+                    log_manager.info("Flushing notifications buffer.")
+                    self._flush_notifications()
+
+                # wait for self.timeout seconds or exit early if stop_event is set.
+                log_manager.info(f"MainLoop iteration completed. Next iteration in {format_duration(self.loop_timeout)}.")
+                if self._wait_or_interrupt(timeout=self.loop_timeout):
+                    return
+        finally:
+            log_manager.info("MainLoop exited.")
+
     def stop(self) -> None:
         """Signal the main loop to stop."""
 
@@ -44,7 +106,7 @@ class MainLoop:
         log_manager.info("MainLoop stop requested.")
         return
 
-    def wait_or_interrupt(self, timeout: int) -> bool:
+    def _wait_or_interrupt(self, timeout: int) -> bool:
         """Wait for the specified timeout or exit early if stop is requested."""
 
         end = time.time() + timeout
@@ -55,7 +117,7 @@ class MainLoop:
             return True
         return False
 
-    def snapshot_episode(self, series_name, episode_info, file_path, action_label: str, before_dubs=None, before_subs=None) -> dict:
+    def _snapshot_episode(self, series_name, episode_info, file_path, action_label: str, before_dubs=None, before_subs=None) -> dict:
         """Create a snapshot of the episode's dub/sub state before and after download."""
 
         # probe the file to get current local dubs and subs
@@ -87,7 +149,7 @@ class MainLoop:
             "path": file_path,
         }
 
-    def flush_notifications(self) -> None:
+    def _flush_notifications(self) -> None:
         """Send out notifications for all buffered items (if enabled) and clear the buffer."""
 
         if not self.notifications_buffer or self.notifier is None:
@@ -162,7 +224,7 @@ class MainLoop:
         finally:
             self.notifications_buffer.clear()
 
-    def refresh_queue(self) -> bool:
+    def _refresh_queue(self) -> bool:
         """Refresh the MDNX queue and start/stop monitors as needed."""
 
         log_manager.info("Getting the current queue IDs...")
@@ -223,7 +285,7 @@ class MainLoop:
         log_manager.info("MDNX queue refresh complete.")
         return ok_cr and ok_hd
 
-    def download_for_service(self, service: str, mdnx_api, current_queue: dict) -> None:
+    def _download_for_service(self, service: str, mdnx_api, current_queue: dict) -> None:
         """Download missing / not yet downloaded episodes for the specified service."""
 
         if self.stop_requested:
@@ -277,7 +339,7 @@ class MainLoop:
                         log_manager.info("Transfer complete.")
                         queue_manager.update_episode_status(series_id, season_key, episode_key, True, service)
                         series_name = bucket[series_id]["series"]["series_name"]
-                        snapshot = self.snapshot_episode(series_name, episode_info, file_path, action_label="new")
+                        snapshot = self._snapshot_episode(series_name, episode_info, file_path, action_label="new")
                         self.notifications_buffer.append(snapshot)
                     else:
                         log_manager.error("Transfer failed.")
@@ -288,10 +350,10 @@ class MainLoop:
 
                 file_manager.remove_temp_files()
                 log_manager.info(f"Waiting for {format_duration(self.between_episode_timeout)} before next iteration.")
-                if self.wait_or_interrupt(timeout=self.between_episode_timeout):
+                if self._wait_or_interrupt(timeout=self.between_episode_timeout):
                     return
 
-    def refresh_dub_sub_for_service(self, service: str, mdnx_api, current_queue: dict) -> None:
+    def _refresh_dub_sub_for_service(self, service: str, mdnx_api, current_queue: dict) -> None:
         """Check existing episodes for missing dubs/subs and re-download if needed."""
 
         if self.stop_requested:
@@ -410,7 +472,7 @@ class MainLoop:
                 if file_manager.transfer(temp_path, file_path, overwrite=True):
                     log_manager.info("Transfer complete.")
                     series_name = bucket[series_id]["series"]["series_name"]
-                    snapshot = self.snapshot_episode(series_name, episode_info, file_path, action_label="updated", before_dubs=local_dubs, before_subs=local_subs)
+                    snapshot = self._snapshot_episode(series_name, episode_info, file_path, action_label="updated", before_dubs=local_dubs, before_subs=local_subs)
                     self.notifications_buffer.append(snapshot)
                 else:
                     log_manager.error("Transfer failed")
@@ -419,67 +481,5 @@ class MainLoop:
 
             file_manager.remove_temp_files()
             log_manager.info(f"Waiting for {format_duration(self.between_episode_timeout)} before next iteration.")
-            if self.wait_or_interrupt(timeout=self.between_episode_timeout):
+            if self._wait_or_interrupt(timeout=self.between_episode_timeout):
                 return
-
-    def mainloop(self) -> None:
-        try:
-            while not self.stop_requested:
-                log_manager.debug("Executing MainLoop task.")
-
-                if self.skip_queue_refresh is True:
-                    log_manager.info("SKIP_QUEUE_REFRESH is True. Skipping queue refresh step and using old queue data.")
-                else:
-                    refresh_ok = self.refresh_queue()
-                    if not refresh_ok:
-                        self.stop()
-                        return
-
-                current_queue = queue_manager.output()
-
-                if self.only_create_queue == True:
-                    log_manager.info("ONLY_CREATE_QUEUE is True. Exiting after queue creation.\nIf docker-compose.yaml has 'restart: always/unless-stopped', please change it to 'restart: no' to prevent restart loop.")
-                    self.stop()
-                    return
-
-                # download any missing / not yet downloaded episodes for Crunchyroll
-                if self.cr_enabled:
-                    self.download_for_service("Crunchyroll", self.cr_mdnx_api, current_queue)
-
-                    # check for missing dubs and subs in downloaded files for Crunchyroll series
-                    if self.check_missing_dub_sub == True:
-                        self.refresh_dub_sub_for_service("Crunchyroll", self.cr_mdnx_api, current_queue)
-                    else:
-                        log_manager.info("CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification for Crunchyroll.")
-
-                # download any missing / not yet downloaded episodes for HiDive
-                if self.hidive_enabled:
-                    self.download_for_service("HiDive", self.hidive_mdnx_api, current_queue)
-
-                    # check for missing dubs and subs in downloaded files for HiDive series
-                    if self.check_missing_dub_sub == True:
-                        self.refresh_dub_sub_for_service("HiDive", self.hidive_mdnx_api, current_queue)
-                    else:
-                        log_manager.info("CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification for HiDive.")
-
-                if self.dry_run:
-                    log_manager.info("DRY_RUN is True. Exiting after one iteration of the main loop.\nIf docker-compose.yaml has 'restart: always/unless-stopped', please change it to 'restart: no' to prevent restart loop.")
-                    self.stop()
-                    return
-
-                # trigger media server scan if configured and there are new items in the notifications buffer.
-                if len(self.notifications_buffer) > 0 and config["app"]["MEDIASERVER_TYPE"] is not None:
-                    log_manager.info("Triggering media server scan.")
-                    mediaserver_scan_library()
-
-                # flush notifications buffer if it has items.
-                if self.notifications_buffer:
-                    log_manager.info("Flushing notifications buffer.")
-                    self.flush_notifications()
-
-                # wait for self.timeout seconds or exit early if stop_event is set.
-                log_manager.info(f"MainLoop iteration completed. Next iteration in {format_duration(self.loop_timeout)}.")
-                if self.wait_or_interrupt(timeout=self.loop_timeout):
-                    return
-        finally:
-            log_manager.info("MainLoop exited.")

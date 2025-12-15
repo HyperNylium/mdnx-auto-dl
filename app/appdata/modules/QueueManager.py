@@ -10,80 +10,9 @@ from .Vars import (
 class QueueManager:
     def __init__(self, queue_path: str = QUEUE_PATH) -> None:
         self.queue_path = queue_path
-        self.queue_data = self.load_queue()
+        self.queue_data = self._load_queue()
 
         log_manager.debug(f"QueueManager initialized (path: {self.queue_path})")
-
-    def _normalize_service(self, service: str) -> str | None:
-        """Normalize service name to standard bucket names."""
-
-        key = str(service or "").strip().lower()
-
-        if key in {"cr", "crunchy", "crunchyroll"}:
-            return "Crunchyroll"
-
-        if key in {"hd", "hidive"}:
-            return "HiDive"
-
-        log_manager.error(f"Unknown service '{service}'.")
-        return None
-
-    def _ensure_roots(self, data: dict) -> dict:
-        """Ensure both 'Crunchyroll' and 'HiDive' roots exist in the queue data."""
-
-        if not isinstance(data, dict):
-            return {"Crunchyroll": {}, "HiDive": {}}
-
-        # migrate legacy format
-        if "Crunchyroll" not in data and "HiDive" not in data:
-            log_manager.info("Migrating legacy queue format to namespaced layout under 'Crunchyroll'.")
-            data = {"Crunchyroll": data, "HiDive": {}}
-
-        # ensure both roots exist
-        data.setdefault("Crunchyroll", {})
-        data.setdefault("HiDive", {})
-        return data
-
-    def load_queue(self) -> dict:
-        """Load the queue from disk, or initialize a new one if not present or malformed."""
-
-        if os.path.exists(self.queue_path):
-            try:
-                log_manager.debug(f"Loading queue from {self.queue_path}.")
-
-                with open(self.queue_path, "r", encoding="utf-8") as data_file:
-                    loaded = json.load(data_file)
-
-                loaded = self._ensure_roots(loaded)
-                log_manager.debug(f"Queue loaded from {self.queue_path}.")
-                return loaded
-
-            except json.JSONDecodeError:
-                log_manager.error("Malformed JSON in queue file. Starting with an empty queue.")
-
-            except Exception as e:
-                log_manager.error(f"Error loading queue. Starting with an empty queue.\n{e}")
-
-        else:
-            log_manager.debug(f"Queue file not found at {self.queue_path}. Starting with an empty queue.")
-
-        # create a new empty queue file on disk
-        init = {"Crunchyroll": {}, "HiDive": {}}
-
-        with open(self.queue_path, "w", encoding="utf-8") as f:
-            json.dump(init, f, indent=4, ensure_ascii=False)
-
-        return init
-
-    def save_queue(self) -> None:
-        """Save the current queue data to disk."""
-
-        log_manager.debug("Saving queue.")
-
-        with open(self.queue_path, "w", encoding="utf-8") as f:
-            json.dump(self.queue_data, f, indent=4, ensure_ascii=False)
-
-        log_manager.debug(f"Queue saved to {self.queue_path}.")
 
     def add(self, new_data: dict, service: str) -> None:
         """Add or update series in the queue for the specified service."""
@@ -189,7 +118,7 @@ class QueueManager:
 
             log_manager.debug(f"Updated series '{series_id}' in '{bucket_name}'.")
 
-        self.save_queue()
+        self._save_queue()
 
     def remove(self, series_id: str, service: str) -> None:
         """Remove a series from the queue for the specified service."""
@@ -203,7 +132,7 @@ class QueueManager:
 
         if series_id in bucket:
             del bucket[series_id]
-            self.save_queue()
+            self._save_queue()
             log_manager.debug(f"Removed series '{series_id}' from '{bucket_name}'.")
             return
 
@@ -234,7 +163,7 @@ class QueueManager:
             return
 
         episodes[episode_id]["episode_downloaded"] = status
-        self.save_queue()
+        self._save_queue()
         log_manager.info(
             f"Updated episode '{episode_id}' in series '{series_id}', season '{season_id}' "
             f"to downloaded={status} ({bucket_name})."
@@ -265,7 +194,7 @@ class QueueManager:
             return
 
         episodes[episode_id]["has_all_dubs_subs"] = status
-        self.save_queue()
+        self._save_queue()
         log_manager.info(
             f"Updated episode '{episode_id}' in series '{series_id}', season '{season_id}' "
             f"to has_all_dubs_subs={status} ({bucket_name})."
@@ -285,3 +214,74 @@ class QueueManager:
             return None
 
         return self.queue_data.get(bucket_name, {})
+
+    def _normalize_service(self, service: str) -> str | None:
+        """Normalize service name to standard bucket names."""
+
+        key = str(service or "").strip().lower()
+
+        if key in {"cr", "crunchy", "crunchyroll"}:
+            return "Crunchyroll"
+
+        if key in {"hd", "hidive"}:
+            return "HiDive"
+
+        log_manager.error(f"Unknown service '{service}'.")
+        return None
+
+    def _ensure_roots(self, data: dict) -> dict:
+        """Ensure both 'Crunchyroll' and 'HiDive' roots exist in the queue data."""
+
+        if not isinstance(data, dict):
+            return {"Crunchyroll": {}, "HiDive": {}}
+
+        # migrate legacy format
+        if "Crunchyroll" not in data and "HiDive" not in data:
+            log_manager.info("Migrating legacy queue format to namespaced layout under 'Crunchyroll'.")
+            data = {"Crunchyroll": data, "HiDive": {}}
+
+        # ensure both roots exist
+        data.setdefault("Crunchyroll", {})
+        data.setdefault("HiDive", {})
+        return data
+
+    def _load_queue(self) -> dict:
+        """Load the queue from disk, or initialize a new one if not present or malformed."""
+
+        if os.path.exists(self.queue_path):
+            try:
+                log_manager.debug(f"Loading queue from {self.queue_path}.")
+
+                with open(self.queue_path, "r", encoding="utf-8") as data_file:
+                    loaded = json.load(data_file)
+
+                loaded = self._ensure_roots(loaded)
+                log_manager.debug(f"Queue loaded from {self.queue_path}.")
+                return loaded
+
+            except json.JSONDecodeError:
+                log_manager.error("Malformed JSON in queue file. Starting with an empty queue.")
+
+            except Exception as e:
+                log_manager.error(f"Error loading queue. Starting with an empty queue.\n{e}")
+
+        else:
+            log_manager.debug(f"Queue file not found at {self.queue_path}. Starting with an empty queue.")
+
+        # create a new empty queue file on disk
+        init = {"Crunchyroll": {}, "HiDive": {}}
+
+        with open(self.queue_path, "w", encoding="utf-8") as f:
+            json.dump(init, f, indent=4, ensure_ascii=False)
+
+        return init
+
+    def _save_queue(self) -> None:
+        """Save the current queue data to disk."""
+
+        log_manager.debug("Saving queue.")
+
+        with open(self.queue_path, "w", encoding="utf-8") as f:
+            json.dump(self.queue_data, f, indent=4, ensure_ascii=False)
+
+        log_manager.debug(f"Queue saved to {self.queue_path}.")
