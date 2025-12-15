@@ -5,7 +5,6 @@ import threading
 from datetime import datetime
 from zipfile import ZipFile, ZIP_DEFLATED
 
-# Custom imports
 from .Vars import config, LOG_DIR
 
 
@@ -40,26 +39,33 @@ class LogManager:
         return
 
     def debug(self, message: str) -> None:
+        """Logs a debug-level message."""
         self._log(message, level="DEBUG")
         return
 
     def info(self, message: str) -> None:
+        """Logs an info-level message."""
         self._log(message, level="INFO")
         return
 
     def warning(self, message: str) -> None:
+        """Logs a warning-level message."""
         self._log(message, level="WARNING")
         return
 
     def error(self, message: str) -> None:
+        """Logs an error-level message."""
         self._log(message, level="ERROR")
         return
 
     def critical(self, message: str) -> None:
+        """Logs a critical-level message."""
         self._log(message, level="CRITICAL")
         return
 
     def _log(self, message: str, level: str = "INFO") -> None:
+        """Logs a message with the specified level to both terminal and log file."""
+
         level_name = level.upper()
         level_value = LEVEL_VALUES.get(level_name)
 
@@ -92,6 +98,8 @@ class LogManager:
         return
 
     def rotate(self) -> None:
+        """Archives the current log file and prunes old archives if necessary."""
+
         with self.lock:
             if not os.path.exists(self.log_file):
                 return
@@ -101,9 +109,12 @@ class LogManager:
 
             self._archive_current_log_locked()
             self._prune_archives_locked()
+
         return
 
     def _archive_current_log_locked(self) -> None:
+        """Archives the current log file into a zip with a timestamped name."""
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         log_basename = os.path.basename(self.log_file)
@@ -113,7 +124,6 @@ class LogManager:
 
         try:
             with ZipFile(zip_name, mode="w", compression=ZIP_DEFLATED) as zf:
-                # store as "mdnx-auto-dl.log" inside the zip
                 zf.write(self.log_file, arcname=log_basename)
         finally:
             try:
@@ -123,6 +133,8 @@ class LogManager:
         return
 
     def _prune_archives_locked(self) -> None:
+        """Deletes oldest log archives if exceeding max_archives limit."""
+
         log_basename = os.path.basename(self.log_file)
         log_stem, _ = os.path.splitext(log_basename)
 
@@ -132,7 +144,7 @@ class LogManager:
                 full_path = os.path.join(self.log_dir, name)
                 archives.append(full_path)
 
-        # Sort by modification time (oldest first)
+        # sort by oldest modification time
         archives.sort(key=os.path.getmtime)
 
         while len(archives) > self.max_archives:
@@ -144,6 +156,8 @@ class LogManager:
         return
 
     def _write_line(self, line) -> None:
+        """Writes a line to the log file with thread safety."""
+
         with self.lock:
             with open(self.log_file, "a", encoding="utf-8") as f:
                 f.write(line + "\n")

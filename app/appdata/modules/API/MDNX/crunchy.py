@@ -4,7 +4,6 @@ import sys
 import subprocess
 import threading
 
-# Custom imports
 from appdata.modules.Globals import queue_manager, log_manager
 from appdata.modules.Vars import (
     config,
@@ -56,7 +55,7 @@ class CR_MDNX_API:
             self.stdbuf_exists = False
             log_manager.debug("stdbuf not found, using default command without buffering.")
 
-        # Skip API test if user wants to
+        # skip API test if user wants to
         if config["app"]["CR_SKIP_API_TEST"] == False:
             self.test()
         else:
@@ -65,6 +64,8 @@ class CR_MDNX_API:
         log_manager.info(f"MDNX API initialized with: Path: {self.mdnx_path} | Service: {self.mdnx_service}")
 
     def process_console_output(self, output: str, add2queue: bool = True):
+        """Parses the console output from the MDNX CLI and constructs a structured dictionary of series, seasons, and episodes."""
+
         log_manager.debug("Processing console output...")
         tmp_dict = {}             # maps series_id to series info
         episode_counters = {}     # maps season key ("S1", "S2", etc) to episode counter
@@ -80,10 +81,12 @@ class CR_MDNX_API:
         staged_episode = None  # dict with: series_id, season_key, ep_key, episode_number_clean, episode_number_download, episode_title_clean, available_subs, available_dubs
 
         def _commit_staged():
+
             # we need to flush the staged episode into tmp_dict when context changes or at the end
             nonlocal staged_episode
             if not staged_episode:
                 return
+
             s_id = staged_episode["series_id"]
             s_key = staged_episode["season_key"]
             e_key = staged_episode["ep_key"]
@@ -121,7 +124,7 @@ class CR_MDNX_API:
             # series header like "[Z:...] <name> (Seasons: X, EPs: Y)"
             match = self.series_pattern.match(line)
             if match:
-                # we commit any staged episode before switching series
+                # commit any staged episode before switching series
                 _commit_staged()
 
                 info = match.groupdict()
@@ -144,19 +147,21 @@ class CR_MDNX_API:
             # season header like "[S:...] <name> (Season: N)"
             match = self.season_pattern.match(line)
             if match and current_series_id:
-                # we commit any staged episode before changing season context
+
+                # commit any staged episode before changing season context
                 _commit_staged()
 
                 info = match.groupdict()
                 info["season_name"] = sanitize(info["season_name"])
 
-                # we key seasons by season_id and appearance order so duplicate "Season: 1" labels do not collide
+                # key seasons by season_id and appearance order so duplicate "Season: 1" labels do not collide
                 season_id = info["season_id"]
                 if season_id not in season_id_to_key:
                     season_order += 1
                     mapped_num = season_order
                     season_id_to_key[season_id] = f"S{mapped_num}"
-                    # we remember the first numeric label as a hint for later numeric fallback
+
+                    # remember the first numeric label as a hint for later numeric fallback
                     try:
                         orig_num = int(info["season_number"])
                         season_num_map.setdefault(orig_num, mapped_num)
@@ -183,7 +188,8 @@ class CR_MDNX_API:
             # episode line like "[E12] [YYYY-MM-DD] <Series Name> - Season N - Episode M"
             match = self.episode_pattern.match(line)
             if match and current_series_id:
-                # we commit any previous staged episode before staging a new one
+
+                # commit any previous staged episode before staging a new one
                 _commit_staged()
 
                 ep_info = match.groupdict()
@@ -223,7 +229,8 @@ class CR_MDNX_API:
                             season_key = f"S{mapped_num}"
 
                 if not season_key:
-                    # if we still cannot resolve, we create a shell season so the episode is not lost
+
+                    # if we still cannot resolve, create a shell season so the episode is not lost
                     log_manager.warning(f"Season not resolved by number or name in line: {line}")
                     mapped_num = len(tmp_dict[current_series_id]["seasons"]) + 1
                     season_key = f"S{mapped_num}"
@@ -236,7 +243,7 @@ class CR_MDNX_API:
                         }
                         episode_counters[season_key] = 1
 
-                    # we stabilize future matches by updating maps from what we can infer here
+                    # stabilize future matches by updating maps from what we can infer here
                     season_num = re.search(r'- Season (\d+) -', line)
                     if season_num:
                         orig_label = int(season_num.group(1))
@@ -256,10 +263,12 @@ class CR_MDNX_API:
 
                 # extract a clean episode title from the tail after the last " - "
                 parts = ep_info["full_episode_name"].rsplit(" - ", 1)
+
                 if len(parts) > 1:
                     episode_title_clean = parts[-1]
                 else:
                     episode_title_clean = ep_info["full_episode_name"]
+
                 episode_title_clean = sanitize(episode_title_clean)
 
                 # stage the episode so we can attach dubs and subs from following lines
@@ -306,6 +315,7 @@ class CR_MDNX_API:
                         if token in VALID_LOCALES:
                             subs_locales.append(token)
                             continue
+
                         # fallback to base language if regioned code is not in VALID_LOCALES
                         base = token.split('-', 1)[0]
                         if base in VALID_LOCALES:
@@ -322,7 +332,7 @@ class CR_MDNX_API:
         crunchy_monitor_series_config = config.get("cr_monitor_series_id", {})
         tmp_dict = apply_series_blacklist(tmp_dict, crunchy_monitor_series_config, service="cr")
 
-        # we remove empty seasons and renumber contiguous S1..SX to keep structure compact
+        # remove empty seasons and renumber contiguous S1..SX to keep structure compact
         for series_id, series_info in tmp_dict.items():
             seasons = series_info["seasons"]
 
@@ -348,11 +358,15 @@ class CR_MDNX_API:
             series_info["seasons"] = new_seasons
 
         log_manager.debug("Console output processed.")
+
         if add2queue:
             queue_manager.add(tmp_dict, self.queue_service)
+
         return tmp_dict
 
     def test(self) -> None:
+        """Tests the MDNX API for authentication errors and forces re-authentication if needed."""
+
         log_manager.info("Testing MDNX API...")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", "G8DHV78ZM"]
@@ -362,7 +376,7 @@ class CR_MDNX_API:
         json_result = self.process_console_output(result, add2queue=False)
         log_manager.info(f"Processed console output:\n{json_result}")
 
-        # Check if the output contains authentication errors
+        # check if the output contains authentication errors
         error_triggers = ["invalid_grant", "Token Refresh Failed", "Authentication required", "Anonymous"]
         if any(trigger in result for trigger in error_triggers):
             log_manager.info("Authentication error detected. Forcing re-authentication...")
@@ -373,6 +387,8 @@ class CR_MDNX_API:
         return
 
     def auth(self) -> str:
+        """Performs authentication with the MDNX service using provided credentials."""
+
         log_manager.info(f"Authenticating with {self.mdnx_service}...")
 
         if not self.username or not self.password:
@@ -387,6 +403,8 @@ class CR_MDNX_API:
         return result.stdout
 
     def start_monitor(self, series_id: str) -> str:
+        """Starts monitoring a series by its ID using the MDNX service."""
+
         log_manager.info(f"Monitoring series with ID: {series_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
@@ -399,11 +417,15 @@ class CR_MDNX_API:
         return result.stdout
 
     def stop_monitor(self, series_id: str) -> None:
+        """Stops monitoring a series by its ID using the MDNX service."""
+
         queue_manager.remove(series_id, self.queue_service)
         log_manager.info(f"Stopped monitoring series with ID: {series_id}")
         return
 
     def update_monitor(self, series_id: str) -> str:
+        """Updates monitoring for a series by its ID using the MDNX service."""
+
         log_manager.info(f"Updating monitor for series with ID: {series_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
@@ -416,6 +438,8 @@ class CR_MDNX_API:
         return result.stdout
 
     def cancel_active_download(self) -> None:
+        """Cancels any active download process and waits for the worker thread to exit."""
+
         proc = None
         thread = None
 
@@ -445,6 +469,8 @@ class CR_MDNX_API:
                 self.download_proc = None
 
     def _run_download(self, cmd: list, result: dict) -> None:
+        """Internal method to run the download command in a separate thread and capture its output."""
+
         success = False
         returncode = -1
         proc = None
@@ -467,7 +493,9 @@ class CR_MDNX_API:
 
         except Exception as e:
             log_manager.error(f"Download crashed with exception: {e}")
+
         finally:
+
             with self.download_lock:
                 self.download_proc = None
 
@@ -475,6 +503,8 @@ class CR_MDNX_API:
             result["returncode"] = returncode
 
     def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list | None = None) -> bool:
+        """Downloads a specific episode using the MDNX service."""
+
         log_manager.info(f"Downloading episode {episode_number} for series {series_id} season {season_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id, "-s", season_id, "-e", episode_number]

@@ -4,7 +4,6 @@ import sys
 import subprocess
 import threading
 
-# Custom imports
 from appdata.modules.Globals import queue_manager, log_manager
 from appdata.modules.Vars import (
     config,
@@ -28,6 +27,7 @@ class HIDIVE_MDNX_API:
         self.series_pattern = re.compile(r'^\[Z\.(?P<series_id>\d+)\]\s+(?P<series_name>.+)\s+\((?P<seasons_count>\d+)\s+Seasons?\)\s*$', re.IGNORECASE)
         self.season_main_pattern = re.compile(r'^\[S\.(?P<season_id>\d+)\]\s+Season\s+(?P<season_number>\d+)(?:\s+(?P<label>[^()]+?))?\s*\((?P<eps_count>\d+)\s*(?:Episodes?|Eps?)\)\s*$', re.IGNORECASE)
         self.season_special_pattern = re.compile(r'^\[S\.(?P<season_id>\d+)\]\s+(?P<label>OVA|OAD|ONA|Specials?|Recap|Compilation|Summary|Movie|Film)(?:\s+(?P<season_number>\d+))?\s*\((?P<eps_count>\d+)\s*(?:Episodes?|Eps?)\)\s*$', re.IGNORECASE)
+
         # covers: "Season N OVA/Recap/... (X Episodes)"
         self.season_any_special_pattern = re.compile(
             r'^\[S\.(?P<season_id>\d+)\]\s+(?:Season\s+(?P<season_number>\d+)\s+)?'
@@ -73,6 +73,8 @@ class HIDIVE_MDNX_API:
         return re.sub(r'\s*[\(\[\{].*?[\)\]\}]\s*', '', text or '').strip()
 
     def _norm_audio(self, token: str):
+        """Normalize audio display name or code to canonical audio code."""
+
         if not token:
             return None
         lowered = self._strip_parens(token).strip().lower()
@@ -87,6 +89,8 @@ class HIDIVE_MDNX_API:
         return None
 
     def _norm_sub(self, token: str):
+        """Normalize subtitle display name or code to canonical locale."""
+
         if not token:
             return None
 
@@ -111,8 +115,11 @@ class HIDIVE_MDNX_API:
         return None
 
     def process_console_output(self, output: str, add2queue: bool = True):
+        """Parse the console output from MDNX CLI and build structured series/season/episode data."""
+
         def _group_matches(count_group: int, count_declared: int) -> bool:
-            # allow small mismatch between flat group size and declared eps to pick a best-fit map
+            """Check if a flat group size matches the declared episode count, allowing small mismatches."""
+
             return abs(count_group - count_declared) <= 2
 
         log_manager.debug("Processing console output...")
@@ -139,6 +146,7 @@ class HIDIVE_MDNX_API:
             # Series
             series_match = self.series_pattern.match(line)
             if series_match:
+
                 # start a new series and reset per-series state
                 gd = series_match.groupdict()
                 current_series_id = gd["series_id"]
@@ -160,6 +168,7 @@ class HIDIVE_MDNX_API:
                 continue
 
             if not current_series_id:
+
                 # ignore noise before the first series header
                 continue
 
@@ -169,17 +178,20 @@ class HIDIVE_MDNX_API:
             season_any_special_match = self.season_any_special_pattern.match(line)
 
             if season_any_special_match or season_main_match or season_special_match:
+
                 # normalize the 3 season shapes into a single set of fields
                 if season_any_special_match:
                     gd = season_any_special_match.groupdict()
                     season_number = int(gd.get("season_number") or 0)
                     label_text = (gd.get("label") or "").strip()
                     season_is_special = True
+
                 elif season_main_match:
                     gd = season_main_match.groupdict()
                     season_number = int(gd.get("season_number") or 0)
                     label_text = (gd.get("label") or "").strip()
                     season_is_special = bool(label_text and self.special_season_flag.search(label_text))
+
                 else:
                     gd = season_special_match.groupdict()
                     season_number = int(gd.get("season_number") or 0)
@@ -245,15 +257,20 @@ class HIDIVE_MDNX_API:
         # if we never saw a series header, return an empty result
         if not current_series_id:
             log_manager.warning("No HiDive series detected in output.")
+
             if add2queue:
                 queue_manager.add(tmp_dict, self.queue_service)
+
             return tmp_dict
 
-        total_episodes = 0
         # enforce S1..SX order for seasons we kept
         ordered_seasons = sorted(seasons_meta.items(), key=lambda kv: int(kv[1]["season_number"]))
 
-        flat_ptr = 0  # pointer into flat_groups
+        # pointer into flat_groups
+        flat_ptr = 0
+
+        # total count of kept episodes across all seasons
+        total_episodes = 0
 
         for _season_idx, (season_key, meta) in enumerate(ordered_seasons, start=1):
             season_id = meta["season_id"]
@@ -357,6 +374,8 @@ class HIDIVE_MDNX_API:
         return tmp_dict
 
     def _probe_episode_streams(self, series_id: str, season_id: str, episode_index: int):
+        """Probe available audio and subtitle streams for a specific episode."""
+
         log_manager.info(f"Probing streams for series {series_id} season {season_id} episode {episode_index}...")
 
         # "--dubLang und" returns the available dubs/subs without actually downloading the episode
@@ -390,6 +409,7 @@ class HIDIVE_MDNX_API:
             # header like "Audio: English, Japanese"
             if self.audio_header.search(raw_line):
                 in_audios, in_subs = True, False
+
                 # parse tokens on the same header line, if present
                 tail = self.audio_header.split(raw_line, 1)[-1].strip()
                 if tail:
@@ -402,6 +422,7 @@ class HIDIVE_MDNX_API:
             # header like "Subs: EN, PT-BR"
             if self.subs_header.search(raw_line):
                 in_audios, in_subs = False, True
+
                 # parse tokens on the same header line, if present
                 tail = self.subs_header.split(raw_line, 1)[-1].strip()
                 if tail:
@@ -436,6 +457,8 @@ class HIDIVE_MDNX_API:
         return dubs_deduped, subs_deduped
 
     def test(self) -> None:
+        """Test the MDNX API by running a sample command and processing its output."""
+
         log_manager.info("Testing MDNX API...")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", "1244"]
@@ -459,6 +482,8 @@ class HIDIVE_MDNX_API:
         return
 
     def auth(self) -> str:
+        """Authenticate with the MDNX service using provided credentials."""
+
         log_manager.info(f"Authenticating with {self.mdnx_service}...")
 
         if not self.username or not self.password:
@@ -473,6 +498,8 @@ class HIDIVE_MDNX_API:
         return result.stdout
 
     def start_monitor(self, series_id: str) -> str:
+        """Starts monitoring a series by its ID using the MDNX service."""
+
         log_manager.info(f"Monitoring series with ID: {series_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
@@ -485,11 +512,15 @@ class HIDIVE_MDNX_API:
         return result.stdout
 
     def stop_monitor(self, series_id: str) -> None:
+        """Stops monitoring a series by its ID using the MDNX service."""
+
         queue_manager.remove(series_id, self.queue_service)
         log_manager.info(f"Stopped monitoring series with ID: {series_id}")
         return
 
     def update_monitor(self, series_id: str) -> str:
+        """Updates monitoring for a series by its ID using the MDNX service."""
+
         log_manager.info(f"Updating monitor for series with ID: {series_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
@@ -502,6 +533,8 @@ class HIDIVE_MDNX_API:
         return result.stdout
 
     def cancel_active_download(self) -> None:
+        """Cancels any active download process and waits for the worker thread to exit."""
+
         proc = None
         thread = None
 
@@ -531,6 +564,8 @@ class HIDIVE_MDNX_API:
                 self.download_proc = None
 
     def _run_download(self, cmd: list, result: dict) -> None:
+        """Internal method to run the download command in a separate thread and capture its output."""
+
         success = False
         returncode = -1
         proc = None
@@ -553,7 +588,9 @@ class HIDIVE_MDNX_API:
 
         except Exception as e:
             log_manager.error(f"Download crashed with exception: {e}")
+
         finally:
+
             with self.download_lock:
                 self.download_proc = None
 
@@ -561,6 +598,8 @@ class HIDIVE_MDNX_API:
             result["returncode"] = returncode
 
     def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list | None = None) -> bool:
+        """Downloads a specific episode using the MDNX service."""
+
         log_manager.info(f"Downloading episode {episode_number} for series {series_id} season {season_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id, "-s", season_id, "-e", episode_number]

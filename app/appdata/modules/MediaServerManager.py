@@ -4,14 +4,12 @@ import uuid
 import requests
 from urllib.parse import urlencode
 
-# Custom imports
 from .Globals import log_manager
 from .Vars import (
     config,
     update_app_config, format_duration
 )
 
-# These dont need to be changed, hence they are constants
 PLEX_API_BASE = "https://plex.tv/api/v2"
 PLEX_API_AUTH_URL = "https://app.plex.tv/auth"
 PLEX_PRODUCT_NAME = "mdnx-auto-dl"
@@ -29,10 +27,11 @@ class PLEX_API:
             log_manager.error("MEDIASERVER_URL is not set or empty. Please set it in config.json. Exiting...")
             sys.exit(1)
 
+        # normalize server URL
         if isinstance(self.server_url, str):
             self.server_url = self.server_url.strip().rstrip("/")
 
-        # Per-process client id (Plex requires a client identifier)
+        # per-process client id (Plex requires a client identifier)
         self.client_id = str(uuid.uuid4())
 
         # PIN state
@@ -44,6 +43,8 @@ class PLEX_API:
         log_manager.info(f"PLEX API initialized with: URL: {self.server_url}")
 
     def wait_for_auth(self, max_wait_seconds: int = 600, poll_interval: float = 1.0) -> bool:
+        """Wait for user to authorize app via Plex PIN process."""
+
         if self._verify_token(self.token):
             return True
 
@@ -56,7 +57,7 @@ class PLEX_API:
                 return True
 
             if self.pin_id and self.pin_code:
-                new_token = self._poll_pin_for_token_once(self.pin_id, self.pin_code)
+                new_token = self._poll_pin_for_token(self.pin_id, self.pin_code)
                 if new_token:
                     self._store_token(new_token)
                     self._clear_pin_state()
@@ -74,6 +75,8 @@ class PLEX_API:
         return False
 
     def scan_library(self) -> bool:
+        """If configured, trigger a library scan on the Plex Media Server."""
+
         if not self.server_url:
             log_manager.info("MEDIASERVER_URL not configured. Skipping scan.")
             return False
@@ -82,6 +85,7 @@ class PLEX_API:
             log_manager.info("No valid token yet.")
             return False
 
+        # if user has set URL override, use whatever is in MEDIASERVER_URL
         if self.url_override:
             log_manager.info("MEDIASERVER_URL_OVERRIDE is true. Using whatever is in MEDIASERVER_URL for scan endpoint.")
             url = self.server_url
@@ -90,7 +94,11 @@ class PLEX_API:
             url = f"{self.server_url}/library/sections/all/refresh"
 
         try:
-            resp = requests.get(url, headers=self._headers(include_token=True), timeout=30)
+            resp = requests.get(
+                url,
+                headers=self._headers(include_token=True),
+                timeout=30
+            )
             log_manager.debug(f"Scan status={resp.status_code}")
             resp.raise_for_status()
             log_manager.info("Scan triggered successfully.")
@@ -106,6 +114,8 @@ class PLEX_API:
         return False
 
     def _headers(self, include_token: bool) -> dict:
+        """Generate headers for Plex API requests."""
+
         headers = {
             "Accept": "application/json",
             "X-Plex-Product": PLEX_PRODUCT_NAME,
@@ -116,10 +126,17 @@ class PLEX_API:
         return headers
 
     def _verify_token(self, token) -> bool:
+        """Verify if the provided token is valid by making a request to Plex API."""
+
         if not token:
             return False
+
         try:
-            resp = requests.get(f"{PLEX_API_BASE}/user", headers=self._headers(include_token=True), timeout=10)
+            resp = requests.get(
+                f"{PLEX_API_BASE}/user",
+                headers=self._headers(include_token=True),
+                timeout=10
+            )
             log_manager.debug(f"Verify token status={resp.status_code}")
             return resp.status_code == 200
         except requests.RequestException as e:
@@ -127,13 +144,21 @@ class PLEX_API:
             return False
 
     def _create_and_log_pin(self) -> None:
+        """Create a new PIN and log the authorization URL."""
+
         pin_id, code, auth_url = self._start_pin()
-        self.pin_id, self.pin_code, self.pin_started_at = pin_id, code, time.time()
+
+        self.pin_id = pin_id
+        self.pin_code = code
+        self.pin_started_at = time.time()
+
         if not self.pin_url_logged:
             log_manager.info(f"Open this URL in a browser to authorize the app:\n{auth_url}")
             self.pin_url_logged = True
 
     def _start_pin(self):
+        """Start the PIN authorization process."""
+
         resp = requests.post(
             f"{PLEX_API_BASE}/pins",
             headers=self._headers(include_token=False),
@@ -142,7 +167,10 @@ class PLEX_API:
         )
         resp.raise_for_status()
         data = resp.json()
-        pin_id, code = data["id"], data["code"]
+
+        pin_id = data["id"]
+        code = data["code"]
+
         auth_url = PLEX_API_AUTH_URL + "#?" + urlencode(
             {
                 "clientID": self.client_id,
@@ -152,7 +180,9 @@ class PLEX_API:
         )
         return pin_id, code, auth_url
 
-    def _poll_pin_for_token_once(self, pin_id, code):
+    def _poll_pin_for_token(self, pin_id, code):
+        """Poll the Plex API to check if the PIN has been authorized and retrieve the auth token."""
+
         try:
             resp = requests.get(
                 f"{PLEX_API_BASE}/pins/{pin_id}",
@@ -167,12 +197,16 @@ class PLEX_API:
             return None
 
     def _store_token(self, token) -> None:
+        """Store the token in config.json."""
+
         ok = update_app_config("MEDIASERVER_TOKEN", token)
         if not ok:
             log_manager.error("Failed to persist MEDIASERVER_TOKEN to config.")
         self.token = token
 
     def _clear_pin_state(self) -> None:
+        """Clear the current PIN state."""
+
         self.pin_id = None
         self.pin_code = None
         self.pin_started_at = None
@@ -182,8 +216,12 @@ class PLEX_API:
 class JELLYFIN_API:
     def __init__(self) -> None:
         raw_url = config["app"]["MEDIASERVER_URL"]
-        self.server_url = raw_url.rstrip("/") if isinstance(raw_url, str) and raw_url.strip() else None
         self.api_key = config["app"]["MEDIASERVER_TOKEN"]
+        self.server_url = None
+
+        # normalize server URL
+        if isinstance(raw_url, str):
+            self.server_url = raw_url.strip().rstrip("/")
 
         if self.server_url is None or self.server_url == "":
             log_manager.error("MEDIASERVER_URL is not set or empty. Please set it in config.json. Exiting...")
@@ -195,6 +233,8 @@ class JELLYFIN_API:
         log_manager.info(f"Initialized (URL: {self.server_url})")
 
     def scan_library(self) -> bool:
+        """If configured, trigger a library scan on the Jellyfin Media Server."""
+
         if not self.server_url:
             log_manager.info("MEDIASERVER_URL not configured. Skipping scan.")
             return False
@@ -205,7 +245,11 @@ class JELLYFIN_API:
 
         url = f"{self.server_url}/Library/Refresh"
         try:
-            resp = requests.post(url, params={"api_key": self.api_key}, timeout=30)
+            resp = requests.post(
+                url,
+                params={"api_key": self.api_key},
+                timeout=30
+            )
             log_manager.debug(f"Scan URL: {resp.url}")
             resp.raise_for_status()
             log_manager.debug(f"Response: {resp.text}")
@@ -217,6 +261,8 @@ class JELLYFIN_API:
 
 
 def _get_media_server():
+    """Get or create the media server API instance based on config and save it globally."""
+
     global MEDIA_SERVER_INSTANCE
 
     if MEDIA_SERVER_INSTANCE is not None:
@@ -224,7 +270,7 @@ def _get_media_server():
 
     server_type = config["app"]["MEDIASERVER_TYPE"]
 
-    # No media server configured in config.json
+    # no media server configured in config.json
     if server_type is None:
         return None
 
@@ -242,18 +288,28 @@ def _get_media_server():
     return MEDIA_SERVER_INSTANCE
 
 
-# Functions to call from other modules
+# functions to call from other modules
 def mediaserver_auth(max_wait_seconds: int = 600, poll_interval: float = 1.0) -> bool:
+    """Perform media server authentication if needed."""
+
     inst = _get_media_server()
+
     if inst is None:
         return False
+
     if isinstance(inst, PLEX_API):
         return inst.wait_for_auth(max_wait_seconds, poll_interval)
+
     return True
 
 
 def mediaserver_scan_library() -> bool:
+    """Trigger a media server library scan if configured."""
+
     inst = _get_media_server()
+
+
     if inst is None:
         return False
+
     return inst.scan_library()
