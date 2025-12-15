@@ -308,7 +308,6 @@ def mediaserver_scan_library() -> bool:
 
     inst = _get_media_server()
 
-
     if inst is None:
         return False
 
