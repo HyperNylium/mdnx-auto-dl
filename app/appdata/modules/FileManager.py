@@ -2,7 +2,6 @@ import os
 import time
 from shutil import copyfile as shcopy
 
-# Custom imports
 from .Globals import log_manager
 from .Vars import (
     TEMP_DIR, DATA_DIR,
@@ -23,12 +22,15 @@ class FileManager:
         log_manager.info(f"FileManager initialized with: Source: {self.source} | Destination: {self.dest}")
 
     def test(self) -> bool:
+        """Test if the destination directory is accessible with read/write permissions."""
+
         log_manager.info(f"Checking Read/Write permissions for: {self.dest}")
 
         if not os.path.isdir(self.dest):
             log_manager.error(f"Directory not found: {self.dest}")
             return False
 
+        # check read/write permissions
         can_r = os.access(self.dest, os.R_OK)
         can_w = os.access(self.dest, os.W_OK)
         log_manager.info(f"os.access -> R:{can_r} W:{can_w}")
@@ -36,6 +38,7 @@ class FileManager:
             log_manager.warning(f"Missing required R/W on {self.dest}")
             return False
 
+        # practical test for write/read permissions
         test_path = os.path.join(self.dest, "permtest.txt")
         try:
             with open(test_path, "w", encoding="utf-8") as f:
@@ -56,6 +59,8 @@ class FileManager:
                 log_manager.warning(f"Could not clean up {test_path}\nMay fail when doing episode dub/sub updates\nFull error: {e}")
 
     def transfer(self, src_path: str, dst_path: str, overwrite: bool = False) -> bool:
+        """Transfer a file from src_path to dst_path with readiness checks and retries."""
+
         log_manager.info(f"Starting transfer from '{src_path}' to '{dst_path}'")
 
         src_basename = os.path.basename(src_path)
@@ -117,6 +122,8 @@ class FileManager:
         return False
 
     def waitForReady(self, path):
+        """Wait for a file to become ready by monitoring its size stability over time."""
+
         lastSize = -1
         stableTime = 0
         start = time.time()
@@ -144,6 +151,8 @@ class FileManager:
         return False
 
     def remove_temp_files(self):
+        """Remove all files in the temporary source directory."""
+
         for name in os.listdir(self.source):
             path = os.path.join(self.source, name)
             log_manager.debug(f"removing {path}")
