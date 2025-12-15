@@ -2,6 +2,7 @@ import os
 import sys
 import inspect
 import threading
+import traceback
 from datetime import datetime
 from zipfile import ZipFile, ZIP_DEFLATED
 
@@ -38,32 +39,49 @@ class LogManager:
         self.rotate()
         return
 
-    def debug(self, message: str) -> None:
+    def debug(self, message: str, exc_info=None) -> None:
         """Logs a debug-level message."""
-        self._log(message, level="DEBUG")
+        self._log(message, level="DEBUG", exc_info=exc_info)
         return
 
-    def info(self, message: str) -> None:
+    def info(self, message: str, exc_info=None) -> None:
         """Logs an info-level message."""
-        self._log(message, level="INFO")
+        self._log(message, level="INFO", exc_info=exc_info)
         return
 
-    def warning(self, message: str) -> None:
+    def warning(self, message: str, exc_info=None) -> None:
         """Logs a warning-level message."""
-        self._log(message, level="WARNING")
+        self._log(message, level="WARNING", exc_info=exc_info)
         return
 
-    def error(self, message: str) -> None:
+    def error(self, message: str, exc_info=None) -> None:
         """Logs an error-level message."""
-        self._log(message, level="ERROR")
+        self._log(message, level="ERROR", exc_info=exc_info)
         return
 
-    def critical(self, message: str) -> None:
+    def critical(self, message: str, exc_info=None) -> None:
         """Logs a critical-level message."""
-        self._log(message, level="CRITICAL")
+        self._log(message, level="CRITICAL", exc_info=exc_info)
         return
 
-    def _log(self, message: str, level: str = "INFO") -> None:
+    def _normalize_exc_info(self, exc_info):
+        """Normalize exc_info into (exc_type, exc_value, tb) tuple or None."""
+
+        if exc_info is None:
+            return None
+
+        if exc_info is True:
+            return sys.exc_info()
+
+        if isinstance(exc_info, BaseException):
+            return (type(exc_info), exc_info, exc_info.__traceback__)
+
+        if isinstance(exc_info, tuple) and len(exc_info) == 3:
+            return exc_info
+
+        return None
+
+    def _log(self, message: str, level: str = "INFO", exc_info=None) -> None:
         """Logs a message with the specified level to both terminal and log file."""
 
         level_name = level.upper()
@@ -92,6 +110,17 @@ class LogManager:
         logfile_line = f"[{time_str} {date_str}] [{level_name}] [{filename}<{funcname}>] - {message}"
 
         self._write_line(logfile_line)
+
+        # if exc_info is provided, append a formatted traceback to the log file.
+        norm = self._normalize_exc_info(exc_info)
+        if norm is not None:
+            try:
+                traceback_text = "".join(traceback.format_exception(*norm)).rstrip("\n")
+                for traceback_line in traceback_text.splitlines():
+                    self._write_line(f"[{time_str} {date_str}] [{level_name}] [{filename}<{funcname}>] - {traceback_line}")
+            except Exception:
+                # avoid raising from the logger itself.
+                pass
 
         print(terminal_line, file=sys.stdout, flush=True)
 
