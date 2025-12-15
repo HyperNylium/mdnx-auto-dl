@@ -172,7 +172,6 @@ class QueueManager:
 
                     season[field_name] = field_value
 
-
                 for ep_key, new_ep in season_info.get("episodes", {}).items():
                     old_ep = season["episodes"].get(ep_key)
 
