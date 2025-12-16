@@ -2,7 +2,6 @@ import smtplib
 import subprocess
 from email.message import EmailMessage
 
-# Custom imports
 from .Globals import log_manager
 from .Vars import config
 
@@ -12,6 +11,7 @@ class ntfy:
         self.ntfy_script_path = config["app"]["NTFY_SCRIPT_PATH"]
 
     def notify(self, subject, message):
+        """Send notification using ntfy script."""
         try:
             log_manager.info("Sending ntfy notification...")
             subprocess.run([self.ntfy_script_path, subject, message], check=True)
@@ -32,6 +32,7 @@ class SMTP:
         self.SMTP_STARTTLS = config["app"]["SMTP_STARTTLS"]
 
     def notify(self, subject, message):
+        """Send email notification using SMTP."""
         try:
             log_manager.debug(f"Sending email notification to {self.SMTP_TO}...")
             msg = EmailMessage()
