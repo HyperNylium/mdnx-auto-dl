@@ -63,6 +63,208 @@ class CR_MDNX_API:
 
         log_manager.info(f"MDNX API initialized with: Path: {self.mdnx_path} | Service: {self.mdnx_service}")
 
+    def test(self) -> None:
+        """Tests the MDNX API for authentication errors and forces re-authentication if needed."""
+
+        log_manager.info("Testing MDNX API...")
+
+        tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", "G8DHV78ZM"]
+        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8").stdout
+        log_manager.info(f"MDNX API test result:\n{result}")
+
+        json_result = self._process_console_output(result, add2queue=False)
+        log_manager.info(f"Processed console output:\n{json_result}")
+
+        # check if the output contains authentication errors
+        error_triggers = ["invalid_grant", "Token Refresh Failed", "Authentication required", "Anonymous"]
+        if any(trigger in result for trigger in error_triggers):
+            log_manager.info("Authentication error detected. Forcing re-authentication...")
+            self.auth()
+        else:
+            log_manager.info("MDNX API test successful.")
+
+        return
+
+    def auth(self) -> str:
+        """Performs authentication with the MDNX service using provided credentials."""
+
+        log_manager.info(f"Authenticating with {self.mdnx_service}...")
+
+        if not self.username or not self.password:
+            log_manager.error("MDNX service username or password not found.\nPlease check the config.json file and enter your credentials in the following keys:\nCR_USERNAME\nCR_PASSWORD\nExiting...")
+            sys.exit(1)
+
+        tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--auth", "--username", self.username, "--password", self.password, "--silentAuth"]
+        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
+        log_manager.info(f"Console output for auth process:\n{result.stdout}")
+
+        log_manager.info(f"Authentication with {self.mdnx_service} complete.")
+        return result.stdout
+
+    def start_monitor(self, series_id: str) -> str:
+        """Starts monitoring a series by its ID using the MDNX service."""
+
+        log_manager.info(f"Monitoring series with ID: {series_id}")
+
+        tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
+        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
+        log_manager.debug(f"Console output for start_monitor process:\n{result.stdout}")
+
+        self._process_console_output(result.stdout)
+
+        log_manager.debug(f"Monitoring for series with ID: {series_id} complete.")
+        return result.stdout
+
+    def stop_monitor(self, series_id: str) -> None:
+        """Stops monitoring a series by its ID using the MDNX service."""
+
+        queue_manager.remove(series_id, self.queue_service)
+        log_manager.info(f"Stopped monitoring series with ID: {series_id}")
+        return
+
+    def update_monitor(self, series_id: str) -> str:
+        """Updates monitoring for a series by its ID using the MDNX service."""
+
+        log_manager.info(f"Updating monitor for series with ID: {series_id}")
+
+        tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
+        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
+        log_manager.debug(f"Console output for update_monitor process:\n{result.stdout}")
+
+        self._process_console_output(result.stdout)
+
+        log_manager.debug(f"Updating monitor for series with ID: {series_id} complete.")
+        return result.stdout
+
+    def cancel_active_download(self) -> None:
+        """Cancels any active download process and waits for the worker thread to exit."""
+
+        proc = None
+        thread = None
+
+        with self.download_lock:
+            proc = self.download_proc
+            thread = self.download_thread
+
+        # kill the process if its still running
+        if proc is not None:
+            try:
+                if proc.poll() is None:
+                    log_manager.info("Killing active mdnx download process...")
+                    proc.kill()
+            except Exception as e:
+                log_manager.error(f"Failed to kill active mdnx process: {e}")
+
+        # wait a bit for the worker thread to exit
+        if thread is not None and thread.is_alive():
+            log_manager.info("Waiting for download worker thread to exit...")
+            thread.join(timeout=5.0)
+
+        # clear handles
+        with self.download_lock:
+            if self.download_thread is thread:
+                self.download_thread = None
+            if self.download_proc is proc:
+                self.download_proc = None
+
+    def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list | None = None) -> bool:
+        """Downloads a specific episode using the MDNX service."""
+
+        log_manager.info(f"Downloading episode {episode_number} for series {series_id} season {season_id}")
+
+        tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id, "-s", season_id, "-e", episode_number]
+
+        if dub_override is False:
+            log_manager.info("No dubs were found for this episode, skipping download.")
+            return False
+
+        if dub_override:
+            tmp_cmd += ["--dubLang", *dub_override]
+            log_manager.info(f"Using dubLang override: {' '.join(dub_override)}")
+
+        # Hardcoded options.
+        # These can not be modified by config.json, or things will break/not work as expected.
+        tmp_cmd += ["--fileName", "output"]
+        tmp_cmd += ["--skipUpdate", "true"]
+
+        if self.stdbuf_exists:
+            cmd = ["stdbuf", "-oL", "-eL", *tmp_cmd]
+        else:
+            cmd = tmp_cmd
+
+        # make sure we dont start two downloads at once
+        with self.download_lock:
+            if self.download_thread and self.download_thread.is_alive():
+                log_manager.error("A download is already in progress. refusing to start a second one.")
+                return False
+
+        result = {"success": False, "returncode": None}
+
+        worker = threading.Thread(
+            target=self._run_download,
+            args=(cmd, result),
+            name=f"{self.mdnx_service}-download",
+            daemon=True,
+        )
+
+        with self.download_lock:
+            self.download_thread = worker
+
+        worker.start()
+
+        # wait for download to finish
+        while worker.is_alive():
+            worker.join(timeout=1.0)
+
+        # retrieve results
+        rc = result["returncode"]
+        success = result["success"]
+
+        if rc not in (0, None):
+            log_manager.error(f"Download failed with exit code {rc}")
+            return False
+
+        if not success:
+            log_manager.error("Download did not report successful download. Assuming failure.")
+            return False
+
+        log_manager.info("Download finished successfully.")
+        return True
+
+    def _run_download(self, cmd: list, result: dict) -> None:
+        """Internal method to run the download command in a separate thread and capture its output."""
+
+        success = False
+        returncode = -1
+        proc = None
+
+        try:
+            log_manager.info(f"Executing command: {' '.join(cmd)}")
+
+            with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
+                with self.download_lock:
+                    self.download_proc = proc
+
+                for line in proc.stdout:
+                    cleaned = line.rstrip()
+                    log_manager.info(cleaned)
+
+                    if any(ok_log.lower() in cleaned.lower() for ok_log in MDNX_API_OK_LOGS):
+                        success = True
+
+                returncode = proc.returncode
+
+        except Exception as e:
+            log_manager.error(f"Download crashed with exception: {e}")
+
+        finally:
+
+            with self.download_lock:
+                self.download_proc = None
+
+            result["success"] = success
+            result["returncode"] = returncode
+
     def _process_console_output(self, output: str, add2queue: bool = True):
         """Parses the console output from the MDNX CLI and constructs a structured dictionary of series, seasons, and episodes."""
 
@@ -363,205 +565,3 @@ class CR_MDNX_API:
             queue_manager.add(tmp_dict, self.queue_service)
 
         return tmp_dict
-
-    def test(self) -> None:
-        """Tests the MDNX API for authentication errors and forces re-authentication if needed."""
-
-        log_manager.info("Testing MDNX API...")
-
-        tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", "G8DHV78ZM"]
-        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8").stdout
-        log_manager.info(f"MDNX API test result:\n{result}")
-
-        json_result = self._process_console_output(result, add2queue=False)
-        log_manager.info(f"Processed console output:\n{json_result}")
-
-        # check if the output contains authentication errors
-        error_triggers = ["invalid_grant", "Token Refresh Failed", "Authentication required", "Anonymous"]
-        if any(trigger in result for trigger in error_triggers):
-            log_manager.info("Authentication error detected. Forcing re-authentication...")
-            self.auth()
-        else:
-            log_manager.info("MDNX API test successful.")
-
-        return
-
-    def auth(self) -> str:
-        """Performs authentication with the MDNX service using provided credentials."""
-
-        log_manager.info(f"Authenticating with {self.mdnx_service}...")
-
-        if not self.username or not self.password:
-            log_manager.error("MDNX service username or password not found.\nPlease check the config.json file and enter your credentials in the following keys:\nCR_USERNAME\nCR_PASSWORD\nExiting...")
-            sys.exit(1)
-
-        tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--auth", "--username", self.username, "--password", self.password, "--silentAuth"]
-        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
-        log_manager.info(f"Console output for auth process:\n{result.stdout}")
-
-        log_manager.info(f"Authentication with {self.mdnx_service} complete.")
-        return result.stdout
-
-    def start_monitor(self, series_id: str) -> str:
-        """Starts monitoring a series by its ID using the MDNX service."""
-
-        log_manager.info(f"Monitoring series with ID: {series_id}")
-
-        tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
-        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
-        log_manager.debug(f"Console output for start_monitor process:\n{result.stdout}")
-
-        self._process_console_output(result.stdout)
-
-        log_manager.debug(f"Monitoring for series with ID: {series_id} complete.")
-        return result.stdout
-
-    def stop_monitor(self, series_id: str) -> None:
-        """Stops monitoring a series by its ID using the MDNX service."""
-
-        queue_manager.remove(series_id, self.queue_service)
-        log_manager.info(f"Stopped monitoring series with ID: {series_id}")
-        return
-
-    def update_monitor(self, series_id: str) -> str:
-        """Updates monitoring for a series by its ID using the MDNX service."""
-
-        log_manager.info(f"Updating monitor for series with ID: {series_id}")
-
-        tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
-        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
-        log_manager.debug(f"Console output for update_monitor process:\n{result.stdout}")
-
-        self._process_console_output(result.stdout)
-
-        log_manager.debug(f"Updating monitor for series with ID: {series_id} complete.")
-        return result.stdout
-
-    def cancel_active_download(self) -> None:
-        """Cancels any active download process and waits for the worker thread to exit."""
-
-        proc = None
-        thread = None
-
-        with self.download_lock:
-            proc = self.download_proc
-            thread = self.download_thread
-
-        # kill the process if its still running
-        if proc is not None:
-            try:
-                if proc.poll() is None:
-                    log_manager.info("Killing active mdnx download process...")
-                    proc.kill()
-            except Exception as e:
-                log_manager.error(f"Failed to kill active mdnx process: {e}")
-
-        # wait a bit for the worker thread to exit
-        if thread is not None and thread.is_alive():
-            log_manager.info("Waiting for download worker thread to exit...")
-            thread.join(timeout=5.0)
-
-        # clear handles
-        with self.download_lock:
-            if self.download_thread is thread:
-                self.download_thread = None
-            if self.download_proc is proc:
-                self.download_proc = None
-
-    def _run_download(self, cmd: list, result: dict) -> None:
-        """Internal method to run the download command in a separate thread and capture its output."""
-
-        success = False
-        returncode = -1
-        proc = None
-
-        try:
-            log_manager.info(f"Executing command: {' '.join(cmd)}")
-
-            with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
-                with self.download_lock:
-                    self.download_proc = proc
-
-                for line in proc.stdout:
-                    cleaned = line.rstrip()
-                    log_manager.info(cleaned)
-
-                    if any(ok_log.lower() in cleaned.lower() for ok_log in MDNX_API_OK_LOGS):
-                        success = True
-
-                returncode = proc.returncode
-
-        except Exception as e:
-            log_manager.error(f"Download crashed with exception: {e}")
-
-        finally:
-
-            with self.download_lock:
-                self.download_proc = None
-
-            result["success"] = success
-            result["returncode"] = returncode
-
-    def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list | None = None) -> bool:
-        """Downloads a specific episode using the MDNX service."""
-
-        log_manager.info(f"Downloading episode {episode_number} for series {series_id} season {season_id}")
-
-        tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id, "-s", season_id, "-e", episode_number]
-
-        if dub_override is False:
-            log_manager.info("No dubs were found for this episode, skipping download.")
-            return False
-
-        if dub_override:
-            tmp_cmd += ["--dubLang", *dub_override]
-            log_manager.info(f"Using dubLang override: {' '.join(dub_override)}")
-
-        # Hardcoded options.
-        # These can not be modified by config.json, or things will break/not work as expected.
-        tmp_cmd += ["--fileName", "output"]
-        tmp_cmd += ["--skipUpdate", "true"]
-
-        if self.stdbuf_exists:
-            cmd = ["stdbuf", "-oL", "-eL", *tmp_cmd]
-        else:
-            cmd = tmp_cmd
-
-        # make sure we dont start two downloads at once
-        with self.download_lock:
-            if self.download_thread and self.download_thread.is_alive():
-                log_manager.error("A download is already in progress. refusing to start a second one.")
-                return False
-
-        result = {"success": False, "returncode": None}
-
-        worker = threading.Thread(
-            target=self._run_download,
-            args=(cmd, result),
-            name=f"{self.mdnx_service}-download",
-            daemon=True,
-        )
-
-        with self.download_lock:
-            self.download_thread = worker
-
-        worker.start()
-
-        # wait for download to finish
-        while worker.is_alive():
-            worker.join(timeout=1.0)
-
-        # retrieve results
-        rc = result["returncode"]
-        success = result["success"]
-
-        if rc not in (0, None):
-            log_manager.error(f"Download failed with exit code {rc}")
-            return False
-
-        if not success:
-            log_manager.error("Download did not report successful download. Assuming failure.")
-            return False
-
-        log_manager.info("Download finished successfully.")
-        return True
