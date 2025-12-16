@@ -14,7 +14,9 @@ CONFIG_PATH = os.getenv("CONFIG_FILE", "appdata/config/config.json")
 QUEUE_PATH = os.getenv("QUEUE_FILE", "appdata/config/queue.json")
 
 
-def _log(message: str, level: str = "info") -> None:
+def _log(message: str, level: str = "info", exc_info=None) -> None:
+    """Internal logging helper function. Needed to avoid circular imports."""
+
     try:
         from .Globals import log_manager
     except Exception:
@@ -22,18 +24,24 @@ def _log(message: str, level: str = "info") -> None:
 
     try:
         if level == "debug":
-            log_manager.debug(message)
+            log_manager.debug(message, exc_info=exc_info)
         elif level == "warning":
-            log_manager.warning(message)
+            log_manager.warning(message, exc_info=exc_info)
         elif level == "error":
-            log_manager.error(message)
+            log_manager.error(message, exc_info=exc_info)
         else:
-            log_manager.info(message)
+            log_manager.info(message, exc_info=exc_info)
     except Exception:
         pass
 
 
 def merge_config(defaults: dict, overrides: dict) -> dict:
+    """
+    Recursively merge two configuration dicts.
+    Values from 'overrides' take precedence over 'defaults'.
+    If a value in 'overrides' is None, the corresponding value from 'defaults' is retained.
+    """
+
     if not isinstance(defaults, dict) or not isinstance(overrides, dict):
         if overrides is not None:
             return overrides
@@ -56,6 +64,8 @@ def merge_config(defaults: dict, overrides: dict) -> dict:
 
 
 def output_effective_config(config, default_config, max_chunk=8000):
+    """Output the effective config to logs, ordered like the defaults."""
+
     _log("Effective config: ")
     try:
         SKIP_ORDERING_KEYS = {"cr_monitor_series_id", "hidive_monitor_series_id", "mdnx"}
@@ -95,7 +105,7 @@ def output_effective_config(config, default_config, max_chunk=8000):
             _log(line[i:i + max_chunk])
 
 
-# Default config values in case config.json is missing any keys.
+# every default config value
 CONFIG_DEFAULTS = {
     "cr_monitor_series_id": {},
     "hidive_monitor_series_id": {},
@@ -169,7 +179,7 @@ CONFIG_DEFAULTS = {
     }
 }
 
-# Load the config file
+# load the config file
 with open(CONFIG_PATH, 'r') as config_file:
     LOCAL_CONFIG = json.load(config_file)
 
@@ -251,15 +261,25 @@ for _name, vals in LANG_MAP.items():
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
+    """Global exception handler to log uncaught exceptions."""
+
     # skip logging for KeyboardInterrupt and SystemExit. Use the default handler.
     if issubclass(exc_type, (KeyboardInterrupt, SystemExit)):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
 
-    _log("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback), level="error")
+    _log("Uncaught exception", level="error", exc_info=(exc_type, exc_value, exc_traceback))
+
+    # call the default excepthook as well
+    sys.__excepthook__(exc_type, exc_value, exc_traceback)
 
 
 def dedupe_preserve_order(items, key=None):
+    """
+    Deduplicate a list while preserving order.
+    If 'key' is provided, it is used to normalize items for comparison.
+    """
+
     if not items:
         return []
 
@@ -282,10 +302,14 @@ def dedupe_preserve_order(items, key=None):
 
 
 def dedupe_casefold(items):
+    """Deduplicate a list of strings in a case-insensitive manner while preserving order."""
+
     return dedupe_preserve_order(items, key=lambda s: (s or "").casefold())
 
 
 def format_duration(seconds: int) -> str:
+    """Format a duration in seconds into a human-readable string."""
+
     units = [
         ("day", 86400),
         ("hour", 3600),
@@ -302,14 +326,19 @@ def format_duration(seconds: int) -> str:
 
     if not parts:
         return "0 seconds"
+
     if len(parts) == 1:
         return parts[0]
+
     if len(parts) == 2:
         return f"{parts[0]} and {parts[1]}"
+
     return ", ".join(parts[:-1]) + f" and {parts[-1]}"
 
 
 def select_dubs(episode_info: dict):
+    """Determine which dubs to download based on desired, backup, and available dubs."""
+
     desired_dubs = set()
     for lang in config["mdnx"]["cli-defaults"]["dubLang"]:
         desired_dubs.add(lang)
@@ -326,30 +355,35 @@ def select_dubs(episode_info: dict):
     _log(f"Backup dubs: {backup_dubs}", level="debug")
     _log(f"Available dubs: {available_dubs}", level="debug")
 
-    # If desired dub is available, use the default already present.
+    # if desired dub is available, use the default already present.
     if desired_dubs & available_dubs:
         _log(f"Desired dubs available: {desired_dubs & available_dubs}", level="debug")
         return None
 
-    # If backups are available but not the desired dubs, override with that intersection.
+    # if backups are available but not the desired dubs, override with that intersection.
     if backup_dubs & available_dubs:
         _log(f"Desired dubs not available, but backup dubs are: {backup_dubs & available_dubs}", level="debug")
         return list(backup_dubs & available_dubs)
 
-    # Otherwise fall back to the alphabetically first available dub.
+    # otherwise fall back to the alphabetically first available dub.
     if available_dubs:
         _log("Neither desired nor backup dubs are available. Falling back to first available dub.", level="debug")
         first_dub = next(iter(sorted(available_dubs)))
         return [first_dub]
 
-    # No dubs at all, which is unexpected tbh.
-    # But, you never know with Crunchyroll...
-    # Will skip the episode.
+    # no dubs at all, which is unexpected tbh.
+    # but, you never know with Crunchyroll...
+    # will skip the episode in this case.
     _log("No dubs available at all for this episode. Skipping it.", level="debug")
     return False
 
 
-def probe_streams(file_path: str, timeout: int):
+def probe_streams(file_path: str, timeout: int | None = None) -> tuple[set, set]:
+    """Use ffprobe to get audio and subtitle languages from the given media file."""
+
+    if timeout is None:
+        timeout = int(config["app"]["CHECK_MISSING_DUB_SUB_TIMEOUT"])
+
     cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", file_path]
 
     _log(f"Running ffprobe on {file_path} with command: {' '.join(cmd)}", level="debug")
@@ -415,6 +449,8 @@ def probe_streams(file_path: str, timeout: int):
 
 
 def apply_series_blacklist(tmp_dict: dict, monitor_series_config: dict, service: str) -> dict:
+    """Apply series/season/episode blacklists from config to the given tmp_dict structure."""
+
     if not isinstance(monitor_series_config, dict):
         _log(f"{service}_monitor_series_id must be a dict.", level="error")
         monitor_series_config = {}
@@ -517,7 +553,7 @@ def sanitize(path_segment: str, ascii_only: bool = False, max_len: int = 255) ->
     """
     original_segment = path_segment
 
-    # Normalize then translate common unicode punctuation to ASCII
+    # normalize then translate common unicode punctuation to ASCII
     normalized = unicodedata.normalize("NFKC", path_segment)
     punctuation_translation = {
         ord('“'): '"', ord('”'): '"', ord('„'): '"', ord('‟'): '"',
@@ -530,10 +566,10 @@ def sanitize(path_segment: str, ascii_only: bool = False, max_len: int = 255) ->
     sanitized = normalized.translate(punctuation_translation)
     sanitized = INVALID_CHARS_RE.sub(" ", sanitized)
 
-    # Remove other control chars: DEL (0x7F) and C1 controls (0x80-0x9F)
+    # remove other control chars: DEL (0x7F) and C1 controls (0x80-0x9F)
     sanitized = re.sub(r"[\x7F-\x9F]", " ", sanitized)
 
-    # Drop most Unicode symbols (So/Sm/Sk) and any remaining "Other" categories
+    # drop most Unicode symbols (So/Sm/Sk) and any remaining "Other" categories
     def _drop_symbols(text: str) -> str:
         builder = []
         for ch in text:
@@ -561,7 +597,7 @@ def sanitize(path_segment: str, ascii_only: bool = False, max_len: int = 255) ->
     # trim trailing spaces/dots from the segment
     sanitized = sanitized.rstrip(" .")
 
-    # Optional strict ASCII mode
+    # optional strict ASCII mode
     if ascii_only:
         sanitized = unicodedata.normalize("NFKD", sanitized).encode("ascii", "ignore").decode("ascii")
         sanitized = re.sub(r"[^A-Za-z0-9 .()\-[\]{}!@#$%^&+=,;'%~`-]", " ", sanitized)
@@ -570,7 +606,7 @@ def sanitize(path_segment: str, ascii_only: bool = False, max_len: int = 255) ->
         sanitized = re.sub(r"\.(\s+)([A-Za-z0-9]{1,10})$", r".\2", sanitized)
         sanitized = sanitized.rstrip(" .")
 
-    # Truncate safely, preserving extension if present
+    # truncate safely, preserving extension if present
     if len(sanitized) > max_len:
         if "." in sanitized:
             name_part, dot, ext_part = sanitized.rpartition(".")
@@ -586,8 +622,10 @@ def sanitize(path_segment: str, ascii_only: bool = False, max_len: int = 255) ->
 
 
 def get_running_user():
-    uid = os.getuid()   # real UID
-    gid = os.getgid()   # real GID
+    """Get the current running user and group information (linux only)."""
+
+    uid = os.getuid()    # real UID
+    gid = os.getgid()    # real GID
     euid = os.geteuid()  # effective UID (after set-uid, if any)
     egid = os.getegid()  # effective GID
 
@@ -608,19 +646,34 @@ def format_value(val):
     - Lists are formatted as ["elem1", "elem2", ...] with double quotes around strings.
     - Strings are wrapped in double quotes.
     """
+
     if isinstance(val, bool):
         return "true" if val else "false"
+
     elif isinstance(val, (int, float)):
         return str(val)
+
     elif isinstance(val, list):
-        # Format each element in the list. If an element is a string, wrap it in quotes.
-        formatted_elements = ', '.join([f'"{x}"' if isinstance(x, str) else str(x) for x in val])
+
+        # format each element in the list. If an element is a string, wrap it in quotes.
+        formatted_elements = []
+
+        for item in val:
+            if isinstance(item, str):
+                formatted_elements.append(f"\"{item}\"")
+            else:
+                formatted_elements.append(str(item))
+
+        formatted_elements = ", ".join(formatted_elements)
         return f'[{formatted_elements}]'
+
     else:
         return f'"{val}"'
 
 
 def update_mdnx_config():
+    """Update MDNX config files based on current settings in config.json."""
+
     _log("Updating MDNX config files with new settings from config.json...")
 
     for mdnx_config_file, mdnx_config_settings in MDNX_CONFIG.items():
@@ -641,6 +694,8 @@ def update_mdnx_config():
 
 
 def update_app_config(key: str, value):
+    """Update a single key-value pair in the on-disk config.json file under the 'app' section."""
+
     global config
 
     try:
@@ -657,8 +712,8 @@ def update_app_config(key: str, value):
 
     app_section[key] = value
 
-    # Reorder "app" section according to CONFIG_DEFAULTS["app"] key order.
-    # Keys not present in defaults are appended in their current relative order.
+    # reorder "app" section according to CONFIG_DEFAULTS["app"] key order.
+    # keys not present in defaults are appended in their current relative order.
     try:
         defaults_app = CONFIG_DEFAULTS.get("app", {})
         ordered_app = OrderedDict()
@@ -692,6 +747,8 @@ def update_app_config(key: str, value):
 
 
 def build_folder_structure(base_dir: str, series_title: str, season: str, episode: str, episode_name: str, extension: str = ".mkv") -> str:
+    """Build the folder structure and file name based on the template in config."""
+
     template_str = str(config["app"]["FOLDER_STRUCTURE"])
 
     substitutes = {
@@ -725,7 +782,7 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
 
     full_path = os.path.join(base_dir, *parts)
 
-    # Add extension if the user omitted it
+    # add extension if the user omitted it
     if not full_path.lower().endswith(extension.lower()):
         full_path = f"{full_path}{extension}"
 
@@ -735,27 +792,34 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
 
 
 def get_episode_file_path(queue, series_id, season_key, episode_key, base_dir, extension=".mkv"):
-    # Get data from the queue.
+    """Get the full file path for the given series/season/episode from the queue."""
+
+    # get data from the queue.
     raw_series = queue[series_id]["series"]["series_name"]
     season = queue[series_id]["seasons"][season_key]["season_number"]
     episode = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_number"]
     raw_episode_name = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_name"]
 
-    # Treat specials (queue key starts with "S") as season 0 so the
+    # treat specials (queue key starts with "S") as season 0 so the
     # build_folder_structure logic can detect them.
     if episode_key.startswith("S"):
         season = "0"
 
-    # Build the folder structure and file name.
+    # build the folder structure and file name.
     file_name = build_folder_structure(base_dir, raw_series, season, episode, raw_episode_name, extension)
 
     _log(f"Built file path for series ID {series_id}, season {season_key}, episode {episode_key}: {file_name}", level="debug")
 
-    # Combine to form the full file path.
+    # combine to form the full file path.
     return file_name
 
 
 def iter_episodes(bucket_data: dict):
+    """
+    Generator to iterate over all episodes in the given bucket_data structure.
+    Yields tuples of (series_id, season_key, episode_key, season_info, episode_info).
+    """
+
     if not isinstance(bucket_data, dict) or not bucket_data:
         return
 
