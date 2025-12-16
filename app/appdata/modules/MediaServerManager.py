@@ -10,10 +10,7 @@ from .Vars import (
     update_app_config, format_duration
 )
 
-PLEX_API_BASE = "https://plex.tv/api/v2"
-PLEX_API_AUTH_URL = "https://app.plex.tv/auth"
-PLEX_PRODUCT_NAME = "mdnx-auto-dl"
-PLEX_PIN_TIMEOUT_SECONDS = 180
+
 MEDIA_SERVER_INSTANCE = None  # holds the PLEX_API or JELLYFIN_API class instance once created
 
 
@@ -34,11 +31,17 @@ class PLEX_API:
         # per-process client id (Plex requires a client identifier)
         self.client_id = str(uuid.uuid4())
 
+        # Plex API
+        self.api_base = "https://plex.tv/api/v2"
+        self.api_auth_url = "https://app.plex.tv/auth"
+        self.product_name = "mdnx-auto-dl"
+
         # PIN state
         self.pin_id = None
         self.pin_code = None
         self.pin_started_at = None
         self.pin_url_logged = False
+        self.pin_timeout_seconds = 180  # PIN valid for 3 minutes
 
         log_manager.info(f"PLEX API initialized with: URL: {self.server_url}")
 
@@ -64,7 +67,7 @@ class PLEX_API:
                     log_manager.info("Authorization completed. Token stored.")
                     return True
 
-            if self.pin_started_at and (time.time() - self.pin_started_at > PLEX_PIN_TIMEOUT_SECONDS):
+            if self.pin_started_at and (time.time() - self.pin_started_at > self.pin_timeout_seconds):
                 log_manager.info("PIN timed out. Generating a new one.")
                 self._clear_pin_state()
                 self._create_and_log_pin()
@@ -118,7 +121,7 @@ class PLEX_API:
 
         headers = {
             "Accept": "application/json",
-            "X-Plex-Product": PLEX_PRODUCT_NAME,
+            "X-Plex-Product": self.product_name,
             "X-Plex-Client-Identifier": self.client_id,
         }
         if include_token and self.token:
@@ -133,7 +136,7 @@ class PLEX_API:
 
         try:
             resp = requests.get(
-                f"{PLEX_API_BASE}/user",
+                f"{self.api_base}/user",
                 headers=self._headers(include_token=True),
                 timeout=10
             )
@@ -160,7 +163,7 @@ class PLEX_API:
         """Start the PIN authorization process."""
 
         resp = requests.post(
-            f"{PLEX_API_BASE}/pins",
+            f"{self.api_base}/pins",
             headers=self._headers(include_token=False),
             data={"strong": "true"},
             timeout=15,
@@ -171,11 +174,11 @@ class PLEX_API:
         pin_id = data["id"]
         code = data["code"]
 
-        auth_url = PLEX_API_AUTH_URL + "#?" + urlencode(
+        auth_url = self.api_auth_url + "#?" + urlencode(
             {
                 "clientID": self.client_id,
                 "code": code,
-                "context[device][product]": PLEX_PRODUCT_NAME,
+                "context[device][product]": self.product_name,
             }
         )
         return pin_id, code, auth_url
@@ -185,7 +188,7 @@ class PLEX_API:
 
         try:
             resp = requests.get(
-                f"{PLEX_API_BASE}/pins/{pin_id}",
+                f"{self.api_base}/pins/{pin_id}",
                 headers=self._headers(include_token=False),
                 params={"code": code},
                 timeout=10,
