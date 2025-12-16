@@ -2,7 +2,6 @@ import os
 import sys
 import signal
 
-# Custom imports
 from appdata.modules.MainLoop import MainLoop
 from appdata.modules.Globals import file_manager, log_manager
 from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
@@ -12,7 +11,7 @@ from appdata.modules.Vars import (
     update_mdnx_config, update_app_config, handle_exception, get_running_user, output_effective_config
 )
 
-__VERSION__ = "2.2.5"
+__VERSION__ = "2.2.6"
 
 
 def app():
@@ -26,7 +25,7 @@ def app():
         from appdata.modules.API.MDNX.crunchy import CR_MDNX_API
         cr_mdnx_api = CR_MDNX_API()
 
-        # Authenticate with CR MDNX service if needed or force auth if user wants to
+        # authenticate with MDNX crunchyroll service if needed or force auth if user wants to
         log_manager.info("Checking to see if user is authenticated with MDNX service (cr_token.yml exists?)...")
         if not os.path.exists(MDNX_SERVICE_CR_TOKEN_PATH) or config["app"]["CR_FORCE_REAUTH"] == True:
             cr_mdnx_api.auth()
@@ -42,6 +41,7 @@ def app():
         from appdata.modules.API.MDNX.hidive import HIDIVE_MDNX_API
         hidive_mdnx_api = HIDIVE_MDNX_API()
 
+        # authenticate with MDNX hidive service if needed or force auth if user wants to
         log_manager.info("Checking to see if user is authenticated with MDNX service (hd_new_token.yml exists?)...")
         if not os.path.exists(MDNX_SERVICE_HIDIVE_TOKEN_PATH) or config["app"]["HIDIVE_FORCE_REAUTH"] == True:
             hidive_mdnx_api.auth()
@@ -55,7 +55,7 @@ def app():
         else:
             log_manager.info("API test skipped by user.")
 
-    # What is the notification preference?
+    # figure out notification preference
     log_manager.info("Checking notification preference...")
     if config["app"]["NOTIFICATION_PREFERENCE"] == "ntfy":
         log_manager.info("User prefers ntfy notifications. Setting up ntfy script...")
@@ -121,7 +121,7 @@ def app():
     else:
         log_manager.info("MEDIASERVER_TYPE not set. Skipping media server auth/scan.")
 
-    # Start MainLoop
+    # init MainLoop based on enabled services
     if config["app"]["CR_ENABLED"] == True and config["app"]["HIDIVE_ENABLED"] == True:
         log_manager.info("Both CR and HIDIVE are enabled. Starting MainLoop with both services...")
         mainloop = MainLoop(cr_mdnx_api=cr_mdnx_api, hidive_mdnx_api=hidive_mdnx_api, notifier=notifier)
@@ -139,6 +139,7 @@ def app():
         sys.exit(1)
 
     def shutdown(signum, frame):
+        """Signal handler to gracefully shutdown the application."""
         log_manager.info(f"Received signal {signum}. Start to shutdown...")
         mainloop.stop()
         log_manager.info("Shutdown requested. Waiting for MainLoop to exit...")

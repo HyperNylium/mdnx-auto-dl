@@ -2,10 +2,10 @@ import os
 import sys
 import inspect
 import threading
+import traceback
 from datetime import datetime
 from zipfile import ZipFile, ZIP_DEFLATED
 
-# Custom imports
 from .Vars import config, LOG_DIR
 
 
@@ -36,30 +36,52 @@ class LogManager:
         self.lock = threading.Lock()
 
         # rotate any existing log from the previous run.
-        self.rotate()
+        self._rotate()
         return
 
-    def debug(self, message: str) -> None:
-        self._log(message, level="DEBUG")
+    def debug(self, message: str, exc_info=None) -> None:
+        """Logs a debug-level message."""
+        self._log(message, level="DEBUG", exc_info=exc_info)
         return
 
-    def info(self, message: str) -> None:
-        self._log(message, level="INFO")
+    def info(self, message: str, exc_info=None) -> None:
+        """Logs an info-level message."""
+        self._log(message, level="INFO", exc_info=exc_info)
         return
 
-    def warning(self, message: str) -> None:
-        self._log(message, level="WARNING")
+    def warning(self, message: str, exc_info=None) -> None:
+        """Logs a warning-level message."""
+        self._log(message, level="WARNING", exc_info=exc_info)
         return
 
-    def error(self, message: str) -> None:
-        self._log(message, level="ERROR")
+    def error(self, message: str, exc_info=None) -> None:
+        """Logs an error-level message."""
+        self._log(message, level="ERROR", exc_info=exc_info)
         return
 
-    def critical(self, message: str) -> None:
-        self._log(message, level="CRITICAL")
+    def critical(self, message: str, exc_info=None) -> None:
+        """Logs a critical-level message."""
+        self._log(message, level="CRITICAL", exc_info=exc_info)
         return
 
-    def _log(self, message: str, level: str = "INFO") -> None:
+    def _rotate(self) -> None:
+        """Archives the current log file and prunes old archives if necessary."""
+
+        with self.lock:
+            if not os.path.exists(self.log_file):
+                return
+
+            if os.path.getsize(self.log_file) == 0:
+                return
+
+            self._archive_current_log_locked()
+            self._prune_archives_locked()
+
+        return
+
+    def _log(self, message: str, level: str = "INFO", exc_info=None) -> None:
+        """Logs a message with the specified level to both terminal and log file."""
+
         level_name = level.upper()
         level_value = LEVEL_VALUES.get(level_name)
 
@@ -87,23 +109,41 @@ class LogManager:
 
         self._write_line(logfile_line)
 
+        # if exc_info is provided, append a formatted traceback to the log file.
+        norm = self._normalize_exc_info(exc_info)
+        if norm is not None:
+            try:
+                traceback_text = "".join(traceback.format_exception(*norm)).rstrip("\n")
+                for traceback_line in traceback_text.splitlines():
+                    self._write_line(f"[{time_str} {date_str}] [{level_name}] [{filename}<{funcname}>] - {traceback_line}")
+            except Exception:
+                # avoid raising from the logger itself.
+                pass
+
         print(terminal_line, file=sys.stdout, flush=True)
 
         return
 
-    def rotate(self) -> None:
-        with self.lock:
-            if not os.path.exists(self.log_file):
-                return
+    def _normalize_exc_info(self, exc_info):
+        """Normalize exc_info into (exc_type, exc_value, tb) tuple or None."""
 
-            if os.path.getsize(self.log_file) == 0:
-                return
+        if exc_info is None:
+            return None
 
-            self._archive_current_log_locked()
-            self._prune_archives_locked()
-        return
+        if exc_info is True:
+            return sys.exc_info()
+
+        if isinstance(exc_info, BaseException):
+            return (type(exc_info), exc_info, exc_info.__traceback__)
+
+        if isinstance(exc_info, tuple) and len(exc_info) == 3:
+            return exc_info
+
+        return None
 
     def _archive_current_log_locked(self) -> None:
+        """Archives the current log file into a zip with a timestamped name."""
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         log_basename = os.path.basename(self.log_file)
@@ -113,7 +153,6 @@ class LogManager:
 
         try:
             with ZipFile(zip_name, mode="w", compression=ZIP_DEFLATED) as zf:
-                # store as "mdnx-auto-dl.log" inside the zip
                 zf.write(self.log_file, arcname=log_basename)
         finally:
             try:
@@ -123,6 +162,8 @@ class LogManager:
         return
 
     def _prune_archives_locked(self) -> None:
+        """Deletes oldest log archives if exceeding max_archives limit."""
+
         log_basename = os.path.basename(self.log_file)
         log_stem, _ = os.path.splitext(log_basename)
 
@@ -132,7 +173,7 @@ class LogManager:
                 full_path = os.path.join(self.log_dir, name)
                 archives.append(full_path)
 
-        # Sort by modification time (oldest first)
+        # sort by oldest modification time
         archives.sort(key=os.path.getmtime)
 
         while len(archives) > self.max_archives:
@@ -144,6 +185,8 @@ class LogManager:
         return
 
     def _write_line(self, line) -> None:
+        """Writes a line to the log file with thread safety."""
+
         with self.lock:
             with open(self.log_file, "a", encoding="utf-8") as f:
                 f.write(line + "\n")
