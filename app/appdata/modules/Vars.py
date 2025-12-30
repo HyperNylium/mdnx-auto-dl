@@ -144,10 +144,12 @@ CONFIG_DEFAULTS = {
         "SMTP_PASSWORD": "",
         "SMTP_PORT": 587,
         "SMTP_STARTTLS": True,
-        "MEDIASERVER_TYPE": None,
-        "MEDIASERVER_URL": None,
-        "MEDIASERVER_TOKEN": None,
-        "MEDIASERVER_URL_OVERRIDE": False
+        "PLEX_URL": None,
+        "PLEX_TOKEN": None,
+        "PLEX_URL_OVERRIDE": False,
+        "JELLY_URL": None,
+        "JELLY_API_KEY": None,
+        "JELLY_URL_OVERRIDE": False
     },
     "mdnx": {
         "bin-path": {
@@ -203,6 +205,14 @@ MDNX_SERVICE_HIDIVE_TOKEN_PATH = os.path.join(BIN_DIR, "mdnx", "config", "hd_new
 
 # Regular expression to match invalid characters in filenames
 INVALID_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1F]')
+
+# Vars related to media server stuff
+PLEX_URL = config["app"]["PLEX_URL"]
+JELLY_URL = config["app"]["JELLY_URL"]
+JELLY_API_KEY = config["app"]["JELLY_API_KEY"]
+
+PLEX_CONFIGURED = isinstance(PLEX_URL, str) and PLEX_URL.strip() != ""
+JELLY_CONFIGURED = isinstance(JELLY_URL, str) and JELLY_URL.strip() != "" and isinstance(JELLY_API_KEY, str) and JELLY_API_KEY.strip() != ""
 
 # Strings in multi-downloader-nx's logs that indicate a successful download
 MDNX_API_OK_LOGS = [

@@ -6,8 +6,8 @@ from appdata.modules.MainLoop import MainLoop
 from appdata.modules.Globals import file_manager, log_manager
 from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
 from appdata.modules.Vars import (
-    config, CONFIG_DEFAULTS,
-    MDNX_SERVICE_CR_TOKEN_PATH, MDNX_SERVICE_HIDIVE_TOKEN_PATH,
+    config,
+    CONFIG_DEFAULTS, MDNX_SERVICE_CR_TOKEN_PATH, MDNX_SERVICE_HIDIVE_TOKEN_PATH, PLEX_CONFIGURED, JELLY_CONFIGURED,
     update_mdnx_config, update_app_config, handle_exception, get_running_user, output_effective_config
 )
 
@@ -103,10 +103,12 @@ def app():
         log_manager.error(f"Unsupported notification preference: {config['app']['NOTIFICATION_PREFERENCE']}. Supported options are 'ntfy', 'smtp' or 'none'.")
         sys.exit(1)
 
-    server_type = config["app"]["MEDIASERVER_TYPE"]
+    if PLEX_CONFIGURED is True or JELLY_CONFIGURED is True:
+        if PLEX_CONFIGURED is True:
+            log_manager.info("PLEX_URL is set. Plex media server scan enabled.")
 
-    if isinstance(server_type, str) and server_type.strip() != "":
-        log_manager.info(f"Media server type: {server_type}")
+        if JELLY_CONFIGURED is True:
+            log_manager.info("JELLY_URL and JELLY_API_KEY are set. Jellyfin media server scan enabled.")
 
         if not mediaserver_auth():
             log_manager.error("Authentication timed out or failed. Check the logs.")
@@ -119,7 +121,7 @@ def app():
         else:
             log_manager.info("Library scan successful.")
     else:
-        log_manager.info("MEDIASERVER_TYPE not set. Skipping media server auth/scan.")
+        log_manager.info("No media servers configured. Skipping media server auth/scan.")
 
     # init MainLoop based on enabled services
     if config["app"]["CR_ENABLED"] == True and config["app"]["HIDIVE_ENABLED"] == True:

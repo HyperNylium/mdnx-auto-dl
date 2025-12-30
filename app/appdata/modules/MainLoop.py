@@ -6,7 +6,7 @@ from .MediaServerManager import mediaserver_scan_library
 from .Globals import file_manager, queue_manager, log_manager
 from .Vars import (
     config,
-    TEMP_DIR, DATA_DIR,
+    TEMP_DIR, DATA_DIR, PLEX_CONFIGURED, JELLY_CONFIGURED,
     get_episode_file_path, probe_streams, select_dubs, format_duration, iter_episodes
 )
 
@@ -75,7 +75,7 @@ class MainLoop:
                     return
 
                 # trigger media server scan if configured and there are new items in the notifications buffer.
-                if len(self.notifications_buffer) > 0 and config["app"]["MEDIASERVER_TYPE"] is not None:
+                if len(self.notifications_buffer) > 0 and (PLEX_CONFIGURED is True or JELLY_CONFIGURED is True):
                     log_manager.info("Triggering media server scan.")
                     mediaserver_scan_library()
 
