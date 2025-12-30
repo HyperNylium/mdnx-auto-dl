@@ -71,7 +71,7 @@ class FileManager:
 
         log_manager.info(f"Found source file: {src_path}. Checking readiness...")
 
-        if not self._waitForReady(src_path):
+        if not self._wait_for_ready(src_path):
             log_manager.warning(f"'{src_basename}' not ready within {self.readyTimeout} seconds, skipping.")
             return False
 
@@ -136,7 +136,7 @@ class FileManager:
         log_manager.info(f"Temporary files in {self.source} removed.")
         return True
 
-    def _waitForReady(self, path):
+    def _wait_for_ready(self, path):
         """Wait for a file to become ready by monitoring its size stability over time."""
 
         lastSize = -1
