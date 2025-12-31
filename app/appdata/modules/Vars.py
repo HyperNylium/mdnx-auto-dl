@@ -390,7 +390,7 @@ def select_dubs(episode_info: dict):
 def probe_streams(file_path: str) -> tuple[set, set]:
     """Use ffprobe to get audio and subtitle languages from the given media file."""
 
-    timeout = 180 # 3 minutes
+    timeout = 180  # 3 minutes
     cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", file_path]
 
     _log(f"Running ffprobe on {file_path} with command: {' '.join(cmd)}", level="debug")
