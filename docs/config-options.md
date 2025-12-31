@@ -75,6 +75,12 @@ If you choose to not include key-value pairs that you don't modify in `config.js
 | `SMTP_PASSWORD`                    | `""`                                                                          | string        | SMTP password. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                                                                                         |
 | `SMTP_PORT`                        | `587`                                                                         | number        | SMTP server port. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                                                                                      |
 | `SMTP_STARTTLS`                    | `true`                                                                        | boolean       | When `true`, use STARTTLS for SMTP connections. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                                                        |
+| `PLEX_URL`                        | `null`                                                                        | string        | URL of the Plex server to notify. Must be the complete URL of your server. Example: `http://192.168.1.10:32400`.                                              |
+| `PLEX_TOKEN`                      | `null`                                                                        | string        | Plex auth token. You normally do not need to set this manually; it is saved automatically after you authorize the app (check the logs on first boot!).        |
+| `PLEX_URL_OVERRIDE`               | `false`                                                                       | boolean       | When `true`, use the Plex library refresh URL exactly as provided in `PLEX_URL` (e.g. a single-library refresh endpoint).                                       |
+| `JELLY_URL`                       | `null`                                                                        | string        | URL of the Jellyfin server to notify. Must be the complete URL of your server. Example: `http://192.168.1.10:8096`.                                             |
+| `JELLY_API_KEY`                   | `null`                                                                        | string        | Jellyfin API key.                                                                                          |
+| `JELLY_URL_OVERRIDE`              | `false`                                                                       | boolean       | When `true`, use the Jellyfin library refresh URL exactly as provided in `JELLY_URL` (e.g. a single-library refresh endpoint).                                  |
 
 ---
 
@@ -140,18 +146,19 @@ You would also need a bind-mount like: `./appdata/config/ntfy.sh:/app/appdata/co
 
 ---
 
-## Options for `MEDIASERVER_TYPE` (TODO: rewrite for new variables)
+## Media server options (Plex and Jellyfin)
 
-The value of this will either be `null`, `plex`, or `jellyfin`.  
-If you set this to `null`, which is the default, no media server will be notified after downloads.
+You can configure **Plex**, **Jellyfin**, or **both** at the same time.
 
-### Plex (`MEDIASERVER_TYPE: "plex"`)
+- If `PLEX_URL` is `null` (default), Plex will not be notified.
+- If `JELLY_URL` is `null` (default), Jellyfin will not be notified.
+
+### Plex (`PLEX_URL`)
 Make sure your `config.json` has the following key-value pairs:
 ```json
 {
   "app": {
-    "MEDIASERVER_TYPE": "plex",
-    "MEDIASERVER_URL": "http://<YOUR_SERVER_IP>:32400"
+    "PLEX_URL": "http://<YOUR_SERVER_IP>:32400"
   }
 }
 ```
@@ -160,35 +167,34 @@ Where `<YOUR_SERVER_IP>` is the IP address of your Plex server.
 
 After doing `docker compose up -d && docker compose logs -f`, you will see a log line like this:
 ```txt
-[MediaServerManager][PLEX_API] Open this URL in a browser to authorize the app:
+Open this URL in a browser to authorize the app:
 https://app.plex.tv/auth#?blablablablablablablabla
 ```
 
 Open that URL in a browser, login to your Plex account, and authorize the app.  
-Once you do that, the application will save the Plex token to the `MEDIASERVER_TOKEN` variable automatically and continue to start up.  
-If the `MEDIASERVER_TOKEN` variable doesn't exist, it will create it and store the token. There is no need to manually define `MEDIASERVER_TOKEN` in your `config.json`.  
+Once you do that, the application will save the Plex token to the `PLEX_TOKEN` variable automatically and continue to start up.  
+If the `PLEX_TOKEN` variable doesn't exist, it will create it and store the token. There is no need to manually define `PLEX_TOKEN` in your `config.json`.  
 The timeout for auth is 10 minutes. If you don't authorize the app within that time, the application will exit.
 
 After you authorize the app, you should see this in the logs:
 ```txt
-[MediaServerManager][PLEX_API] Authorization completed. Token stored.
-[app] User is authenticated. Testing library scan...
-[MediaServerManager][PLEX_API] Scan triggered successfully.
-[app] Library scan successful.
-[app] Starting MainLoop...
+Authorization completed. Token stored.
+User is authenticated. Testing library scan...
+Scan triggered successfully.
+Library scan successful.
+...
 ```
 
 If so, you're all set!  
-You will not have to do the authorization step again unless you delete the `MEDIASERVER_TOKEN` variable or delete the session from Authenticated Devices in your Plex account settings.
+You will not have to do the authorization step again unless you delete the `PLEX_TOKEN` variable or delete the session from Authenticated Devices in your Plex account settings.
 
-### Jellyfin (`MEDIASERVER_TYPE: "jellyfin"`)
+### Jellyfin (`JELLY_URL` + `JELLY_API_KEY`)
 Make sure your `config.json` has the following key-value pairs:
 ```json
 {
   "app": {
-    "MEDIASERVER_TYPE": "jellyfin",
-    "MEDIASERVER_URL": "http://<YOUR_SERVER_IP>:8096",
-    "MEDIASERVER_TOKEN": "<YOUR_API_KEY>"
+    "JELLY_URL": "http://<YOUR_SERVER_IP>:8096",
+    "JELLY_API_KEY": "<YOUR_API_KEY>"
   }
 }
 ```
@@ -198,45 +204,44 @@ There is no manual authorization step like Plex. Just make sure your API key is 
 
 ---
 
-## Options for `MEDIASERVER_URL_OVERRIDE`
+## Options for `PLEX_URL_OVERRIDE` and `JELLY_URL_OVERRIDE`
 
-By default, if you only set `MEDIASERVER_TYPE`, `MEDIASERVER_URL`, and `MEDIASERVER_TOKEN`, the application will try to refresh all libraries on the server.
+By default, if you only set:
+- `PLEX_URL` (and authorize once to populate `PLEX_TOKEN`), and/or
+- `JELLY_URL` + `JELLY_API_KEY`
 
-If you want to only refresh a specific library, set `MEDIASERVER_URL_OVERRIDE` to `true` and set `MEDIASERVER_URL` to the appropriate URL for your media server that will refresh a specific library.
+...the application will try to refresh **all libraries** on the configured server(s).
 
+If you want to only refresh a specific library, set the relevant `*_URL_OVERRIDE` to `true` and set the corresponding `*_URL` to the exact refresh endpoint for that one library.
+
+### Plex override (`PLEX_URL_OVERRIDE`)
 The usual config that will refresh everything:
 ```json
-"MEDIASERVER_TYPE": "plex",
-"MEDIASERVER_URL": "http://192.168.1.10:32400",
-"MEDIASERVER_URL_OVERRIDE": false
+"PLEX_URL": "http://192.168.1.10:32400",
+"PLEX_URL_OVERRIDE": false
 ```
 
-OR
-
+With `PLEX_URL_OVERRIDE` enabled for only scanning 1 library:
 ```json
-"MEDIASERVER_TYPE": "jellyfin",
-"MEDIASERVER_URL": "http://192.168.1.10:8096",
-"MEDIASERVER_TOKEN": "blablablablablablabla",
-"MEDIASERVER_URL_OVERRIDE": false
-```
-
-With `MEDIASERVER_URL_OVERRIDE` enabled for only scanning 1 library:
-```json
-"MEDIASERVER_TYPE": "plex",
-"MEDIASERVER_URL": "http://192.168.1.10:32400/library/sections/1/refresh",
-"MEDIASERVER_URL_OVERRIDE": true
+"PLEX_URL": "http://192.168.1.10:32400/library/sections/1/refresh",
+"PLEX_URL_OVERRIDE": true
 ```
 
 Where `1` in `/library/sections/1/refresh` is the library key you want to refresh.  
 You can find the library key by running `curl http://<YOUR_SERVER_IP>:32400/library/sections` and look for the `key="X"` in the output.
 
-OR
-
+### Jellyfin override (`JELLY_URL_OVERRIDE`)
+The usual config that will refresh everything:
 ```json
-"MEDIASERVER_TYPE": "jellyfin",
-"MEDIASERVER_URL": "http://192.168.1.10:8096/Items/123456abcdef/Refresh?Recursive=true",
-"MEDIASERVER_TOKEN": "blablablablablablabla",
-"MEDIASERVER_URL_OVERRIDE": true
+"JELLY_URL": "http://192.168.1.10:8096",
+"JELLY_URL_OVERRIDE": false
+```
+
+With `JELLY_URL_OVERRIDE` enabled for only scanning 1 library:
+```json
+"JELLY_URL": "http://192.168.1.10:8096/Items/123456abcdef/Refresh?Recursive=true",
+"JELLY_API_KEY": "blablablablablablabla",
+"JELLY_URL_OVERRIDE": true
 ```
 
 Where `123456abcdef` in `/Items/123456abcdef/Refresh?Recursive=true` is the ID of the library you want to refresh.  
