@@ -123,7 +123,6 @@ CONFIG_DEFAULTS = {
         "BACKUP_DUBS": ["zho"],
         "FOLDER_STRUCTURE": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
         "CHECK_MISSING_DUB_SUB": True,
-        "CHECK_MISSING_DUB_SUB_TIMEOUT": 300,
         "CHECK_FOR_UPDATES_INTERVAL": 3600,
         "EPISODE_DL_DELAY": 30,
         "CR_FORCE_REAUTH": False,
@@ -388,12 +387,10 @@ def select_dubs(episode_info: dict):
     return False
 
 
-def probe_streams(file_path: str, timeout: int | None = None) -> tuple[set, set]:
+def probe_streams(file_path: str) -> tuple[set, set]:
     """Use ffprobe to get audio and subtitle languages from the given media file."""
 
-    if timeout is None:
-        timeout = int(config["app"]["CHECK_MISSING_DUB_SUB_TIMEOUT"])
-
+    timeout = 180 # 3 minutes
     cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", file_path]
 
     _log(f"Running ffprobe on {file_path} with command: {' '.join(cmd)}", level="debug")
@@ -401,7 +398,7 @@ def probe_streams(file_path: str, timeout: int | None = None) -> tuple[set, set]
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
-        _log(f"ffprobe timed out after {timeout}s on {file_path}", level="error")
+        _log(f"ffprobe timed out after {format_duration(timeout)} on {file_path}", level="error")
         return set(), set()
 
     try:
