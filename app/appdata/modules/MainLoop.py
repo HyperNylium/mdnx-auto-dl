@@ -1,12 +1,13 @@
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from .MediaServerManager import mediaserver_scan_library
 from .Globals import file_manager, queue_manager, log_manager
 from .Vars import (
     config,
-    TEMP_DIR, DATA_DIR, PLEX_CONFIGURED, JELLY_CONFIGURED,
+    TEMP_DIR, DATA_DIR, PLEX_CONFIGURED, JELLY_CONFIGURED, TZ,
     get_episode_file_path, probe_streams, select_dubs, format_duration, iter_episodes
 )
 
@@ -85,7 +86,7 @@ class MainLoop:
                     self._flush_notifications()
 
                 # wait for self.timeout seconds or exit early if stop_event is set.
-                log_manager.info(f"MainLoop iteration completed. Next iteration in {format_duration(self.loop_timeout)}.")
+                log_manager.info(f"MainLoop iteration completed. Next iteration in {format_duration(self.loop_timeout)} ({(datetime.now(ZoneInfo(TZ)) + timedelta(seconds=self.loop_timeout)).strftime("%I:%M:%S %p")}).")
                 if self._wait_or_interrupt(timeout=self.loop_timeout):
                     return
         finally:
