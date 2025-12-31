@@ -12,6 +12,7 @@ from collections import OrderedDict
 
 CONFIG_PATH = os.getenv("CONFIG_FILE", "appdata/config/config.json")
 QUEUE_PATH = os.getenv("QUEUE_FILE", "appdata/config/queue.json")
+TZ = os.getenv("TZ", "America/New_York")
 
 
 def _log(message: str, level: str = "info", exc_info=None) -> None:
@@ -123,19 +124,18 @@ CONFIG_DEFAULTS = {
         "BACKUP_DUBS": ["zho"],
         "FOLDER_STRUCTURE": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
         "CHECK_MISSING_DUB_SUB": True,
-        "CHECK_MISSING_DUB_SUB_TIMEOUT": 300,
         "CHECK_FOR_UPDATES_INTERVAL": 3600,
-        "BETWEEN_EPISODE_DL_WAIT_INTERVAL": 30,
+        "EPISODE_DL_DELAY": 30,
         "CR_FORCE_REAUTH": False,
         "CR_SKIP_API_TEST": False,
         "HIDIVE_FORCE_REAUTH": False,
         "HIDIVE_SKIP_API_TEST": False,
-        "NOTIFICATION_PREFERENCE": "none",
         "ONLY_CREATE_QUEUE": False,
         "SKIP_QUEUE_REFRESH": False,
         "DRY_RUN": False,
         "LOG_LEVEL": "info",
         "MAX_LOG_ARCHIVES": 5,
+        "NOTIFICATION_PREFERENCE": "none",
         "NTFY_SCRIPT_PATH": "/app/appdata/config/ntfy.sh",
         "SMTP_FROM": "",
         "SMTP_TO": "",
@@ -144,10 +144,12 @@ CONFIG_DEFAULTS = {
         "SMTP_PASSWORD": "",
         "SMTP_PORT": 587,
         "SMTP_STARTTLS": True,
-        "MEDIASERVER_TYPE": None,
-        "MEDIASERVER_URL": None,
-        "MEDIASERVER_TOKEN": None,
-        "MEDIASERVER_URL_OVERRIDE": False
+        "PLEX_URL": None,
+        "PLEX_TOKEN": None,
+        "PLEX_URL_OVERRIDE": False,
+        "JELLY_URL": None,
+        "JELLY_API_KEY": None,
+        "JELLY_URL_OVERRIDE": False
     },
     "mdnx": {
         "bin-path": {
@@ -203,6 +205,14 @@ MDNX_SERVICE_HIDIVE_TOKEN_PATH = os.path.join(BIN_DIR, "mdnx", "config", "hd_new
 
 # Regular expression to match invalid characters in filenames
 INVALID_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1F]')
+
+# Vars related to media server stuff
+PLEX_URL = config["app"]["PLEX_URL"]
+JELLY_URL = config["app"]["JELLY_URL"]
+JELLY_API_KEY = config["app"]["JELLY_API_KEY"]
+
+PLEX_CONFIGURED = isinstance(PLEX_URL, str) and PLEX_URL.strip() != ""
+JELLY_CONFIGURED = isinstance(JELLY_URL, str) and JELLY_URL.strip() != "" and isinstance(JELLY_API_KEY, str) and JELLY_API_KEY.strip() != ""
 
 # Strings in multi-downloader-nx's logs that indicate a successful download
 MDNX_API_OK_LOGS = [
@@ -378,12 +388,10 @@ def select_dubs(episode_info: dict):
     return False
 
 
-def probe_streams(file_path: str, timeout: int | None = None) -> tuple[set, set]:
+def probe_streams(file_path: str) -> tuple[set, set]:
     """Use ffprobe to get audio and subtitle languages from the given media file."""
 
-    if timeout is None:
-        timeout = int(config["app"]["CHECK_MISSING_DUB_SUB_TIMEOUT"])
-
+    timeout = 180  # 3 minutes
     cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", file_path]
 
     _log(f"Running ffprobe on {file_path} with command: {' '.join(cmd)}", level="debug")
@@ -391,7 +399,7 @@ def probe_streams(file_path: str, timeout: int | None = None) -> tuple[set, set]
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
-        _log(f"ffprobe timed out after {timeout}s on {file_path}", level="error")
+        _log(f"ffprobe timed out after {format_duration(timeout)} on {file_path}", level="error")
         return set(), set()
 
     try:

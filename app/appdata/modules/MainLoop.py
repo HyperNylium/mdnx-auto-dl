@@ -1,12 +1,13 @@
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from .MediaServerManager import mediaserver_scan_library
 from .Globals import file_manager, queue_manager, log_manager
 from .Vars import (
     config,
-    TEMP_DIR, DATA_DIR,
+    TEMP_DIR, DATA_DIR, PLEX_CONFIGURED, JELLY_CONFIGURED, TZ,
     get_episode_file_path, probe_streams, select_dubs, format_duration, iter_episodes
 )
 
@@ -20,7 +21,7 @@ class MainLoop:
         self.hidive_enabled = config["app"]["HIDIVE_ENABLED"]
         self.check_missing_dub_sub = config["app"]["CHECK_MISSING_DUB_SUB"]
         self.loop_timeout = int(config["app"]["CHECK_FOR_UPDATES_INTERVAL"])
-        self.between_episode_timeout = int(config["app"]["BETWEEN_EPISODE_DL_WAIT_INTERVAL"])
+        self.between_episode_timeout = int(config["app"]["EPISODE_DL_DELAY"])
         self.only_create_queue = config["app"]["ONLY_CREATE_QUEUE"]
         self.skip_queue_refresh = config["app"]["SKIP_QUEUE_REFRESH"]
         self.dry_run = config["app"]["DRY_RUN"]
@@ -75,7 +76,7 @@ class MainLoop:
                     return
 
                 # trigger media server scan if configured and there are new items in the notifications buffer.
-                if len(self.notifications_buffer) > 0 and config["app"]["MEDIASERVER_TYPE"] is not None:
+                if len(self.notifications_buffer) > 0 and (PLEX_CONFIGURED is True or JELLY_CONFIGURED is True):
                     log_manager.info("Triggering media server scan.")
                     mediaserver_scan_library()
 
@@ -85,7 +86,7 @@ class MainLoop:
                     self._flush_notifications()
 
                 # wait for self.timeout seconds or exit early if stop_event is set.
-                log_manager.info(f"MainLoop iteration completed. Next iteration in {format_duration(self.loop_timeout)}.")
+                log_manager.info(f"MainLoop iteration completed. Next iteration in {format_duration(self.loop_timeout)} ({(datetime.now(ZoneInfo(TZ)) + timedelta(seconds=self.loop_timeout)).strftime("%I:%M:%S %p")}).")
                 if self._wait_or_interrupt(timeout=self.loop_timeout):
                     return
         finally:
@@ -396,7 +397,7 @@ class MainLoop:
                 continue
 
             # probe existing file for local dubs and subs
-            local_dubs, local_subs = probe_streams(file_path, config["app"]["CHECK_MISSING_DUB_SUB_TIMEOUT"])
+            local_dubs, local_subs = probe_streams(file_path)
 
             derived = set(local_subs)
             for loc in list(local_subs):
