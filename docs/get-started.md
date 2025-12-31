@@ -120,4 +120,4 @@ docker compose up -d
 
 That’s it! The application will now keep track of the series you listed in `config.json`, automatically download new episodes as they’re released, and update existing downloads whenever new dubs or subs become available.
 
-For more advanced configuration options using the `config.json`, please refer to the [configuration documentation](docs/config-options.md).
+For more advanced configuration options using the `config.json`, please refer to the [configuration documentation](config-options.md).
