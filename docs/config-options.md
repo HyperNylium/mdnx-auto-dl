@@ -210,7 +210,7 @@ By default, if you only set:
 - `PLEX_URL` (and authorize once to populate `PLEX_TOKEN`), and/or
 - `JELLY_URL` + `JELLY_API_KEY`
 
-...the application will try to refresh **all libraries** on the configured server(s).
+The application will try to refresh **all libraries** on the configured server(s).
 
 If you want to only refresh a specific library, set the relevant `*_URL_OVERRIDE` to `true` and set the corresponding `*_URL` to the exact refresh endpoint for that one library.
 
