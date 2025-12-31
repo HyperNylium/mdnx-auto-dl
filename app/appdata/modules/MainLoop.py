@@ -20,7 +20,7 @@ class MainLoop:
         self.hidive_enabled = config["app"]["HIDIVE_ENABLED"]
         self.check_missing_dub_sub = config["app"]["CHECK_MISSING_DUB_SUB"]
         self.loop_timeout = int(config["app"]["CHECK_FOR_UPDATES_INTERVAL"])
-        self.between_episode_timeout = int(config["app"]["BETWEEN_EPISODE_DL_WAIT_INTERVAL"])
+        self.between_episode_timeout = int(config["app"]["EPISODE_DL_DELAY"])
         self.only_create_queue = config["app"]["ONLY_CREATE_QUEUE"]
         self.skip_queue_refresh = config["app"]["SKIP_QUEUE_REFRESH"]
         self.dry_run = config["app"]["DRY_RUN"]

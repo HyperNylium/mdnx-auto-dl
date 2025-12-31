@@ -14,7 +14,7 @@
         "FOLDER_STRUCTURE": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
         "CHECK_MISSING_DUB_SUB": true,
         "CHECK_FOR_UPDATES_INTERVAL": 3600,
-        "BETWEEN_EPISODE_DL_WAIT_INTERVAL": 30,
+        "EPISODE_DL_DELAY": 30,
         "LOG_LEVEL": "info"
     },
     "mdnx": {
