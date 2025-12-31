@@ -6,11 +6,10 @@
 This application is not endorsed by or affiliated with *Crunchyroll*, *Hidive* or *AnimationDigitalNetwork*. This application enables you to download videos for offline viewing which may be forbidden by law in your country. The usage of this application may also cause a violation of the *Terms of Service* between you and the stream provider. This tool is not responsible for your actions; please make an informed decision before using this application.
 
 # What is this?
-MDNX-auto-dl is a free and open-source Python application that monitors and downloads anime from Crunchyroll and HiDive. Its main usage is to monitor new anime that has weekly episodes and download them to your plex/jellyfin/emby server.
-This application only supports downloads from Crunchyroll and HiDive at the moment even though multi-download-nx supports more services. This may change in the future, but not planned as i dont have an account with other services.
+MDNX-auto-dl is a free and open-source application that automatically downloads anime episodes from Crunchyroll and HiDive as they are released using [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx)
 
 # Get started
-To get started, have a look at [the wiki](https://github.com/HyperNylium/mdnx-auto-dl/wiki)
+To get started, have a look at [docs/get-started.md](docs/get-started.md)
 
 # Future plans
 You can track progress of things [here](https://github.com/users/HyperNylium/projects/4)
