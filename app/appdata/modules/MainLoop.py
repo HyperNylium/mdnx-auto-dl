@@ -396,7 +396,7 @@ class MainLoop:
                 continue
 
             # probe existing file for local dubs and subs
-            local_dubs, local_subs = probe_streams(file_path, config["app"]["CHECK_MISSING_DUB_SUB_TIMEOUT"])
+            local_dubs, local_subs = probe_streams(file_path)
 
             derived = set(local_subs)
             for loc in list(local_subs):
