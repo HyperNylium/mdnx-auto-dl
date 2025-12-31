@@ -41,79 +41,86 @@ wget https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/maste
 
 ## Configure providers
 
-### 5) Crunchyroll credentials
-Put your Crunchyroll username and password into these keys in `config.json` (inside the `""` quotes):
-```json
-{
-  "app": {
-    "CR_ENABLED": true,
-    "CR_USERNAME": "itsamemario@myemailprovider.com",
-    "CR_PASSWORD": "thisismypassword123"
+<details>
+  <summary>Crunchyroll (anidl)</summary>
+
+  ### 1) Crunchyroll credentials
+  Put your Crunchyroll username and password into these keys in `config.json` (inside the `""` quotes):
+  ```json
+  {
+    "app": {
+      "CR_ENABLED": true,
+      "CR_USERNAME": "itsamemario@myemailprovider.com",
+      "CR_PASSWORD": "thisismypassword123"
+    }
   }
-}
-```
+  ```
 
-Keep in mind that `CR_ENABLED` must be set to `true` for Crunchyroll's API to be used, which by default is set to `false`.
+  Keep in mind that `CR_ENABLED` must be set to `true` for Crunchyroll's API to be used, which by default is set to `false`.
 
-### 6) Crunchyroll series IDs to monitor
-Get the **series ID** from the Crunchyroll URL and add it under `cr_monitor_series_id`.
+  ### 2) Crunchyroll series IDs to monitor
+  Get the **series ID** from the Crunchyroll URL and add it under `cr_monitor_series_id`.
 
-Example URL:
-```txt
-https://www.crunchyroll.com/series/GG5H5XQ7D/kaiju-no-8
-```
-Series ID: `GG5H5XQ7D`
+  Example URL:
+  ```txt
+  https://www.crunchyroll.com/series/GG5H5XQ7D/kaiju-no-8
+  ```
+  Series ID: `GG5H5XQ7D`
 
-Add it like this:
-```json
-{
-  "cr_monitor_series_id": {
-    "GG5H5XQ7D": []
+  Add it like this:
+  ```json
+  {
+    "cr_monitor_series_id": {
+      "GG5H5XQ7D": []
+    }
   }
-}
-```
+  ```
+</details>
 
-### 7) HiDive credentials
-Put your HiDive username and password into these keys in `config.json` (inside the `""` quotes):
-```json
-{
-  "app": {
-    "HIDIVE_ENABLED": true,
-    "HIDIVE_USERNAME": "itsamemario@myemailprovider.com",
-    "HIDIVE_PASSWORD": "thisismypassword123"
+<details>
+  <summary>HiDive (anidl)</summary>
+
+  ### 1) HiDive credentials
+  Put your HiDive username and password into these keys in `config.json` (inside the `""` quotes):
+  ```json
+  {
+    "app": {
+      "HIDIVE_ENABLED": true,
+      "HIDIVE_USERNAME": "itsamemario@myemailprovider.com",
+      "HIDIVE_PASSWORD": "thisismypassword123"
+    }
   }
-}
-```
+  ```
 
-Keep in mind that `HIDIVE_ENABLED` must be set to `true` for HiDive's API to be used, which by default is set to `false`.
+  Keep in mind that `HIDIVE_ENABLED` must be set to `true` for HiDive's API to be used, which by default is set to `false`.
 
-### 8) HiDive series IDs to monitor
-Get the **series ID** from HiDive and add it under `hidive_monitor_series_id`.
+  ### 2) HiDive series IDs to monitor
+  Get the **series ID** from HiDive and add it under `hidive_monitor_series_id`.
 
-Steps:
-1. Go to [HiDive's search site](https://www.hidive.com/search). No login required.
-2. Click on the "Filter" button and select "Series" under "Content".
-3. Search for what you want to monitor (example: "Call of the night").
-4. Click the search result to open the series page. The URL will look like:
-   ```txt
-   https://www.hidive.com/season/19079?seriesId=1050
-   ```
-   Series ID: `1050`
+  Steps:
+  1. Go to [HiDive's search site](https://www.hidive.com/search). No login required.
+  2. Click on the "Filter" button and select "Series" under "Content".
+  3. Search for what you want to monitor (example: "Call of the night").
+  4. Click the search result to open the series page. The URL will look like:
+     ```txt
+     https://www.hidive.com/season/19079?seriesId=1050
+     ```
+     Series ID: `1050`
 
-Add it like this:
-```json
-{
-  "hidive_monitor_series_id": {
-    "1050": []
+  Add it like this:
+  ```json
+  {
+    "hidive_monitor_series_id": {
+      "1050": []
+    }
   }
-}
-```
+  ```
+</details>
 
 ---
 
-## Run
+## Start the container
 
-### 9) Start the container
 ```sh
 docker compose up -d
 ```
