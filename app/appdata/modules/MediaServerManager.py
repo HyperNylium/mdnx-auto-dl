@@ -7,21 +7,23 @@ from urllib.parse import urlencode
 from .Globals import log_manager
 from .Vars import (
     config,
+    PLEX_CONFIGURED, JELLY_CONFIGURED,
     update_app_config, format_duration
 )
 
 
-MEDIA_SERVER_INSTANCE = None  # holds the PLEX_API or JELLYFIN_API class instance once created
+PLEX_INSTANCE = None
+JELLYFIN_INSTANCE = None
 
 
 class PLEX_API:
     def __init__(self) -> None:
-        self.token = config["app"]["MEDIASERVER_TOKEN"]
-        self.server_url = config["app"]["MEDIASERVER_URL"]
-        self.url_override = config["app"]["MEDIASERVER_URL_OVERRIDE"]
+        self.token = config["app"]["PLEX_TOKEN"]
+        self.server_url = config["app"]["PLEX_URL"]
+        self.url_override = config["app"]["PLEX_URL_OVERRIDE"]
 
         if self.server_url is None or self.server_url == "":
-            log_manager.error("MEDIASERVER_URL is not set or empty. Please set it in config.json. Exiting...")
+            log_manager.error("PLEX_URL is not set or empty. Please set it in config.json. Exiting...")
             sys.exit(1)
 
         # normalize server URL
@@ -81,16 +83,16 @@ class PLEX_API:
         """If configured, trigger a library scan on the Plex Media Server."""
 
         if not self.server_url:
-            log_manager.info("MEDIASERVER_URL not configured. Skipping scan.")
+            log_manager.info("PLEX_URL not configured. Skipping scan.")
             return False
 
         if not self._verify_token(self.token):
             log_manager.info("No valid token yet.")
             return False
 
-        # if user has set URL override, use whatever is in MEDIASERVER_URL
+        # if user has set URL override, use whatever is in PLEX_URL
         if self.url_override:
-            log_manager.info("MEDIASERVER_URL_OVERRIDE is true. Using whatever is in MEDIASERVER_URL for scan endpoint.")
+            log_manager.info("PLEX_URL_OVERRIDE is true. Using whatever is in PLEX_URL for scan endpoint.")
             url = self.server_url
         else:
             log_manager.info("Using standard Plex scan URL for all libraries.")
@@ -202,9 +204,9 @@ class PLEX_API:
     def _store_token(self, token) -> None:
         """Store the token in config.json."""
 
-        ok = update_app_config("MEDIASERVER_TOKEN", token)
+        ok = update_app_config("PLEX_TOKEN", token)
         if not ok:
-            log_manager.error("Failed to persist MEDIASERVER_TOKEN to config.")
+            log_manager.error("Failed to persist PLEX_TOKEN to config.")
         self.token = token
 
     def _clear_pin_state(self) -> None:
@@ -218,8 +220,9 @@ class PLEX_API:
 
 class JELLYFIN_API:
     def __init__(self) -> None:
-        raw_url = config["app"]["MEDIASERVER_URL"]
-        self.api_key = config["app"]["MEDIASERVER_TOKEN"]
+        raw_url = config["app"]["JELLY_URL"]
+        self.api_key = config["app"]["JELLY_API_KEY"]
+        self.url_override = config["app"]["JELLY_URL_OVERRIDE"]
         self.server_url = None
 
         # normalize server URL
@@ -227,27 +230,32 @@ class JELLYFIN_API:
             self.server_url = raw_url.strip().rstrip("/")
 
         if self.server_url is None or self.server_url == "":
-            log_manager.error("MEDIASERVER_URL is not set or empty. Please set it in config.json. Exiting...")
+            log_manager.error("JELLY_URL is not set or empty. Please set it in config.json. Exiting...")
             sys.exit(1)
 
         if self.api_key is None or self.api_key == "":
-            log_manager.error("MEDIASERVER_TOKEN (API key) is not set or empty. Please set it in config.json. Exiting...")
+            log_manager.error("JELLY_API_KEY is not set or empty. Please set it in config.json. Exiting...")
             sys.exit(1)
 
-        log_manager.info(f"Initialized (URL: {self.server_url})")
+        log_manager.info(f"JELLYFIN API initialized with: URL: {self.server_url})")
 
     def scan_library(self) -> bool:
         """If configured, trigger a library scan on the Jellyfin Media Server."""
 
         if not self.server_url:
-            log_manager.info("MEDIASERVER_URL not configured. Skipping scan.")
+            log_manager.info("JELLY_URL not configured. Skipping scan.")
             return False
 
         if not self.api_key:
-            log_manager.info("MEDIASERVER_TOKEN (API key) not configured. Skipping scan.")
+            log_manager.info("JELLY_API_KEY not configured. Skipping scan.")
             return False
 
-        url = f"{self.server_url}/Library/Refresh"
+        if self.url_override:
+            log_manager.info("JELLY_URL_OVERRIDE is true. Using whatever is in JELLY_URL for scan endpoint.")
+            url = self.server_url
+        else:
+            url = f"{self.server_url}/Library/Refresh"
+
         try:
             resp = requests.post(
                 url,
@@ -264,45 +272,40 @@ class JELLYFIN_API:
             return False
 
 
-def _get_media_server() -> PLEX_API | JELLYFIN_API | None:
-    """Get or create the media server API instance based on config and save it globally."""
+def _get_media_servers() -> list:
+    """Get or create any configured media server API instances and save them globally."""
 
-    global MEDIA_SERVER_INSTANCE
+    global PLEX_INSTANCE
+    global JELLYFIN_INSTANCE
 
-    if MEDIA_SERVER_INSTANCE is not None:
-        return MEDIA_SERVER_INSTANCE
+    servers = []
 
-    server_type = config["app"]["MEDIASERVER_TYPE"]
+    if PLEX_CONFIGURED:
+        if PLEX_INSTANCE is None:
+            PLEX_INSTANCE = PLEX_API()
+        servers.append(PLEX_INSTANCE)
 
-    # no media server configured in config.json
-    if server_type is None:
-        return None
+    if JELLY_CONFIGURED:
+        if JELLYFIN_INSTANCE is None:
+            JELLYFIN_INSTANCE = JELLYFIN_API()
+        servers.append(JELLYFIN_INSTANCE)
 
-    if server_type == "plex":
-        MEDIA_SERVER_INSTANCE = PLEX_API()
-    elif server_type == "jellyfin":
-        MEDIA_SERVER_INSTANCE = JELLYFIN_API()
-    elif server_type == "":
-        log_manager.error("MEDIASERVER_TYPE is not set. Please set it to 'plex' or 'jellyfin' in config.json. Exiting...")
-        sys.exit(1)
-    else:
-        log_manager.error(f"Unsupported media server type: {server_type}. Supported: 'plex' or 'jellyfin'. Exiting...")
-        sys.exit(1)
-
-    return MEDIA_SERVER_INSTANCE
+    return servers
 
 
 # functions to call from other modules
 def mediaserver_auth(max_wait_seconds: int = 600, poll_interval: float = 1.0) -> bool:
     """Perform media server authentication if needed."""
 
-    inst = _get_media_server()
+    servers = _get_media_servers()
 
-    if inst is None:
+    if servers == []:
         return False
 
-    if isinstance(inst, PLEX_API):
-        return inst.wait_for_auth(max_wait_seconds, poll_interval)
+    for inst in servers:
+        if isinstance(inst, PLEX_API):
+            if not inst.wait_for_auth(max_wait_seconds, poll_interval):
+                return False
 
     # for jellyfin, no auth process needed because of the API key.
     # just return success.
@@ -312,9 +315,14 @@ def mediaserver_auth(max_wait_seconds: int = 600, poll_interval: float = 1.0) ->
 def mediaserver_scan_library() -> bool:
     """Trigger a media server library scan if configured."""
 
-    inst = _get_media_server()
+    servers = _get_media_servers()
 
-    if inst is None:
+    if servers == []:
         return False
 
-    return inst.scan_library()
+    for inst in servers:
+        ok = inst.scan_library()
+        if ok == False:
+            return False
+
+    return True
