@@ -75,10 +75,6 @@ If you choose to not include key-value pairs that you don't modify in `config.js
 | `SMTP_PASSWORD`                    | `""`                                                                          | string        | SMTP password. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                                                                                         |
 | `SMTP_PORT`                        | `587`                                                                         | number        | SMTP server port. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                                                                                      |
 | `SMTP_STARTTLS`                    | `true`                                                                        | boolean       | When `true`, use STARTTLS for SMTP connections. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                                                        |
-| `MEDIASERVER_TYPE`                 | `null`                                                                        | string        | Type of media server to notify after downloads. Options: `null` (disabled), `plex`, `jellyfin`.                                                                   |
-| `MEDIASERVER_URL`                  | `null`                                                                        | string        | URL of the media server to notify. Must be the complete URL of your server. Example: `http://192.168.1.10:32400`.                                                |
-| `MEDIASERVER_TOKEN`                | `null`                                                                        | string        | API token for the media server. Only needed if `MEDIASERVER_TYPE` is set to `jellyfin`, as this would be your API key.                                            |
-| `MEDIASERVER_URL_OVERRIDE`         | `false`                                                                       | boolean       | When `true`, override the library refresh URL with whatever is set in `MEDIASERVER_URL`. Only needed if `MEDIASERVER_TYPE` is set to `plex` or `jellyfin`.      |
 
 ---
 
@@ -128,7 +124,7 @@ Add the following key-value pairs to `config.json` right under the `NOTIFICATION
 
 `SMTP_TO` can also be a list of email addresses if you want to send to multiple people like this:
 ```json
-"SMTP_TO": ["who we sending to?", "who else we sending to?", "and another?", "and another another???"]
+"SMTP_TO": ["whowesendingto@gmail.com", "whoelsewesendingto@domain.com"]
 ```
 
 ### ntfy (`NOTIFICATION_PREFERENCE: "ntfy"`)
