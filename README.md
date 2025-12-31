@@ -25,7 +25,7 @@ mkdir -p ./appdata/mdnx/config
 
 3. You need to add your CDM to the correct directory.
 
-If you have a Widevine CDM, place your pair of `.bin` and `.pem` files, or single `.wvd` file into `./appdata/mdnx/widevine` and uncomment the Widivine bind-mount in `docker-compose.yaml`. \
+If you have a Widevine CDM, place your pair of `.bin` and `.pem` files, or single `.wvd` file into `./appdata/mdnx/widevine` and uncomment the Widevine bind-mount in `docker-compose.yaml`. \
 For more information, refer to the get started guide's [Widevine section](https://github.com/anidl/multi-downloader-nx/blob/master/docs/GET-STARTED.md#widevine)
 
 If you have a Playready CDM, place your pair of `bgroupcert.dat` and `zgpriv.dat` files, or single `.prd` into `./appdata/mdnx/playready`and uncomment the Playready bind-mount in `docker-compose.yaml`. \
