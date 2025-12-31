@@ -4,9 +4,10 @@ import inspect
 import threading
 import traceback
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from zipfile import ZipFile, ZIP_DEFLATED
 
-from .Vars import config, LOG_DIR
+from .Vars import config, LOG_DIR, TZ
 
 
 LEVEL_VALUES = {
@@ -100,7 +101,7 @@ class LogManager:
         # timestamp
         # time_str: 6:00:00 AM
         # date_str: 11/19/2025
-        now = datetime.now()
+        now = datetime.now(ZoneInfo(TZ))
         time_str = now.strftime("%I:%M:%S %p")
         date_str = now.strftime("%d/%m/%Y")
 
