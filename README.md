@@ -114,7 +114,9 @@ You would then put it into the `hidive_monitor_series_id` list in `config.json` 
 docker compose up -d
 ```
 
-That’s it! The application will now keep track of the series you listed in config.json, automatically download new episodes as they’re released, and update existing downloads whenever new dubs or subs become available.
+That’s it! The application will now keep track of the series you listed in `config.json`, automatically download new episodes as they’re released, and update existing downloads whenever new dubs or subs become available.
+
+For more advanced configuration options using the `config.json`, please refer to the [configuration documentation](docs/config-options.md).
 
 # Future plans
 You can track progress of things [here](https://github.com/users/HyperNylium/projects/4)
