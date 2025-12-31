@@ -1,106 +1,120 @@
 ## Notes for `config.json` usage
 
-All items in the `Config` column would go in the `app` section.
-For example, if i wanted to modify `CR_USERNAME`, i would put it here:
+### Where keys go
+- Anything listed in the **Config** column in the table below goes under the `app` section.
+- **Exception:** `cr_monitor_series_id` and `hidive_monitor_series_id` are in the **global scope** of the JSON file (not under `app` or `mdnx`).
+
+Example: setting `CR_USERNAME` under `app`:
 ```json
 {
-    "app": {
-        "CR_USERNAME": ""
-    }
+  "app": {
+    "CR_USERNAME": ""
+  }
 }
 ```
-The only exception here is `cr_monitor_series_id` and `hidive_monitor_series_id`. \
-Those are in the global scope of the JSON file, not in a property like `app` or `mdnx`.
 
-If you wanted to modify `q: 0` and `dubLang: ["jpn", "eng", "zho"]` in `cli-defaults.yml` for multi-downloader-nx, you just need to modify the `mdnx` key like this. \
-Any setting from [multi-downloader-nx's documentation](https://github.com/anidl/multi-downloader-nx/blob/master/docs/DOCUMENTATION.md) is valid as long as the option has a `cli-default Entry` that isn't `NaN`:
+### Passing options through to `multi-downloader-nx`
+If you want to modify values such as `q: 0` and `dubLang: ["jpn", "eng", "zho"]` in `cli-defaults.yml` for multi-downloader-nx, you only need to modify the `mdnx` key.
+
+Any setting from [multi-downloader-nx's documentation](https://github.com/anidl/multi-downloader-nx/blob/master/docs/DOCUMENTATION.md) is valid as long as the option has a `cli-default Entry` section that isn't `NaN`:
 ```json
 {
-    "mdnx": {
-        "q": 0,
-        "dubLang": ["jpn", "eng", "zho"]
-    }
+  "mdnx": {
+    "q": 0,
+    "dubLang": ["jpn", "eng", "zho"]
+  }
 }
 ```
-Standered JSON formatting still applies. Separate list items with a `,` (comma), integers are going to be stand-alone numbers, not in `""` (quotes). Anything you put in quotes is a string object.
 
-If you choose to not have key-value pairs that you dont modify in `config.json`, the application will use the default values listed in the table below.
+### JSON formatting rules
+Standard JSON formatting still applies:
+- Separate list items with `,` (comma)
+- Integers are plain numbers (not quoted)
+- Anything in quotes is a string
 
+If you choose to not include key-value pairs that you don't modify in `config.json`, the application will use the default values listed in the table below.
+
+---
 
 ## Config options for `config.json`
 
-| Config                             | Default value                                                                 | Type       | Explanation                                                                                                                                                  |
-| :--------------------------------- | :---------------------------------------------------------------------------: | :--------: | :----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cr_monitor_series_id`             | `[]`                                                                          | array     | List of Crunchyroll series IDs to watch for new episode releases and dub/sub updates on already existing episodes.                                            |
-| `hidive_monitor_series_id`         | `[]`                                                                          | array     | List of HiDive series IDs to watch for new episode releases and dub/sub updates on already existing episodes.                                                 |
-| `TEMP_DIR`                         | `/app/appdata/temp`                                                           | string    | Temporary staging directory. Raw downloads are written here before moving into your library.                                                                  |
-| `BIN_DIR`                          | `/app/appdata/bin`                                                            | string    | Path containing bundled binaries (e.g. `multi-download-nx`, `Bento4-SDK`) inside the container.                                                               |
-| `LOG_FILE`                         | `/app/appdata/logs/app.log`                                                   | string    | Absolute path of the application log file in the container.                                                                                                   |
-| `DATA_DIR`                         | `/data`                                                                       | string    | Root of your anime library on the host. Finished files are organized here according to `FOLDER_STRUCTURE`.                                                    |
-| `CR_ENABLED`                       | `false`                                                                       | boolean   | When `true`, enable auth with CR_MDNX_API and download any series IDs in `cr_monitor_series_id`                                                               |
-| `CR_USERNAME`                      | `""`                                                                          | string    | Crunchyroll username for authentication.                                                                                                                      |
-| `CR_PASSWORD`                      | `""`                                                                          | string    | Crunchyroll password for authentication.                                                                                                                      |
-| `HIDIVE_ENABLED`                   | `false`                                                                       | boolean   | When `true`, enable auth with HIDIVE_MDNX_API and download any series IDs in `hidive_monitor_series_id`                                                       |
-| `HIDIVE_USERNAME`                  | `""`                                                                          | string    | HiDive username for authentication.                                                                                                                           |
-| `HIDIVE_PASSWORD`                  | `""`                                                                          | string    | HiDive password for authentication.                                                                                                                           |
-| `BACKUP_DUBS`                      | `["zho"]`                                                                     | array     | List of backup dubs to download if the primary dubs are not available.                                                                                        |
-| `FOLDER_STRUCTURE`                 | `${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}`| string    | Template for how seasons and episodes are laid out under `DATA_DIR`.                                                                                          |
-| `CHECK_MISSING_DUB_SUB`            | `true`                                                                        | boolean   | When `true`, detect and report episodes missing dub or subtitle tracks.                                                                                       |
-| `CHECK_MISSING_DUB_SUB_TIMEOUT`    | `300`                                                                         | number    | Seconds to wait before timing out when checking for missing dubs/subs on a file.                                                                              |
-| `CHECK_FOR_UPDATES_INTERVAL`       | `3600`                                                                        | number    | Seconds to wait between complete library scans for new episodes or missing tracks.                                                                            |
-| `BETWEEN_EPISODE_DL_WAIT_INTERVAL` | `30`                                                                          | number    | Delay in seconds after each episode download to reduce API rate-limiting.                                                                                     |
-| `CR_FORCE_REAUTH`                  | `false`                                                                       | boolean   | When `true`, always perform a fresh Crunchyroll login and overwrite `cr_token.yml`, then reset to `false`.                                                    |
-| `CR_SKIP_API_TEST`                 | `false`                                                                       | boolean   | When `true`, skip the startup self-test that probes the Crunchyroll API.                                                                                      |
-| `HIDIVE_FORCE_REAUTH`              | `false`                                                                       | boolean   | When `true`, always perform a fresh HiDive login and overwrite `hd_new_token.yml`, then reset to `false`.                                                     |
-| `HIDIVE_SKIP_API_TEST`             | `false`                                                                       | boolean   | When `true`, skip the startup self-test that probes the HiDive API.                                                                                           |
-| `ONLY_CREATE_QUEUE`                | `false`                                                                       | boolean   | When `true`, only create/update `queue.json` without downloading anything. Will exit with code 0 after its done.                                              |
-| `SKIP_QUEUE_REFRESH`               | `false`                                                                       | boolean   | When `true`, skip refreshing the `queue.json` file, and go into mainloop with whatever data currently exists.                                                 |
-| `DRY_RUN `                         | `false`                                                                       | boolean   | When `true`, simulate downloads without actually downloading any files. Useful for testing configuration.                                                     |
-| `LOG_LEVEL`                        | `info`                                                                        | string    | Set the logging level. Options: `debug`, `info`, `warning`, `error`, `critical`.                                                                              |
-| `NOTIFICATION_PREFERENCE`          | `none`                                                                        | string    | Set what service you want to use to receive notifications. Options: `none`, `smtp`,`ntfy`.                                                                    |
-| `NTFY_SCRIPT_PATH`                 | `/app/appdata/config/ntfy.sh`                                                 | string    | Path to the ntfy.sh script inside the container. Only needed if `NOTIFICATION_PREFERENCE` is set to `ntfy`.                                                   |
-| `SMTP_FROM`                        | `""`                                                                          | string    | Email address that notifications are sent from. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                                                    |
-| `SMTP_TO`                          | `""`                                                                          | string/array | Email address that notifications are sent to. Also supports a list of emails. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                   |
-| `SMTP_HOST`                        | `""`                                                                          | string    | SMTP server hostname. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                                                                              |
-| `SMTP_USERNAME`                    | `""`                                                                          | string    | SMTP username. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                                                                                     |
-| `SMTP_PASSWORD`                    | `""`                                                                          | string    | SMTP password. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                                                                                     |
-| `SMTP_PORT`                        | `587`                                                                         | number    | SMTP server port. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                                                                                  |
-| `SMTP_STARTTLS`                    | `true`                                                                        | boolean   | When `true`, use STARTTLS for SMTP connections. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                                                    |
-| `MEDIASERVER_TYPE`                 | `null`                                                                        | string    | Type of media server to notify after downloads. Options: `null` (disabled), `plex`, `jellyfin`.                                                               |
-| `MEDIASERVER_URL`                  | `null`                                                                        | string    | URL of the media server to notify. Must be the complete URL of your server. Example: `http://192.168.1.10:32400`                                              |
-| `MEDIASERVER_TOKEN`                | `null`                                                                        | string    | API token for the media server. Only needed if `MEDIASERVER_TYPE` is set to `jellyfin`, as this would be your API key.                                        |
-| `MEDIASERVER_URL_OVERRIDE`         | `false`                                                                       | boolean   | When `true`, override the library refresh URL with whatever is set in `MEDIASERVER_URL`. Only needed if `MEDIASERVER_TYPE` is set to `plex` or `jellyfin`.    |
+| Config                             | Default value                                                                  | Type          | Explanation                                                                                                                                                      |
+| :--------------------------------- | :---------------------------------------------------------------------------: | :-----------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cr_monitor_series_id`             | `[]`                                                                          | array         | List of Crunchyroll series IDs to watch for new episode releases and dub/sub updates on already existing episodes.                                                |
+| `hidive_monitor_series_id`         | `[]`                                                                          | array         | List of HiDive series IDs to watch for new episode releases and dub/sub updates on already existing episodes.                                                     |
+| `TEMP_DIR`                         | `/app/appdata/temp`                                                           | string        | Temporary staging directory. Raw downloads are written here before moving into your library.                                                                      |
+| `BIN_DIR`                          | `/app/appdata/bin`                                                            | string        | Path containing bundled binaries (e.g. `multi-download-nx`, `Bento4-SDK`) inside the container.                                                                   |
+| `LOG_FILE`                         | `/app/appdata/logs/app.log`                                                   | string        | Absolute path of the application log file in the container.                                                                                                       |
+| `DATA_DIR`                         | `/data`                                                                       | string        | Root of your anime library on the host. Finished files are organized here according to `FOLDER_STRUCTURE`.                                                        |
+| `CR_ENABLED`                       | `false`                                                                       | boolean       | When `true`, enable auth with CR_MDNX_API and download any series IDs in `cr_monitor_series_id`.                                                                  |
+| `CR_USERNAME`                      | `""`                                                                          | string        | Crunchyroll username for authentication.                                                                                                                          |
+| `CR_PASSWORD`                      | `""`                                                                          | string        | Crunchyroll password for authentication.                                                                                                                          |
+| `HIDIVE_ENABLED`                   | `false`                                                                       | boolean       | When `true`, enable auth with HIDIVE_MDNX_API and download any series IDs in `hidive_monitor_series_id`.                                                          |
+| `HIDIVE_USERNAME`                  | `""`                                                                          | string        | HiDive username for authentication.                                                                                                                               |
+| `HIDIVE_PASSWORD`                  | `""`                                                                          | string        | HiDive password for authentication.                                                                                                                               |
+| `BACKUP_DUBS`                      | `["zho"]`                                                                     | array         | List of backup dubs to download if the primary dubs are not available.                                                                                            |
+| `FOLDER_STRUCTURE`                 | `${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}`| string        | Template for how seasons and episodes are laid out under `DATA_DIR`.                                                                                              |
+| `CHECK_MISSING_DUB_SUB`            | `true`                                                                        | boolean       | When `true`, detect and report episodes missing dub or subtitle tracks.                                                                                           |
+| `CHECK_MISSING_DUB_SUB_TIMEOUT`    | `300`                                                                         | number        | Seconds to wait before timing out when checking for missing dubs/subs on a file.                                                                                  |
+| `CHECK_FOR_UPDATES_INTERVAL`       | `3600`                                                                        | number        | Seconds to wait between complete library scans for new episodes or missing tracks.                                                                                |
+| `BETWEEN_EPISODE_DL_WAIT_INTERVAL` | `30`                                                                          | number        | Delay in seconds after each episode download to reduce API rate-limiting.                                                                                         |
+| `CR_FORCE_REAUTH`                  | `false`                                                                       | boolean       | When `true`, always perform a fresh Crunchyroll login and overwrite `cr_token.yml`, then reset to `false`.                                                        |
+| `CR_SKIP_API_TEST`                 | `false`                                                                       | boolean       | When `true`, skip the startup self-test that probes the Crunchyroll API.                                                                                          |
+| `HIDIVE_FORCE_REAUTH`              | `false`                                                                       | boolean       | When `true`, always perform a fresh HiDive login and overwrite `hd_new_token.yml`, then reset to `false`.                                                         |
+| `HIDIVE_SKIP_API_TEST`             | `false`                                                                       | boolean       | When `true`, skip the startup self-test that probes the HiDive API.                                                                                               |
+| `ONLY_CREATE_QUEUE`                | `false`                                                                       | boolean       | When `true`, only create/update `queue.json` without downloading anything. Will exit with code 0 after it's done.                                                 |
+| `SKIP_QUEUE_REFRESH`               | `false`                                                                       | boolean       | When `true`, skip refreshing the `queue.json` file, and go into mainloop with whatever data currently exists.                                                     |
+| `DRY_RUN`                          | `false`                                                                       | boolean       | When `true`, simulate downloads without actually downloading any files. Useful for testing configuration.                                                         |
+| `LOG_LEVEL`                        | `info`                                                                        | string        | Set the logging level. Options: `debug`, `info`, `warning`, `error`, `critical`.                                                                                  |
+| `NOTIFICATION_PREFERENCE`          | `none`                                                                        | string        | Set what service you want to use to receive notifications. Options: `none`, `smtp`, `ntfy`.                                                                       |
+| `NTFY_SCRIPT_PATH`                 | `/app/appdata/config/ntfy.sh`                                                 | string        | Path to the ntfy.sh script inside the container. Only needed if `NOTIFICATION_PREFERENCE` is set to `ntfy`.                                                       |
+| `SMTP_FROM`                        | `""`                                                                          | string        | Email address that notifications are sent from. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                                                        |
+| `SMTP_TO`                          | `""`                                                                          | string/array  | Email address that notifications are sent to. Also supports a list of emails. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                         |
+| `SMTP_HOST`                        | `""`                                                                          | string        | SMTP server hostname. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                                                                                  |
+| `SMTP_USERNAME`                    | `""`                                                                          | string        | SMTP username. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                                                                                         |
+| `SMTP_PASSWORD`                    | `""`                                                                          | string        | SMTP password. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                                                                                         |
+| `SMTP_PORT`                        | `587`                                                                         | number        | SMTP server port. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                                                                                      |
+| `SMTP_STARTTLS`                    | `true`                                                                        | boolean       | When `true`, use STARTTLS for SMTP connections. Only needed if `NOTIFICATION_PREFERENCE` is set to `smtp`.                                                        |
+| `MEDIASERVER_TYPE`                 | `null`                                                                        | string        | Type of media server to notify after downloads. Options: `null` (disabled), `plex`, `jellyfin`.                                                                   |
+| `MEDIASERVER_URL`                  | `null`                                                                        | string        | URL of the media server to notify. Must be the complete URL of your server. Example: `http://192.168.1.10:32400`.                                                |
+| `MEDIASERVER_TOKEN`                | `null`                                                                        | string        | API token for the media server. Only needed if `MEDIASERVER_TYPE` is set to `jellyfin`, as this would be your API key.                                            |
+| `MEDIASERVER_URL_OVERRIDE`         | `false`                                                                       | boolean       | When `true`, override the library refresh URL with whatever is set in `MEDIASERVER_URL`. Only needed if `MEDIASERVER_TYPE` is set to `plex` or `jellyfin`.      |
 
+---
 
 ## Options for `FOLDER_STRUCTURE`
 
 | Variable           | Example value                | Explanation |
 | :----------------- | :--------------------------: | :---------- |
-| `${seriesTitle}`   | `Kaiju No. 8`                | Sanitised series title (filesystem-unsafe characters replaced). |
+| `${seriesTitle}`   | `Kaiju No. 8`                | Sanitized series title (filesystem-unsafe characters replaced). |
 | `${season}`        | `1`                          | Season number, no leading zeros. |
 | `${seasonPadded}`  | `01`                         | Season number padded to two digits. |
 | `${episode}`       | `1`                          | Episode number, no leading zeros. |
 | `${episodePadded}` | `01`                         | Episode number padded to two digits. |
-| `${episodeName}`   | `The Man Who Became a Kaiju` | Sanitised episode title. |
+| `${episodeName}`   | `The Man Who Became a Kaiju` | Sanitized episode title. |
 
 Example of `FOLDER_STRUCTURE` with the above variables:
-```
+```txt
 ${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}
 ```
+
 This would result in the following folder structure:
-```
+```txt
 Kaiju No. 8/S1/Kaiju No. 8 - S01E01
 ```
+
+---
 
 ## Options for `NOTIFICATION_PREFERENCE`
 
 | Option | Explanation |
 | :----- | :---------- |
 | `none` | No notifications will be sent. |
-| `smtp` | Send notifications via SMTP email. Requires additional configuration in `config.json`.
-| `ntfy` | Send notifications via ntfy.sh. Requires additional configuration in `config.json` and `app/appdata/config/ntfy.sh` |
+| `smtp` | Send notifications via SMTP email. Requires additional configuration in `config.json`. |
+| `ntfy` | Send notifications via ntfy.sh. Requires additional configuration in `config.json` and `app/appdata/config/ntfy.sh`. |
 
-For `smtp`, add the following key-value pairs to `config.json` right under the `NOTIFICATION_PREFERENCE` key:
+### SMTP (`NOTIFICATION_PREFERENCE: "smtp"`)
+Add the following key-value pairs to `config.json` right under the `NOTIFICATION_PREFERENCE` key:
 ```json
 "NOTIFICATION_PREFERENCE": "smtp",
 "SMTP_FROM": "who we sending as?",
@@ -113,73 +127,85 @@ For `smtp`, add the following key-value pairs to `config.json` right under the `
 ```
 
 `SMTP_TO` can also be a list of email addresses if you want to send to multiple people like this:
-
 ```json
 "SMTP_TO": ["who we sending to?", "who else we sending to?", "and another?", "and another another???"]
 ```
 
-For `ntfy`, add the following key-value pairs to `config.json` right under the `NOTIFICATION_PREFERENCE` key:
+### ntfy (`NOTIFICATION_PREFERENCE: "ntfy"`)
+Add the following key-value pairs to `config.json` right under the `NOTIFICATION_PREFERENCE` key:
 ```json
 "NOTIFICATION_PREFERENCE": "ntfy",
 "NTFY_SCRIPT_PATH": "/app/appdata/config/ntfy.sh"
 ```
-Make sure to set `NTFY_URL` in `appdata/config/ntfy.sh` to the URL of your ntfy server. \
-To modify things like tags and such, you can modify the `ntfy.sh` script.
+
+Make sure to set `NTFY_URL` in `appdata/config/ntfy.sh` to the URL of your ntfy server.  
+To modify things like tags and such, you can modify the `ntfy.sh` script.  
 You would also need a bind-mount like: `./appdata/config/ntfy.sh:/app/appdata/config/ntfy.sh`
 
-## Options for `MEDIASERVER_TYPE`
-The value of this will either be `null`, `plex`, or `jellyfin`. \
+---
+
+## Options for `MEDIASERVER_TYPE` (TODO: rewrite for new variables)
+
+The value of this will either be `null`, `plex`, or `jellyfin`.  
 If you set this to `null`, which is the default, no media server will be notified after downloads.
 
-If you set this to `plex`, make sure your `config.json` has the following key-value pairs:
+### Plex (`MEDIASERVER_TYPE: "plex"`)
+Make sure your `config.json` has the following key-value pairs:
 ```json
 {
-    "app": {
-        "MEDIASERVER_TYPE": "plex",
-        "MEDIASERVER_URL": "http://<YOUR_SERVER_IP>:32400",
-    }
+  "app": {
+    "MEDIASERVER_TYPE": "plex",
+    "MEDIASERVER_URL": "http://<YOUR_SERVER_IP>:32400"
+  }
 }
 ```
+
 Where `<YOUR_SERVER_IP>` is the IP address of your Plex server.
 
 After doing `docker compose up -d && docker compose logs -f`, you will see a log line like this:
-```
+```txt
 [MediaServerManager][PLEX_API] Open this URL in a browser to authorize the app:
 https://app.plex.tv/auth#?blablablablablablablabla
 ```
-Open that URL in a browser, login to your Plex account, and authorize the app. \
-Once you do that, the application will save the Plex token to the `MEDIASERVER_TOKEN` variable automatically and contine to start up. \
-If the `MEDIASERVER_TOKEN` variable doesn't exist, it will create it and store the token. There is no need to manually define `MEDIASERVER_TOKEN` in your `config.json` \
+
+Open that URL in a browser, login to your Plex account, and authorize the app.  
+Once you do that, the application will save the Plex token to the `MEDIASERVER_TOKEN` variable automatically and continue to start up.  
+If the `MEDIASERVER_TOKEN` variable doesn't exist, it will create it and store the token. There is no need to manually define `MEDIASERVER_TOKEN` in your `config.json`.  
 The timeout for auth is 10 minutes. If you don't authorize the app within that time, the application will exit.
 
 After you authorize the app, you should see this in the logs:
-```
+```txt
 [MediaServerManager][PLEX_API] Authorization completed. Token stored.
 [app] User is authenticated. Testing library scan...
 [MediaServerManager][PLEX_API] Scan triggered successfully.
 [app] Library scan successful.
 [app] Starting MainLoop...
 ```
-If so, you're all set! \
-You will not have to do the authorization step again unless you delete `MEDIASERVER_TOKEN` variable or delete the session from Authenticated Devices in your Plex account settings.
 
+If so, you're all set!  
+You will not have to do the authorization step again unless you delete the `MEDIASERVER_TOKEN` variable or delete the session from Authenticated Devices in your Plex account settings.
 
-
-If you set this to `jellyfin`, make sure your `config.json` has the following key-value pairs:
+### Jellyfin (`MEDIASERVER_TYPE: "jellyfin"`)
+Make sure your `config.json` has the following key-value pairs:
 ```json
 {
-    "app": {
-        "MEDIASERVER_TYPE": "jellyfin",
-        "MEDIASERVER_URL": "http://<YOUR_SERVER_IP>:8096",
-        "MEDIASERVER_TOKEN": "<YOUR_API_KEY>"
-    }
+  "app": {
+    "MEDIASERVER_TYPE": "jellyfin",
+    "MEDIASERVER_URL": "http://<YOUR_SERVER_IP>:8096",
+    "MEDIASERVER_TOKEN": "<YOUR_API_KEY>"
+  }
 }
 ```
-Where `<YOUR_SERVER_IP>` is the IP address of your Jellyfin server and `<YOUR_API_KEY>` is your Jellyfin API key.\
+
+Where `<YOUR_SERVER_IP>` is the IP address of your Jellyfin server and `<YOUR_API_KEY>` is your Jellyfin API key.  
 There is no manual authorization step like Plex. Just make sure your API key is correct, and you should be good to go!
 
+---
+
 ## Options for `MEDIASERVER_URL_OVERRIDE`
+
 By default, if you only set `MEDIASERVER_TYPE`, `MEDIASERVER_URL`, and `MEDIASERVER_TOKEN`, the application will try to refresh all libraries on the server.
+
 If you want to only refresh a specific library, set `MEDIASERVER_URL_OVERRIDE` to `true` and set `MEDIASERVER_URL` to the appropriate URL for your media server that will refresh a specific library.
 
 The usual config that will refresh everything:
@@ -204,7 +230,8 @@ With `MEDIASERVER_URL_OVERRIDE` enabled for only scanning 1 library:
 "MEDIASERVER_URL": "http://192.168.1.10:32400/library/sections/1/refresh",
 "MEDIASERVER_URL_OVERRIDE": true
 ```
-Where `1` in `/library/sections/1/refresh` is the library key you want to refresh. \
+
+Where `1` in `/library/sections/1/refresh` is the library key you want to refresh.  
 You can find the library key by running `curl http://<YOUR_SERVER_IP>:32400/library/sections` and look for the `key="X"` in the output.
 
 OR
@@ -215,103 +242,109 @@ OR
 "MEDIASERVER_TOKEN": "blablablablablablabla",
 "MEDIASERVER_URL_OVERRIDE": true
 ```
-Where `123456abcdef` in `/Items/123456abcdef/Refresh?Recursive=true` is the ID of the library you want to refresh. \
-You can find the ID by running `curl http://<YOUR_SERVER_IP>:8096/Users/<USER_ID>/Views?api_key=<YOUR_API_KEY>` and look for the `Id` in the output. \
+
+Where `123456abcdef` in `/Items/123456abcdef/Refresh?Recursive=true` is the ID of the library you want to refresh.  
+You can find the ID by running `curl http://<YOUR_SERVER_IP>:8096/Users/<USER_ID>/Views?api_key=<YOUR_API_KEY>` and look for the `Id` in the output.  
 You can find your `USER_ID` by running `curl http://<YOUR_SERVER_IP>:8096/Users?api_key=<YOUR_API_KEY>` and look for the `Id` in the output.
+
+---
 
 ## How to blacklist entire seasons or just specific episodes
 
-This is great for when you want to skip downloading certain seasons or episodes from a series you are monitoring.\
-An example use case is that you only want to download the simulcast season of one piece, and skip all the other seasons.
+This is great for when you want to skip downloading certain seasons or episodes from a series you are monitoring.  
+An example use case is that you only want to download the simulcast season of One Piece, and skip all the other seasons.
 
-First, the migration of the `cr_monitor_series_id` and `hidive_monitor_series_id` from an array to an object needs to be done.\
+First, the migration of the `cr_monitor_series_id` and `hidive_monitor_series_id` from an array to an object needs to be done.  
 If this is your first time setting up mdnx-auto-dl, you can skip this step and just use the new format below.
 
 Format would go from:
 ```json
 {
-    "cr_monitor_series_id": [
-        "GQWH0M1J3",
-        "GT00362335"
-    ]
+  "cr_monitor_series_id": [
+    "GQWH0M1J3",
+    "GT00362335"
+  ]
 }
 ```
 
-To this. Doing this means it will download all episodes in the series, since nothing is blacklisted in the `[]` array for each series ID.:
+To this. Doing this means it will download all episodes in the series, since nothing is blacklisted in the `[]` array for each series ID:
 ```json
 {
-    "cr_monitor_series_id": {
-        "GQWH0M1J3": [],
-        "GT00362335": []
-    }
+  "cr_monitor_series_id": {
+    "GQWH0M1J3": [],
+    "GT00362335": []
+  }
 }
 ```
 
 You would blacklist an entire season like this:
 ```json
 {
-    "cr_monitor_series_id": {
-        "GQWH0M1J3": ["S:GYE5CQNJ2"],
-        "GT00362335": ["S:GS00362336JAJP"]
-    }
+  "cr_monitor_series_id": {
+    "GQWH0M1J3": ["S:GYE5CQNJ2"],
+    "GT00362335": ["S:GS00362336JAJP"]
+  }
 }
 ```
 
-Where `GYE5CQNJ2` and `GS00362336JAJP` are the season IDs you want to blacklist from downloading.\
+Where `GYE5CQNJ2` and `GS00362336JAJP` are the season IDs you want to blacklist from downloading.  
 This will skip downloading all episodes from those seasons.
 
 You would blacklist an episode from a season like this:
 ```json
 {
-    "cr_monitor_series_id": {
-        "GQWH0M1J3": ["S:GYE5CQNJ2:E:3"],
-        "GT00362335": ["S:GS00362336JAJP:E:6"]
-    }
+  "cr_monitor_series_id": {
+    "GQWH0M1J3": ["S:GYE5CQNJ2:E:3"],
+    "GT00362335": ["S:GS00362336JAJP:E:6"]
+  }
 }
 ```
 
-Where `3` and `6` are the episode numbers you want to blacklist from downloading in those seasons.\
+Where `3` and `6` are the episode numbers you want to blacklist from downloading in those seasons.  
 This will skip downloading only episode 3 from season `GYE5CQNJ2`, and only episode 6 from season `GS00362336JAJP`.
 
 Or multiple episodes from a season like this:
 ```json
 {
-    "cr_monitor_series_id": {
-        "GQWH0M1J3": ["S:GYE5CQNJ2:E:1-3"],
-        "GT00362335": ["S:GS00362336JAJP:E:1-5"]
-    }
+  "cr_monitor_series_id": {
+    "GQWH0M1J3": ["S:GYE5CQNJ2:E:1-3"],
+    "GT00362335": ["S:GS00362336JAJP:E:1-5"]
+  }
 }
 ```
 
-Where `1-3` and `1-5` are the episode ranges you want to blacklist from downloading in those seasons.\
+Where `1-3` and `1-5` are the episode ranges you want to blacklist from downloading in those seasons.  
 This will skip downloading episodes between 1 and 3 (inclusive) from season `GYE5CQNJ2`, and episodes between 1 and 5 (inclusive) from season `GS00362336JAJP`.
 
 Can of course blacklist multiple seasons/episodes as well:
 ```json
 {
-    "cr_monitor_series_id": {
-        "GQWH0M1J3": [
-            "S:GYE5CQNJ2",
-            "S:blablabla",
-            "S:blablablaaa:E:1-3"
-        ],
-        "GT00362335": ["S:GS00362336JAJP"]
-    }
+  "cr_monitor_series_id": {
+    "GQWH0M1J3": [
+      "S:GYE5CQNJ2",
+      "S:blablabla",
+      "S:blablablaaa:E:1-3"
+    ],
+    "GT00362335": ["S:GS00362336JAJP"]
+  }
 }
 ```
 
-Blacklisting a season/episode(s) from downloading will still generate the `queue.json` data for the series.
+Blacklisting a season/episode(s) from downloading will still generate the `queue.json` data for the series.  
 All this does is set `episode_skip` to `true` and in the download process, it checks whether or not that boolean is true (skip it) or false (download it, if not already downloaded).
 
+---
+
 ## Environment variables
+
 These are the environment variables that you can set in the `docker-compose.yaml` file under the `environment` section.
 
-| Variable                | Default value | Explanation                                                                 |
-| :---------------------- | :------------ | :-------------------------------------------------------------------------- |
-| `UID`                   | `1000`                             | User ID that mdnx-auto-dl will run as.                 |
-| `GID`                   | `1000`                             | Group ID that mdnx-auto-dl will run as.                |
-| `TZ`                    | `America/New_York`                 | Timezone for the container. Set to your local timezone from the "TZ identifier" column [here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).  |
-| `CONFIG_FILE`           | `/app/appdata/config/config.json`  | `config.json` file location in the container.          |
-| `QUEUE_FILE`            | `/app/appdata/config/queue.json`    | `queue.json` file location in the container.          |
-| `BENTO4_URL`            | `https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/Bento4-SDK.zip`    | URL for downloading `Bento4-SDK.zip` if both the file itself and extracted folder doesn't exist.  |
-| `MDNX_URL`              | `https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/mdnx.zip`          | URL for downloading `mdnx.zip` if both the file itself and extracted folder doesn't exist.        |
+| Variable      | Default value                                                                                                              | Explanation |
+| :------------ | :------------------------------------------------------------------------------------------------------------------------ | :---------- |
+| `UID`         | `1000`                                                                                                                    | User ID that mdnx-auto-dl will run as. |
+| `GID`         | `1000`                                                                                                                    | Group ID that mdnx-auto-dl will run as. |
+| `TZ`          | `America/New_York`                                                                                                        | Timezone for the container. Set to your local timezone from the "TZ identifier" column [here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones). |
+| `CONFIG_FILE` | `/app/appdata/config/config.json`                                                                                         | `config.json` file location in the container. |
+| `QUEUE_FILE`  | `/app/appdata/config/queue.json`                                                                                          | `queue.json` file location in the container. |
+| `BENTO4_URL`  | `https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/Bento4-SDK.zip`             | URL for downloading `Bento4-SDK.zip` if both the file itself and extracted folder doesn't exist. |
+| `MDNX_URL`    | `https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/mdnx.zip`                   | URL for downloading `mdnx.zip` if both the file itself and extracted folder doesn't exist. |
