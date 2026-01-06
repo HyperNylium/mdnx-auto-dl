@@ -24,7 +24,7 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app/ .
+COPY src/app/ .
 
 # Convert Windows line-endings (CRLF) to LF
 RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
