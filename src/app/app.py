@@ -4,6 +4,7 @@ import signal
 
 from appdata.modules.MainLoop import MainLoop
 from appdata.modules.Globals import file_manager, log_manager
+from appdata.modules.ControlAPI import start_control_api
 from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
 from appdata.modules.Vars import (
     config,
@@ -140,6 +141,9 @@ def app():
     else:
         log_manager.error("Both CR_ENABLED and HIDIVE_ENABLED are set to False. Nothing to do. Exiting...")
         sys.exit(1)
+
+    # start control API
+    start_control_api()
 
     def shutdown(signum, frame):
         """Signal handler to gracefully shutdown the application."""

@@ -29,7 +29,28 @@ services:
       ## Playready
       #- ./appdata/mdnx/playready:/app/appdata/bin/mdnx/playready:rw
 
+    expose:
+      - "8090"
     environment:
       - UID=1000
       - GID=1000
       - TZ=America/New_York
+
+  # webui is optional.
+  # only supports modifying config.json and restarting mdnx-auto-dl.
+  mdnx-auto-dl-webui:
+    image: ghcr.io/hypernylium/mdnx-auto-dl-webui:latest
+    container_name: mdnx-auto-dl-webui
+    restart: unless-stopped
+    volumes:
+      - ./appdata/config:/app/appdata/config:rw
+
+    depends_on:
+      - mdnx-auto-dl
+    ports:
+      - "8080:8080"
+    environment:
+      - UID=1000
+      - GID=1000
+      - TZ=America/New_York
+      - CONTROL_URL=http://mdnx-auto-dl:8090/restart

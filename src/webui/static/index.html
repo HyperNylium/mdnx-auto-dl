@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>mdnx-auto-dl WebUI</title>
+  <script defer type="module" src="/static/app.js"></script>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <button id="saveBtn" class="btn" disabled>Save</button>
+    <button id="revertBtn" class="btn" disabled>Revert</button>
+    <button id="restartBtn" class="btn danger">restart mdnx-auto-dl</button>
+    <div id="status" class="status"></div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-file="config.json">config.json</div>
+    <div class="tab" data-file="queue.json">queue.json</div>
+  </div>
+
+  <main>
+    <div id="editorWrap"></div>
+  </main>
+</body>
+</html>
