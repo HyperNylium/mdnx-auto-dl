@@ -103,6 +103,7 @@ def app():
         log_manager.error(f"Unsupported notification preference: {config['app']['NOTIFICATION_PREFERENCE']}. Supported options are 'ntfy', 'smtp' or 'none'.")
         sys.exit(1)
 
+    # authenticate with media server(s) if configured
     if PLEX_CONFIGURED is True or JELLY_CONFIGURED is True:
         if PLEX_CONFIGURED is True:
             log_manager.info("PLEX_URL is set. Plex media server scan enabled.")
