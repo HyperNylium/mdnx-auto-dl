@@ -4,8 +4,8 @@ import sys
 import subprocess
 import threading
 
-from appdata.modules.Globals import queue_manager, log_manager
-from appdata.modules.Vars import (
+from __appdata__.modules.Globals import queue_manager, log_manager
+from __appdata__.modules.Vars import (
     config,
     VALID_LOCALES, NAME_TO_CODE, MDNX_SERVICE_BIN_PATH, MDNX_API_OK_LOGS,
     sanitize, apply_series_blacklist

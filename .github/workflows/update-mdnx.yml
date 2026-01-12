@@ -50,7 +50,7 @@ jobs:
 
       - name: Read current mdnx version from versions.txt
         id: current_version
-        working-directory: app/appdata/bin
+        working-directory: app/__appdata__/bin
         run: |
           current="unknown"
           if [ -f versions.txt ]; then
@@ -72,8 +72,8 @@ jobs:
           if git ls-remote --exit-code --heads origin "$pr_branch" >/dev/null 2>&1; then
             echo "Found remote branch $pr_branch, fetching..."
             git fetch origin "$pr_branch":"$pr_branch"
-            if git cat-file -e "$pr_branch:app/appdata/bin/versions.txt" 2>/dev/null; then
-              line=$(git show "$pr_branch:app/appdata/bin/versions.txt" | grep '^mdnx.zip=' | head -n1 || true)
+            if git cat-file -e "$pr_branch:app/__appdata__/bin/versions.txt" 2>/dev/null; then
+              line=$(git show "$pr_branch:app/__appdata__/bin/versions.txt" | grep '^mdnx.zip=' | head -n1 || true)
               if [ -n "$line" ]; then
                 pr_version=$(echo "$line" | cut -d= -f2)
               fi
@@ -116,13 +116,13 @@ jobs:
 
       - name: Download mdnx linux x64 CLI archive
         if: steps.check_update.outputs.needs_update == 'true'
-        working-directory: app/appdata/bin
+        working-directory: app/__appdata__/bin
         run: |
           curl -L "${{ steps.get_release.outputs.asset_url }}" -o multi-downloader-nx-linux-x64-cli.7z
 
       - name: Unpack, rename folder to mdnx, and re-zip
         if: steps.check_update.outputs.needs_update == 'true'
-        working-directory: app/appdata/bin
+        working-directory: app/__appdata__/bin
         run: |
           rm -rf mdnx
           rm -f mdnx.zip
@@ -148,7 +148,7 @@ jobs:
 
       - name: Update versions.txt for mdnx.zip
         if: steps.check_update.outputs.needs_update == 'true'
-        working-directory: app/appdata/bin
+        working-directory: app/__appdata__/bin
         run: |
           version="${{ steps.get_release.outputs.version }}"
           if [ -z "$version" ]; then

@@ -5,13 +5,13 @@ services:
     restart: unless-stopped
     volumes:
       # log file location
-      - ./appdata/logs:/app/appdata/logs:rw
+      - ./appdata/logs:/app/__appdata__/logs:rw
 
       # mdnx-auto-dl config location.
-      - ./appdata/config:/app/appdata/config:rw
+      - ./appdata/config:/app/__appdata__/config:rw
 
       # multi-download-nx config location
-      - ./appdata/mdnx/config:/app/appdata/bin/mdnx/config:rw
+      - ./appdata/mdnx/config:/app/__appdata__/bin/mdnx/config:rw
 
       # plex/jellyfin/emby anime storage location.
       # Only modify the left side, not the right.
@@ -24,10 +24,10 @@ services:
       ### and uncomment the correct bind-mount with your .bin/.pem files or .prd file inside.
 
       ## Widevine
-      #- ./appdata/mdnx/widevine:/app/appdata/bin/mdnx/widevine:rw
+      #- ./appdata/mdnx/widevine:/app/__appdata__/bin/mdnx/widevine:rw
 
       ## Playready
-      #- ./appdata/mdnx/playready:/app/appdata/bin/mdnx/playready:rw
+      #- ./appdata/mdnx/playready:/app/__appdata__/bin/mdnx/playready:rw
 
     environment:
       - UID=1000

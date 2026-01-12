@@ -5,10 +5,10 @@ set -euo pipefail
 USER_ID=${UID:-1000}
 GROUP_ID=${GID:-1000}
 USERNAME=mdnx-auto-dl
-CONFIG_FILE="${CONFIG_FILE:-/app/appdata/config/config.json}"
+CONFIG_FILE="${CONFIG_FILE:-/app/__appdata__/config/config.json}"
 
-BENTO4_URL="${BENTO4_URL:-https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/Bento4-SDK.zip}"
-MDNX_URL="${MDNX_URL:-https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/mdnx.zip}"
+BENTO4_URL="${BENTO4_URL:-https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/__appdata__/bin/Bento4-SDK.zip}"
+MDNX_URL="${MDNX_URL:-https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/__appdata__/bin/mdnx.zip}"
 
 # If config.json doesn't exist, warn and exit
 if [[ ! -f "$CONFIG_FILE" ]]; then
@@ -17,8 +17,8 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
   exit 1
 fi
 
-# Extract BIN_DIR (falls back to /app/appdata/bin if the JSON key is null/absent)
-BIN_DIR="$(jq -er '.app.BIN_DIR // "/app/appdata/bin"' "$CONFIG_FILE")"
+# Extract BIN_DIR (falls back to /app/__appdata__/bin if the JSON key is null/absent)
+BIN_DIR="$(jq -er '.app.BIN_DIR // "/app/__appdata__/bin"' "$CONFIG_FILE")"
 
 echo "[entrypoint] Using CONFIG_FILE=$CONFIG_FILE"
 echo "[entrypoint] Using BIN_DIR=$BIN_DIR"

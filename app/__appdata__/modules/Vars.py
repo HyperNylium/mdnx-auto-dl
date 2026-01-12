@@ -10,8 +10,8 @@ from string import Template
 from collections import OrderedDict
 
 
-CONFIG_PATH = os.getenv("CONFIG_FILE", "appdata/config/config.json")
-QUEUE_PATH = os.getenv("QUEUE_FILE", "appdata/config/queue.json")
+CONFIG_PATH = os.getenv("CONFIG_FILE", "__appdata__/config/config.json")
+QUEUE_PATH = os.getenv("QUEUE_FILE", "__appdata__/config/queue.json")
 TZ = os.getenv("TZ", "America/New_York")
 
 
@@ -111,9 +111,9 @@ CONFIG_DEFAULTS = {
     "cr_monitor_series_id": {},
     "hidive_monitor_series_id": {},
     "app": {
-        "TEMP_DIR": "/app/appdata/temp",
-        "BIN_DIR": "/app/appdata/bin",
-        "LOG_DIR": "/app/appdata/logs",
+        "TEMP_DIR": "/app/__appdata__/temp",
+        "BIN_DIR": "/app/__appdata__/bin",
+        "LOG_DIR": "/app/__appdata__/logs",
         "DATA_DIR": "/data",
         "CR_ENABLED": False,
         "CR_USERNAME": "",
@@ -136,7 +136,7 @@ CONFIG_DEFAULTS = {
         "LOG_LEVEL": "info",
         "MAX_LOG_ARCHIVES": 5,
         "NOTIFICATION_PREFERENCE": "none",
-        "NTFY_SCRIPT_PATH": "/app/appdata/config/ntfy.sh",
+        "NTFY_SCRIPT_PATH": "/app/__appdata__/config/ntfy.sh",
         "SMTP_FROM": "",
         "SMTP_TO": "",
         "SMTP_HOST": "",
@@ -156,7 +156,7 @@ CONFIG_DEFAULTS = {
             "ffmpeg": "ffmpeg",
             "ffprobe": "ffprobe",
             "mkvmerge": "mkvmerge",
-            "mp4decrypt": "/app/appdata/bin/Bento4-SDK/mp4decrypt"
+            "mp4decrypt": "/app/__appdata__/bin/Bento4-SDK/mp4decrypt"
         },
         "cli-defaults": {
             "q": 0,
@@ -175,7 +175,7 @@ CONFIG_DEFAULTS = {
             "tsd": False
         },
         "dir-path": {
-            "content": "/app/appdata/temp",
+            "content": "/app/__appdata__/temp",
             "fonts": "./fonts/"
         }
     }

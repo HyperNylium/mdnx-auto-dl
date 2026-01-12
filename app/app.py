@@ -2,10 +2,10 @@ import os
 import sys
 import signal
 
-from appdata.modules.MainLoop import MainLoop
-from appdata.modules.Globals import file_manager, log_manager
-from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
-from appdata.modules.Vars import (
+from __appdata__.modules.MainLoop import MainLoop
+from __appdata__.modules.Globals import file_manager, log_manager
+from __appdata__.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
+from __appdata__.modules.Vars import (
     config,
     CONFIG_DEFAULTS, MDNX_SERVICE_CR_TOKEN_PATH, MDNX_SERVICE_HIDIVE_TOKEN_PATH, PLEX_CONFIGURED, JELLY_CONFIGURED,
     update_mdnx_config, update_app_config, handle_exception, get_running_user, output_effective_config
@@ -22,7 +22,7 @@ def app():
 
     if config["app"]["CR_ENABLED"] == True:
         log_manager.info("Starting CR_MDNX_API...")
-        from appdata.modules.API.MDNX.crunchy import CR_MDNX_API
+        from __appdata__.modules.API.MDNX.crunchy import CR_MDNX_API
         cr_mdnx_api = CR_MDNX_API()
 
         # authenticate with MDNX crunchyroll service if needed or force auth if user wants to
@@ -38,7 +38,7 @@ def app():
 
     if config["app"]["HIDIVE_ENABLED"] == True:
         log_manager.info("Starting HIDIVE_MDNX_API...")
-        from appdata.modules.API.MDNX.hidive import HIDIVE_MDNX_API
+        from __appdata__.modules.API.MDNX.hidive import HIDIVE_MDNX_API
         hidive_mdnx_api = HIDIVE_MDNX_API()
 
         # authenticate with MDNX hidive service if needed or force auth if user wants to
@@ -70,7 +70,7 @@ def app():
             log_manager.error(f"NTFY_SCRIPT_PATH does not exist: {script_path}. Please check the path in config.json.")
             sys.exit(1)
 
-        from appdata.modules.NotificationManager import ntfy
+        from __appdata__.modules.NotificationManager import ntfy
         notifier = ntfy()
 
     elif config["app"]["NOTIFICATION_PREFERENCE"] == "smtp":
@@ -92,7 +92,7 @@ def app():
             log_manager.error(f"Missing or invalid SMTP configuration values: {', '.join(missing_or_empty)}")
             sys.exit(1)
 
-        from appdata.modules.NotificationManager import SMTP
+        from __appdata__.modules.NotificationManager import SMTP
         notifier = SMTP()
 
     elif config["app"]["NOTIFICATION_PREFERENCE"] == "none":
