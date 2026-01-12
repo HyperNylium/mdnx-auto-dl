@@ -13,6 +13,7 @@ from collections import OrderedDict
 CONFIG_PATH = os.getenv("CONFIG_FILE", "__appdata__/config/config.json")
 QUEUE_PATH = os.getenv("QUEUE_FILE", "__appdata__/config/queue.json")
 TZ = os.getenv("TZ", "America/New_York")
+VERSION = "2.3.0"
 
 
 def _log(message: str, level: str = "info", exc_info=None) -> None:
