@@ -2,7 +2,6 @@ from nicegui import run, ui
 from nicegui.events import ValueChangeEventArguments
 
 
-
 def settings_page() -> None:
     with ui.tabs().props('align="center"').classes('w-full') as tabs:
         servauth_tab = ui.tab('Service auth')
@@ -44,7 +43,7 @@ def settings_page() -> None:
 
                     crunchyroll_enabled = ui.switch(
                         'Crunchyroll enabled?',
-                        value=False, # TODO: load "CR_ENABLED" state from config
+                        value=False,  # TODO: load "CR_ENABLED" state from config
                         on_change=on_crunchyroll_enabled_change,
                     )
 
@@ -142,7 +141,7 @@ def settings_page() -> None:
 
                     hidive_enabled = ui.switch(
                         'HiDive enabled?',
-                        value=False, # TODO: load "HIDIVE_ENABLED" state from config
+                        value=False,  # TODO: load "HIDIVE_ENABLED" state from config
                         on_change=on_hidive_enabled_change,
                     )
 
@@ -255,21 +254,23 @@ def settings_page() -> None:
             ui.label('Third tab').classes('w-full h-full flex items-center justify-center')
 
 
-
 def auth_crunchyroll(username, password):
     import time
     time.sleep(1)
     return True
+
 
 def auth_hidive(username, password):
     import time
     time.sleep(1)
     return True
 
+
 def reset_crunchyroll_creds():
     import time
     time.sleep(1)
     return True
+
 
 def reset_hidive_creds():
     import time

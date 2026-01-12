@@ -62,7 +62,7 @@ def get_sub_pages() -> dict:
     return routes
 
 
-def nav_to(path, drawer: ui.drawer=None, close_drawer=False):
+def nav_to(path, drawer: ui.drawer = None, close_drawer=False):
 
     def _go():
         ui.navigate.to(path)
