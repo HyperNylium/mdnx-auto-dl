@@ -1,5 +1,6 @@
 import os
 import time
+from time import perf_counter
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -145,7 +146,7 @@ class MainLoop:
 
         return False
 
-    def _snapshot_episode(self, series_name, episode_info, file_path, action_label: str, before_dubs=None, before_subs=None) -> dict:
+    def _snapshot_episode(self, series_name, episode_info, file_path, time_taken: float, action_label: str, before_dubs=None, before_subs=None) -> dict:
         """Create a snapshot of the episode's dub/sub state before and after download."""
 
         # probe the file to get current local dubs and subs
@@ -175,6 +176,7 @@ class MainLoop:
             "after_dubs": sorted(after_dubs),
             "after_subs": sorted(after_subs),
             "path": file_path,
+            "time_taken": format_duration(int(time_taken)),
         }
 
     def _flush_notifications(self) -> None:
@@ -222,6 +224,7 @@ class MainLoop:
                     f"Episode dubs: {', '.join(item['after_dubs']) or 'None'}",
                     f"Episode subs: {', '.join(item['after_subs']) or 'None'}",
                     f"Episode path: {item['path']}",
+                    f"Time taken to download: {item['time_taken']}",
                     ""
                 ]
             lines.append("---------------------------")
@@ -240,6 +243,7 @@ class MainLoop:
                     f"Episode after dubs: {', '.join(item['after_dubs']) or 'None'}",
                     f"Episode after subs: {', '.join(item['after_subs']) or 'None'}",
                     f"Episode path: {item['path']}",
+                    f"Time taken to download: {item['time_taken']}",
                     ""
                 ]
             lines.append("---------------------------")
@@ -358,17 +362,19 @@ class MainLoop:
 
                 dub_override = select_dubs(episode_info)
 
+                dl_start = perf_counter()
                 download_successful = mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override)
-                if download_successful:
-                    log_manager.info("Episode downloaded successfully.")
+                dl_end = perf_counter()
+                dl_elapsed = dl_end - dl_start
 
+                if download_successful:
                     temp_path = os.path.join(TEMP_DIR, "output.mkv")
 
                     if file_manager.transfer(temp_path, file_path):
                         log_manager.info("Transfer complete.")
                         queue_manager.update_episode_status(series_id, season_key, episode_key, True, service)
                         series_name = bucket[series_id]["series"]["series_name"]
-                        snapshot = self._snapshot_episode(series_name, episode_info, file_path, action_label="new")
+                        snapshot = self._snapshot_episode(series_name, episode_info, file_path, dl_elapsed, action_label="new")
                         self.notifications_buffer.append(snapshot)
                     else:
                         log_manager.error("Transfer failed.")
@@ -496,12 +502,18 @@ class MainLoop:
 
             dub_override = select_dubs(episode_info)
 
-            if mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override):
+            dl_start = perf_counter()
+            download_successful = mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override)
+            dl_end = perf_counter()
+            dl_elapsed = dl_end - dl_start
+
+            if download_successful:
                 temp_path = os.path.join(TEMP_DIR, "output.mkv")
+
                 if file_manager.transfer(temp_path, file_path, overwrite=True):
                     log_manager.info("Transfer complete.")
                     series_name = bucket[series_id]["series"]["series_name"]
-                    snapshot = self._snapshot_episode(series_name, episode_info, file_path, action_label="updated", before_dubs=local_dubs, before_subs=local_subs)
+                    snapshot = self._snapshot_episode(series_name, episode_info, file_path, dl_elapsed, action_label="updated", before_dubs=local_dubs, before_subs=local_subs)
                     self.notifications_buffer.append(snapshot)
                 else:
                     log_manager.error("Transfer failed")
