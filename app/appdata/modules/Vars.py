@@ -206,6 +206,10 @@ MDNX_SERVICE_HIDIVE_TOKEN_PATH = os.path.join(BIN_DIR, "mdnx", "config", "hd_new
 # Regular expression to match invalid characters in filenames
 INVALID_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1F]')
 
+# Streaming services enabled
+MDNX_CR_ENABLED: bool = config["app"]["CR_ENABLED"]
+MDNX_HIDIVE_ENABLED: bool = config["app"]["HIDIVE_ENABLED"]
+
 # Vars related to media server stuff
 PLEX_URL = config["app"]["PLEX_URL"]
 JELLY_URL = config["app"]["JELLY_URL"]
@@ -500,7 +504,8 @@ def apply_series_blacklist(tmp_dict: dict, monitor_series_config: dict, service:
                     # episode range
                     start_idx, end_idx = int(start_str), int(end_str)
                     if start_idx > end_idx:
-                        start_idx, end_idx = end_idx, start_idx
+                        start_idx = end_idx
+                        end_idx = start_idx
                     rules_for_season.append((start_idx, end_idx))
 
         return blacklisted_season_ids, episode_blacklist_rules
