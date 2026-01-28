@@ -50,7 +50,9 @@ class HIDIVE_MDNX_API:
         self.special_episode_title_flag = re.compile(r'\b(recaps?|digest|compilation|summary|omake|extra|preview|prologue|specials?|ova|oad|ona)\b', re.IGNORECASE)
 
         # Display name -> (audio_code, subtitle_locale), e.g., "English" -> ("eng", "en")
-        self._lang_display_to_pair = {name.lower(): pair for name, pair in LANG_MAP.items()}
+        self._lang_display_to_pair = {}
+        for name, pair in LANG_MAP.items():
+            self._lang_display_to_pair[name.lower()] = pair
 
         # stdout line-buffering if available
         if os.path.exists("/usr/bin/stdbuf"):
@@ -59,6 +61,11 @@ class HIDIVE_MDNX_API:
         else:
             self.stdbuf_exists = False
             log_manager.debug("stdbuf not found, using default command without buffering.")
+
+        if config.app.hidive_skip_api_test == False:
+            self.test()
+        else:
+            log_manager.info("API test skipped by user.")
 
         log_manager.info(f"MDNX API initialized with: Path: {self.mdnx_path} | Service: {self.mdnx_service}")
 

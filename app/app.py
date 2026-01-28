@@ -12,7 +12,7 @@ from appdata.modules.Vars import (
     update_mdnx_config, update_app_config, handle_exception, get_running_user, output_effective_config
 )
 
-__VERSION__ = "2.3.1-dev"
+__VERSION__ = "2.3.2-dev"
 
 
 def app():
@@ -43,11 +43,11 @@ def app():
         log_manager.info("No media servers configured. Skipping media server auth/scan.")
 
     # figure out notification preference
-    match config["app"]["NOTIFICATION_PREFERENCE"]:
+    match config.app.notification_preference:
         case "ntfy":
             log_manager.info("User prefers ntfy notifications. Setting up ntfy script...")
 
-            script_path = config["app"]["NTFY_SCRIPT_PATH"]
+            script_path = config.app.ntfy_script_path
 
             if script_path is None or script_path == "":
                 log_manager.error("NTFY_SCRIPT_PATH is not set or is empty. Please set it in config.json.")
@@ -86,7 +86,7 @@ def app():
             notifier = None
 
         case _:
-            log_manager.error(f"Unsupported notification preference: {config['app']['NOTIFICATION_PREFERENCE']}. Supported options are 'ntfy', 'smtp' or 'none'.")
+            log_manager.error(f"Unsupported notification preference: {config.app.notification_preference}. Supported options are 'ntfy', 'smtp' or 'none'.")
             sys.exit(1)
 
     # service checks/auth
@@ -98,11 +98,11 @@ def app():
 
         # authenticate with MDNX crunchyroll service if needed or force auth if user wants to
         log_manager.info("Checking to see if user is authenticated with MDNX service (cr_token.yml exists?)...")
-        if not os.path.exists(MDNX_SERVICE_CR_TOKEN_PATH) or config["app"]["CR_FORCE_REAUTH"] == True:
+        if not os.path.exists(MDNX_SERVICE_CR_TOKEN_PATH) or config.app.cr_force_reauth == True:
             cr_mdnx_api.auth()
 
             # Update the "CR_FORCE_REAUTH" config to False if needed
-            if config["app"]["CR_FORCE_REAUTH"] == True:
+            if config.app.cr_force_reauth == True:
                 update_app_config("CR_FORCE_REAUTH", False)
         else:
             log_manager.info("cr_token.yml exists. Assuming user is already authenticated with CR MDNX service.")
@@ -115,17 +115,12 @@ def app():
 
         # authenticate with MDNX hidive service if needed or force auth if user wants to
         log_manager.info("Checking to see if user is authenticated with MDNX service (hd_new_token.yml exists?)...")
-        if not os.path.exists(MDNX_SERVICE_HIDIVE_TOKEN_PATH) or config["app"]["HIDIVE_FORCE_REAUTH"] == True:
+        if not os.path.exists(MDNX_SERVICE_HIDIVE_TOKEN_PATH) or config.app.hidive_force_reauth == True:
             hidive_mdnx_api.auth()
-            if config["app"]["HIDIVE_FORCE_REAUTH"] == True:
+            if config.app.hidive_force_reauth == True:
                 update_app_config("HIDIVE_FORCE_REAUTH", False)
         else:
             log_manager.info("hd_new_token.yml exists. Assuming user is already authenticated with HiDive MDNX service.")
-
-        if config["app"]["HIDIVE_SKIP_API_TEST"] == False:
-            hidive_mdnx_api.test()
-        else:
-            log_manager.info("API test skipped by user.")
 
     mainloop = MainLoop(cr_mdnx_api=cr_mdnx_api, hidive_mdnx_api=hidive_mdnx_api, notifier=notifier)
 

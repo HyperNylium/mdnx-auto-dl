@@ -711,9 +711,9 @@ def update_mdnx_config():
 
     _log("Updating MDNX config files with new settings from config.json...")
 
-    mdnx_config_dict = config.mdnx.model_dump(by_alias=True)
+    mdnx_config = config.mdnx.model_dump(by_alias=True)
 
-    for mdnx_config_file, mdnx_config_settings in mdnx_config_dict.items():
+    for mdnx_config_file, mdnx_config_settings in mdnx_config.items():
         file_path = os.path.join(BIN_DIR, "mdnx", "config", f"{mdnx_config_file}.yml")
 
         lines = []
