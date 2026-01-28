@@ -104,7 +104,9 @@ class PLEX_API:
                 headers=self._headers(include_token=True),
                 timeout=30
             )
-            log_manager.debug(f"Scan status={resp.status_code}")
+            log_manager.debug(f"Scan URL: {resp.url}")
+            log_manager.debug(f"Response: {resp.text}")
+            log_manager.debug(f"Scan status code: {resp.status_code}")
             resp.raise_for_status()
             log_manager.info("Scan triggered successfully.")
             return True
@@ -263,8 +265,9 @@ class JELLYFIN_API:
                 timeout=30
             )
             log_manager.debug(f"Scan URL: {resp.url}")
-            resp.raise_for_status()
             log_manager.debug(f"Response: {resp.text}")
+            log_manager.debug(f"Scan status code: {resp.status_code}")
+            resp.raise_for_status()
             log_manager.info("Scan triggered successfully.")
             return True
         except requests.RequestException as e:
