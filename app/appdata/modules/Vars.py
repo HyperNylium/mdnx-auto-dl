@@ -6,16 +6,15 @@ import grp
 import json
 import subprocess
 import unicodedata
+from typing import Any
 from string import Template
 from collections import OrderedDict
-from typing import Any, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
 CONFIG_PATH = os.getenv("CONFIG_FILE", "appdata/config/config.json")
 QUEUE_PATH = os.getenv("QUEUE_FILE", "appdata/config/queue.json")
 TZ = os.getenv("TZ", "America/New_York")
-
 
 
 class AppConfig(BaseModel):
@@ -67,12 +66,12 @@ class AppConfig(BaseModel):
     smtp_port: int = Field(587, alias="SMTP_PORT")
     smtp_starttls: bool = Field(True, alias="SMTP_STARTTLS")
 
-    plex_url: Optional[str] = Field(None, alias="PLEX_URL")
-    plex_token: Optional[str] = Field(None, alias="PLEX_TOKEN")
+    plex_url: str | None = Field(None, alias="PLEX_URL")
+    plex_token: str | None = Field(None, alias="PLEX_TOKEN")
     plex_url_override: bool = Field(False, alias="PLEX_URL_OVERRIDE")
 
-    jelly_url: Optional[str] = Field(None, alias="JELLY_URL")
-    jelly_api_key: Optional[str] = Field(None, alias="JELLY_API_KEY")
+    jelly_url: str | None = Field(None, alias="JELLY_URL")
+    jelly_api_key: str | None = Field(None, alias="JELLY_API_KEY")
     jelly_url_override: bool = Field(False, alias="JELLY_URL_OVERRIDE")
 
 
@@ -128,7 +127,6 @@ config = Config.model_validate(overrides)
 del overrides
 
 
-
 def _log(message: str, level: str = "info", exc_info=None) -> None:
     """Internal logging helper function. Needed to avoid circular imports."""
 
@@ -148,6 +146,7 @@ def _log(message: str, level: str = "info", exc_info=None) -> None:
             log_manager.info(message, exc_info=exc_info)
     except Exception:
         pass
+
 
 def output_effective_config(config: Config, max_chunk: int = 8000):
     """Output the effective config to logs, ordered like the model defaults."""
@@ -194,7 +193,6 @@ def output_effective_config(config: Config, max_chunk: int = 8000):
     for line in formatted_json.splitlines():
         for i in range(0, len(line), max_chunk):
             _log(line[i:i + max_chunk])
-
 
 
 # App settings
