@@ -6,7 +6,6 @@ import grp
 import json
 import subprocess
 import unicodedata
-from typing import Any
 from string import Template
 from collections import OrderedDict
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -112,8 +111,8 @@ class MdnxConfig(BaseModel):
 class Config(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    cr_monitor_series_id: dict[str, Any] = Field(default_factory=dict)
-    hidive_monitor_series_id: dict[str, Any] = Field(default_factory=dict)
+    cr_monitor_series_id: dict[str, list[str]] = Field(default_factory=dict)
+    hidive_monitor_series_id: dict[str, list[str]] = Field(default_factory=dict)
 
     app: AppConfig = Field(default_factory=AppConfig)
     mdnx: MdnxConfig = Field(default_factory=MdnxConfig)
@@ -729,7 +728,7 @@ def update_mdnx_config():
     _log("MDNX config updated.")
 
 
-def update_app_config(config_key: str, new_value: Any) -> bool:
+def update_app_config(config_key: str, new_value) -> bool:
     """
     Update one AppConfig option in config.json under the 'app' section.
 

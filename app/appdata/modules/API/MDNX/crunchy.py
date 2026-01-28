@@ -531,8 +531,7 @@ class CR_MDNX_API:
         _commit_staged()
 
         # apply per-series blacklist to mark episodes to skip
-        crunchy_monitor_series_config = config.get("cr_monitor_series_id", {})
-        tmp_dict = apply_series_blacklist(tmp_dict, crunchy_monitor_series_config, service="cr")
+        tmp_dict = apply_series_blacklist(tmp_dict, config.cr_monitor_series_id, service="cr")
 
         # remove empty seasons and renumber contiguous S1..SX to keep structure compact
         for series_id, series_info in tmp_dict.items():

@@ -521,8 +521,7 @@ class HIDIVE_MDNX_API:
             }
 
         # apply per-series blacklist to mark episodes to skip
-        hidive_monitor_series_config = config.get("hidive_monitor_series_id", {})
-        tmp_dict = apply_series_blacklist(tmp_dict, hidive_monitor_series_config, service="hidive")
+        tmp_dict = apply_series_blacklist(tmp_dict, config.hidive_monitor_series_id, service="hidive")
 
         # fill in total ep count on series metadata
         tmp_dict[current_series_id]["series"]["eps_count"] = str(total_episodes)
