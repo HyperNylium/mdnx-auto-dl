@@ -7,7 +7,7 @@ from appdata.modules.Globals import file_manager, log_manager
 from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
 from appdata.modules.Vars import (
     config,
-    CONFIG_DEFAULTS, MDNX_SERVICE_CR_TOKEN_PATH, MDNX_SERVICE_HIDIVE_TOKEN_PATH,
+    MDNX_SERVICE_CR_TOKEN_PATH, MDNX_SERVICE_HIDIVE_TOKEN_PATH,
     MDNX_CR_ENABLED, MDNX_HIDIVE_ENABLED, PLEX_CONFIGURED, JELLY_CONFIGURED,
     update_mdnx_config, update_app_config, handle_exception, get_running_user, output_effective_config
 )
@@ -63,17 +63,16 @@ def app():
         case "smtp":
             log_manager.info("User prefers SMTP notifications. Configuring SMTP settings...")
 
-            required_keys = [
-                "SMTP_FROM", "SMTP_TO", "SMTP_HOST", "SMTP_USERNAME",
-                "SMTP_PASSWORD", "SMTP_PORT", "SMTP_STARTTLS"
+            required_fields = [
+                "smtp_from", "smtp_to", "smtp_host", "smtp_username",
+                "smtp_password", "smtp_port", "smtp_starttls"
             ]
 
-            # ensure all keys exist AND are not None
             missing_or_empty = []
-            for key in required_keys:
-                value = config["app"][key]
+            for field in required_fields:
+                value = getattr(config.app, field)
                 if value is None or value == "":
-                    missing_or_empty.append(key)
+                    missing_or_empty.append(field)
 
             if missing_or_empty:
                 log_manager.error(f"Missing or invalid SMTP configuration values: {', '.join(missing_or_empty)}")
@@ -150,5 +149,5 @@ if __name__ == "__main__":
     log_manager.info(f"mdnx-auto-dl v{__VERSION__} has started.")
     get_running_user()
     update_mdnx_config()
-    output_effective_config(config, CONFIG_DEFAULTS)
+    output_effective_config(config)
     app()

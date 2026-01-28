@@ -9,7 +9,7 @@ import unicodedata
 from typing import Any
 from string import Template
 from collections import OrderedDict
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 
 CONFIG_PATH = os.getenv("CONFIG_FILE", "appdata/config/config.json")
@@ -196,13 +196,13 @@ def output_effective_config(config: Config, max_chunk: int = 8000):
 
 
 # App settings
-TEMP_DIR = config["app"]["TEMP_DIR"]
-BIN_DIR = config["app"]["BIN_DIR"]
-LOG_DIR = config["app"]["LOG_DIR"]
-DATA_DIR = config["app"]["DATA_DIR"]
+TEMP_DIR = config.app.temp_dir
+BIN_DIR = config.app.bin_dir
+LOG_DIR = config.app.log_dir
+DATA_DIR = config.app.data_dir
 
 # MDNX config settings
-MDNX_CONFIG = config["mdnx"]
+MDNX_CONFIG = config.mdnx
 
 # Dynamic paths
 MDNX_SERVICE_BIN_PATH = os.path.join(BIN_DIR, "mdnx", "aniDL")
@@ -213,13 +213,13 @@ MDNX_SERVICE_HIDIVE_TOKEN_PATH = os.path.join(BIN_DIR, "mdnx", "config", "hd_new
 INVALID_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1F]')
 
 # Streaming services enabled
-MDNX_CR_ENABLED: bool = config["app"]["CR_ENABLED"]
-MDNX_HIDIVE_ENABLED: bool = config["app"]["HIDIVE_ENABLED"]
+MDNX_CR_ENABLED: bool = config.app.cr_enabled
+MDNX_HIDIVE_ENABLED: bool = config.app.hidive_enabled
 
 # Vars related to media server stuff
-PLEX_URL = config["app"]["PLEX_URL"]
-JELLY_URL = config["app"]["JELLY_URL"]
-JELLY_API_KEY = config["app"]["JELLY_API_KEY"]
+PLEX_URL = config.app.plex_url
+JELLY_URL = config.app.jelly_url
+JELLY_API_KEY = config.app.jelly_api_key
 
 PLEX_CONFIGURED = isinstance(PLEX_URL, str) and PLEX_URL.strip() != ""
 JELLY_CONFIGURED = isinstance(JELLY_URL, str) and JELLY_URL.strip() != "" and isinstance(JELLY_API_KEY, str) and JELLY_API_KEY.strip() != ""
@@ -278,6 +278,25 @@ for _name, vals in LANG_MAP.items():
     code = vals[0].lower()
     loc = vals[1].lower()
     CODE_TO_LOCALE[code] = loc
+
+# This will look like: {"TEMP_DIR": "temp_dir", "CR_ENABLED": "cr_enabled", ...}
+APP_ALIAS_KEY_TO_FIELD_NAME = {}
+for field_name, field_info in AppConfig.model_fields.items():
+    alias_key = field_info.alias or field_name
+    APP_ALIAS_KEY_TO_FIELD_NAME[alias_key] = field_name
+
+# This will look like: {"temp_dir": "TEMP_DIR", "cr_enabled": "CR_ENABLED", ...}
+APP_FIELD_NAME_TO_ALIAS_KEY = {}
+for field_name, field_info in AppConfig.model_fields.items():
+    alias_key = field_info.alias or field_name
+    APP_FIELD_NAME_TO_ALIAS_KEY[field_name] = alias_key
+
+
+# This will look like: ["TEMP_DIR", "BIN_DIR", "LOG_DIR", ...]
+APP_DEFAULT_KEY_ORDER = []
+default_app_dict = AppConfig().model_dump(by_alias=True)
+for alias_key in default_app_dict.keys():
+    APP_DEFAULT_KEY_ORDER.append(alias_key)
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -360,11 +379,11 @@ def select_dubs(episode_info: dict):
     """Determine which dubs to download based on desired, backup, and available dubs."""
 
     desired_dubs = set()
-    for lang in config["mdnx"]["cli-defaults"]["dubLang"]:
+    for lang in config.mdnx.cli_defaults.dubLang:
         desired_dubs.add(lang)
 
     backup_dubs = set()
-    for lang in config["app"]["BACKUP_DUBS"]:
+    for lang in config.app.backup_dubs:
         backup_dubs.add(lang)
 
     available_dubs = set()
@@ -712,63 +731,72 @@ def update_mdnx_config():
     _log("MDNX config updated.")
 
 
-def update_app_config(key: str, value):
-    """Update a single key-value pair in the on-disk config.json file under the 'app' section."""
+def update_app_config(config_key: str, new_value: Any) -> bool:
+    """
+    Update one AppConfig option in config.json under the 'app' section.
+
+    config_key can be either:
+      - field name: "cr_force_reauth"
+      - alias key:  "CR_FORCE_REAUTH"
+    """
 
     global config
 
-    try:
-        with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
-            on_disk = json.load(f, object_pairs_hook=OrderedDict)
-    except Exception as e:
-        _log(f"Failed to read config file: {e}", level="error")
+    # resolve to alias key to write to disk
+    if config_key in APP_FIELD_NAME_TO_ALIAS_KEY:
+        alias_key_to_write = APP_FIELD_NAME_TO_ALIAS_KEY[config_key]
+    elif config_key in APP_ALIAS_KEY_TO_FIELD_NAME:
+        alias_key_to_write = config_key
+    else:
+        _log(f"Unknown app config key: {config_key}", level="error")
         return False
 
-    app_section = on_disk.get("app")
-    if not isinstance(app_section, dict):
+    # read config.json from disk
+    try:
+        with open(CONFIG_PATH, "r", encoding="utf-8") as config_file:
+            on_disk_config = json.load(config_file, object_pairs_hook=OrderedDict)
+    except Exception as read_error:
+        _log(f"Failed to read config file: {read_error}", level="error")
+        return False
+
+    app_config_section = on_disk_config.get("app")
+    if not isinstance(app_config_section, dict):
         _log("Invalid config: missing 'app' object.", level="error")
         return False
 
-    app_section[key] = value
+    # apply update
+    app_config_section[alias_key_to_write] = new_value
 
-    # reorder "app" section according to CONFIG_DEFAULTS["app"] key order.
-    # keys not present in defaults are appended in their current relative order.
+    # validate updated app section before writing
     try:
-        defaults_app = CONFIG_DEFAULTS.get("app", {})
-        ordered_app = OrderedDict()
-
-        for default_key in defaults_app.keys():
-            if default_key in app_section:
-                ordered_app[default_key] = app_section[default_key]
-
-        for existing_key, existing_value in app_section.items():
-            if existing_key not in ordered_app:
-                ordered_app[existing_key] = existing_value
-        on_disk["app"] = ordered_app
-    except Exception as e:
-        _log(f"Unable to apply defaults order to 'app' section: {e}", level="warning")
-
-    try:
-        with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
-            json.dump(on_disk, f, indent=4)
-            f.write("\n")
-    except Exception as e:
-        _log(f"Failed to write config file: {e}", level="error")
+        AppConfig.model_validate(app_config_section)
+    except ValidationError as validation_error:
+        _log(f"Invalid value for app.{alias_key_to_write}: {validation_error}", level="error")
         return False
 
+    # write back to disk config.json
     try:
-        config["app"][key] = value
-    except Exception:
-        _log("In-memory config structure unexpected. Could not mirror update cleanly.", level="debug")
+        with open(CONFIG_PATH, "w", encoding="utf-8") as config_file:
+            json.dump(on_disk_config, config_file, indent=4)
+            config_file.write("\n")
+    except Exception as write_error:
+        _log(f"Failed to write config file: {write_error}", level="error")
+        return False
 
-    _log(f"Updated on-disk 'app.{key}' with '{value}'", level="debug")
+    # refresh in-memory app config
+    try:
+        config.app = AppConfig.model_validate(app_config_section)
+    except ValidationError as refresh_error:
+        _log(f"Wrote config, but failed to refresh in-memory app config: {refresh_error}", level="warning")
+
+    _log(f"Updated on-disk 'app.{alias_key_to_write}' with '{new_value}'", level="debug")
     return True
 
 
 def build_folder_structure(base_dir: str, series_title: str, season: str, episode: str, episode_name: str, extension: str = ".mkv") -> str:
     """Build the folder structure and file name based on the template in config."""
 
-    template_str = str(config["app"]["FOLDER_STRUCTURE"])
+    template_str = str(config.app.folder_structure)
 
     substitutes = {
         "seriesTitle": series_title,
@@ -789,7 +817,7 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
         parts.append(sanitize(part))
 
         # Commented out as downloading special episodes is not supported.
-        # specials (Season 0) go in "/config["app"]["SPECIAL_EPISODES_FOLDER_NAME"]/..."
+        # specials (Season 0) go in "config["app"]["SPECIAL_EPISODES_FOLDER_NAME"]..."
         # if int(season) == 0:
         #     norm = sanitize(part).lower()
         #     if norm in {

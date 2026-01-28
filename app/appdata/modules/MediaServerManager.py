@@ -18,9 +18,9 @@ JELLYFIN_INSTANCE = None
 
 class PLEX_API:
     def __init__(self) -> None:
-        self.token = config["app"]["PLEX_TOKEN"]
-        self.server_url = config["app"]["PLEX_URL"]
-        self.url_override = config["app"]["PLEX_URL_OVERRIDE"]
+        self.token = config.app.plex_token
+        self.server_url = config.app.plex_url
+        self.url_override = config.app.plex_url_override
 
         if self.server_url is None or self.server_url == "":
             log_manager.error("PLEX_URL is not set or empty. Please set it in config.json. Exiting...")
@@ -220,9 +220,9 @@ class PLEX_API:
 
 class JELLYFIN_API:
     def __init__(self) -> None:
-        raw_url = config["app"]["JELLY_URL"]
-        self.api_key = config["app"]["JELLY_API_KEY"]
-        self.url_override = config["app"]["JELLY_URL_OVERRIDE"]
+        raw_url = config.app.jelly_url
+        self.api_key = config.app.jelly_api_key
+        self.url_override = config.app.jelly_url_override
         self.server_url = None
 
         # normalize server URL
