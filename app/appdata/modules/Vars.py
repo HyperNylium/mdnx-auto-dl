@@ -8,11 +8,125 @@ import subprocess
 import unicodedata
 from string import Template
 from collections import OrderedDict
+from typing import Any, Optional
+from pydantic import BaseModel, ConfigDict, Field
 
 
 CONFIG_PATH = os.getenv("CONFIG_FILE", "appdata/config/config.json")
 QUEUE_PATH = os.getenv("QUEUE_FILE", "appdata/config/queue.json")
 TZ = os.getenv("TZ", "America/New_York")
+
+
+
+class AppConfig(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    temp_dir: str = Field("/app/appdata/temp", alias="TEMP_DIR")
+    bin_dir: str = Field("/app/appdata/bin", alias="BIN_DIR")
+    log_dir: str = Field("/app/appdata/logs", alias="LOG_DIR")
+    data_dir: str = Field("/data", alias="DATA_DIR")
+
+    cr_enabled: bool = Field(False, alias="CR_ENABLED")
+    cr_username: str = Field("", alias="CR_USERNAME")
+    cr_password: str = Field("", alias="CR_PASSWORD")
+
+    hidive_enabled: bool = Field(False, alias="HIDIVE_ENABLED")
+    hidive_username: str = Field("", alias="HIDIVE_USERNAME")
+    hidive_password: str = Field("", alias="HIDIVE_PASSWORD")
+
+    backup_dubs: list[str] = Field(["zho"], alias="BACKUP_DUBS")
+    folder_structure: str = Field(
+        "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
+        alias="FOLDER_STRUCTURE",
+    )
+
+    check_missing_dub_sub: bool = Field(True, alias="CHECK_MISSING_DUB_SUB")
+    check_for_updates_interval: int = Field(3600, alias="CHECK_FOR_UPDATES_INTERVAL")
+    episode_dl_delay: int = Field(30, alias="EPISODE_DL_DELAY")
+
+    cr_force_reauth: bool = Field(False, alias="CR_FORCE_REAUTH")
+    cr_skip_api_test: bool = Field(False, alias="CR_SKIP_API_TEST")
+    hidive_force_reauth: bool = Field(False, alias="HIDIVE_FORCE_REAUTH")
+    hidive_skip_api_test: bool = Field(False, alias="HIDIVE_SKIP_API_TEST")
+
+    only_create_queue: bool = Field(False, alias="ONLY_CREATE_QUEUE")
+    skip_queue_refresh: bool = Field(False, alias="SKIP_QUEUE_REFRESH")
+    dry_run: bool = Field(False, alias="DRY_RUN")
+
+    log_level: str = Field("info", alias="LOG_LEVEL")
+    max_log_archives: int = Field(5, alias="MAX_LOG_ARCHIVES")
+
+    notification_preference: str = Field("none", alias="NOTIFICATION_PREFERENCE")
+    ntfy_script_path: str = Field("/app/appdata/config/ntfy.sh", alias="NTFY_SCRIPT_PATH")
+
+    smtp_from: str = Field("", alias="SMTP_FROM")
+    smtp_to: str = Field("", alias="SMTP_TO")
+    smtp_host: str = Field("", alias="SMTP_HOST")
+    smtp_username: str = Field("", alias="SMTP_USERNAME")
+    smtp_password: str = Field("", alias="SMTP_PASSWORD")
+    smtp_port: int = Field(587, alias="SMTP_PORT")
+    smtp_starttls: bool = Field(True, alias="SMTP_STARTTLS")
+
+    plex_url: Optional[str] = Field(None, alias="PLEX_URL")
+    plex_token: Optional[str] = Field(None, alias="PLEX_TOKEN")
+    plex_url_override: bool = Field(False, alias="PLEX_URL_OVERRIDE")
+
+    jelly_url: Optional[str] = Field(None, alias="JELLY_URL")
+    jelly_api_key: Optional[str] = Field(None, alias="JELLY_API_KEY")
+    jelly_url_override: bool = Field(False, alias="JELLY_URL_OVERRIDE")
+
+
+class MdnxBinPath(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    ffmpeg: str = "ffmpeg"
+    ffprobe: str = "ffprobe"
+    mkvmerge: str = "mkvmerge"
+    mp4decrypt: str = "/app/appdata/bin/Bento4-SDK/mp4decrypt"
+
+
+class MdnxCliDefaults(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    q: int = 0
+    partsize: int = 3
+    dubLang: list[str] = ["jpn", "eng"]
+    dlsubs: list[str] = ["en"]
+    defaultAudio: str = "jpn"
+    defaultSub: str = "eng"
+    vstream: str = "androidtv"
+    astream: str = "androidtv"
+    tsd: bool = False
+
+
+class MdnxDirPath(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    content: str = "/app/appdata/temp"
+    fonts: str = "./fonts/"
+
+
+class MdnxConfig(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    bin_path: MdnxBinPath = Field(default_factory=MdnxBinPath, alias="bin-path")
+    cli_defaults: MdnxCliDefaults = Field(default_factory=MdnxCliDefaults, alias="cli-defaults")
+    dir_path: MdnxDirPath = Field(default_factory=MdnxDirPath, alias="dir-path")
+
+
+class Config(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    cr_monitor_series_id: dict[str, Any] = Field(default_factory=dict)
+    hidive_monitor_series_id: dict[str, Any] = Field(default_factory=dict)
+
+    app: AppConfig = Field(default_factory=AppConfig)
+    mdnx: MdnxConfig = Field(default_factory=MdnxConfig)
+
+
+with open(CONFIG_PATH, 'r') as user_config_file:
+    overrides = json.load(user_config_file)
+
+config = Config.model_validate(overrides)
+
+del overrides
+
 
 
 def _log(message: str, level: str = "info", exc_info=None) -> None:
@@ -35,159 +149,53 @@ def _log(message: str, level: str = "info", exc_info=None) -> None:
     except Exception:
         pass
 
+def output_effective_config(config: Config, max_chunk: int = 8000):
+    """Output the effective config to logs, ordered like the model defaults."""
 
-def merge_config(defaults: dict, overrides: dict) -> dict:
-    """
-    Recursively merge two configuration dicts.
-    Values from 'overrides' take precedence over 'defaults'.
-    If a value in 'overrides' is None, the corresponding value from 'defaults' is retained.
-    """
+    _log("Effective config:")
 
-    if not isinstance(defaults, dict) or not isinstance(overrides, dict):
-        if overrides is not None:
-            return overrides
-        else:
-            return defaults
+    config_dict = config.model_dump(by_alias=True)
+    defaults_dict = Config().model_dump(by_alias=True)
 
-    merged = {}
-    for key in (defaults.keys() | overrides.keys()):
-        default_value = defaults.get(key)
-        override_value = overrides.get(key)
+    SKIP_ORDERING_KEYS = {"cr_monitor_series_id", "hidive_monitor_series_id", "mdnx"}
 
-        if isinstance(default_value, dict) and isinstance(override_value, dict):
-            merged[key] = merge_config(default_value, override_value)
-        elif override_value is None:
-            merged[key] = default_value
-        else:
-            merged[key] = override_value
+    def _order_like_defaults(config_node, defaults_node):
+        if not isinstance(config_node, dict) or not isinstance(defaults_node, dict):
+            return config_node
 
-    return merged
+        ordered_node = OrderedDict()
 
+        # defaults ordered keys go first
+        for key in defaults_node.keys():
+            if key in config_node:
+                if key in SKIP_ORDERING_KEYS:
+                    ordered_node[key] = config_node[key]
+                else:
+                    ordered_node[key] = _order_like_defaults(config_node[key], defaults_node.get(key))
 
-def output_effective_config(config, default_config, max_chunk=8000):
-    """Output the effective config to logs, ordered like the defaults."""
+        # then any remaining keys from config_node
+        for key, value in config_node.items():
+            if key not in ordered_node:
+                if key in SKIP_ORDERING_KEYS:
+                    ordered_node[key] = value
+                else:
+                    ordered_node[key] = _order_like_defaults(value, defaults_node.get(key))
 
-    _log("Effective config: ")
+        return ordered_node
+
     try:
-        SKIP_ORDERING_KEYS = {"cr_monitor_series_id", "hidive_monitor_series_id", "mdnx"}
-
-        def _order_like_defaults(config_node: dict, defaults_node: dict):
-            if not isinstance(config_node, dict):
-                return config_node
-
-            ordered_node = OrderedDict()
-
-            # defaults ordered keys go first
-            for key in defaults_node.keys():
-                if key in config_node:
-                    if key in SKIP_ORDERING_KEYS:
-                        ordered_node[key] = config_node[key]
-                    else:
-                        ordered_node[key] = _order_like_defaults(config_node[key], defaults_node.get(key))
-
-            # then any remaining keys from config_node
-            for key, value in config_node.items():
-                if key not in ordered_node:
-                    if key in SKIP_ORDERING_KEYS:
-                        ordered_node[key] = value
-                    else:
-                        ordered_node[key] = _order_like_defaults(value, defaults_node.get(key))
-
-            return ordered_node
-
-        ordered_config = _order_like_defaults(config, default_config)
+        ordered_config = _order_like_defaults(config_dict, defaults_dict)
     except Exception as e:
-        _log(f"Could not order config by defaults: {e}", level="debug")
-        ordered_config = config  # fall back without reordering
+        _log(f"Could not order config by defaults: {e}", level="warning")
+        ordered_config = config_dict
 
     formatted_json = json.dumps(ordered_config, indent=4)
+
     for line in formatted_json.splitlines():
         for i in range(0, len(line), max_chunk):
             _log(line[i:i + max_chunk])
 
 
-# every default config value
-CONFIG_DEFAULTS = {
-    "cr_monitor_series_id": {},
-    "hidive_monitor_series_id": {},
-    "app": {
-        "TEMP_DIR": "/app/appdata/temp",
-        "BIN_DIR": "/app/appdata/bin",
-        "LOG_DIR": "/app/appdata/logs",
-        "DATA_DIR": "/data",
-        "CR_ENABLED": False,
-        "CR_USERNAME": "",
-        "CR_PASSWORD": "",
-        "HIDIVE_ENABLED": False,
-        "HIDIVE_USERNAME": "",
-        "HIDIVE_PASSWORD": "",
-        "BACKUP_DUBS": ["zho"],
-        "FOLDER_STRUCTURE": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
-        "CHECK_MISSING_DUB_SUB": True,
-        "CHECK_FOR_UPDATES_INTERVAL": 3600,
-        "EPISODE_DL_DELAY": 30,
-        "CR_FORCE_REAUTH": False,
-        "CR_SKIP_API_TEST": False,
-        "HIDIVE_FORCE_REAUTH": False,
-        "HIDIVE_SKIP_API_TEST": False,
-        "ONLY_CREATE_QUEUE": False,
-        "SKIP_QUEUE_REFRESH": False,
-        "DRY_RUN": False,
-        "LOG_LEVEL": "info",
-        "MAX_LOG_ARCHIVES": 5,
-        "NOTIFICATION_PREFERENCE": "none",
-        "NTFY_SCRIPT_PATH": "/app/appdata/config/ntfy.sh",
-        "SMTP_FROM": "",
-        "SMTP_TO": "",
-        "SMTP_HOST": "",
-        "SMTP_USERNAME": "",
-        "SMTP_PASSWORD": "",
-        "SMTP_PORT": 587,
-        "SMTP_STARTTLS": True,
-        "PLEX_URL": None,
-        "PLEX_TOKEN": None,
-        "PLEX_URL_OVERRIDE": False,
-        "JELLY_URL": None,
-        "JELLY_API_KEY": None,
-        "JELLY_URL_OVERRIDE": False
-    },
-    "mdnx": {
-        "bin-path": {
-            "ffmpeg": "ffmpeg",
-            "ffprobe": "ffprobe",
-            "mkvmerge": "mkvmerge",
-            "mp4decrypt": "/app/appdata/bin/Bento4-SDK/mp4decrypt"
-        },
-        "cli-defaults": {
-            "q": 0,
-            "partsize": 3,
-            "dubLang": [
-                "jpn",
-                "eng"
-            ],
-            "dlsubs": [
-                "en"
-            ],
-            "defaultAudio": "jpn",
-            "defaultSub": "eng",
-            "vstream": "androidtv",
-            "astream": "androidtv",
-            "tsd": False
-        },
-        "dir-path": {
-            "content": "/app/appdata/temp",
-            "fonts": "./fonts/"
-        }
-    }
-}
-
-# load the config file
-with open(CONFIG_PATH, 'r') as config_file:
-    LOCAL_CONFIG = json.load(config_file)
-
-config = merge_config(defaults=CONFIG_DEFAULTS, overrides=LOCAL_CONFIG)
-
-del LOCAL_CONFIG
 
 # App settings
 TEMP_DIR = config["app"]["TEMP_DIR"]
