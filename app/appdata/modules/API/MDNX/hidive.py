@@ -17,8 +17,8 @@ class HIDIVE_MDNX_API:
         self.mdnx_path = MDNX_SERVICE_BIN_PATH
         self.mdnx_service = "hidive"
         self.queue_service = "hidive"
-        self.username = str(config["app"]["HIDIVE_USERNAME"])
-        self.password = str(config["app"]["HIDIVE_PASSWORD"])
+        self.username = str(config.app.hidive_username)
+        self.password = str(config.app.hidive_password)
         self.download_thread = None
         self.download_proc = None
         self.download_lock = threading.Lock()

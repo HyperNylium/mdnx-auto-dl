@@ -31,12 +31,12 @@ class MainLoop:
 
         self.notifier = notifier
 
-        self.check_missing_dub_sub = config["app"]["CHECK_MISSING_DUB_SUB"]
-        self.loop_timeout = int(config["app"]["CHECK_FOR_UPDATES_INTERVAL"])
-        self.between_episode_timeout = int(config["app"]["EPISODE_DL_DELAY"])
-        self.only_create_queue = config["app"]["ONLY_CREATE_QUEUE"]
-        self.skip_queue_refresh = config["app"]["SKIP_QUEUE_REFRESH"]
-        self.dry_run = config["app"]["DRY_RUN"]
+        self.check_missing_dub_sub = config.app.check_missing_dub_sub
+        self.loop_timeout = int(config.app.check_for_updates_interval)
+        self.between_episode_timeout = int(config.app.episode_dl_delay)
+        self.only_create_queue = config.app.only_create_queue
+        self.skip_queue_refresh = config.app.skip_queue_refresh
+        self.dry_run = config.app.dry_run
         self.notifications_buffer = []
         self.stop_requested = False
 
@@ -261,8 +261,8 @@ class MainLoop:
 
         log_manager.info("Getting the current queue IDs...")
 
-        cr_monitor_ids = set(config["cr_monitor_series_id"].keys())
-        hd_monitor_ids = set(config["hidive_monitor_series_id"].keys())
+        cr_monitor_ids = set(config.cr_monitor_series_id.keys())
+        hd_monitor_ids = set(config.hidive_monitor_series_id.keys())
 
         def process_service(service: str, service_configured: bool, api, monitor_ids: set) -> int | bool:
             """Process monitor start/stop for a given service."""
@@ -402,12 +402,12 @@ class MainLoop:
 
         # determine wanted dubs and subs from config
         wanted_dubs = set()
-        for lang in config["mdnx"]["cli-defaults"]["dubLang"]:
+        for lang in config.mdnx.cli_defaults.dubLang:
             wanted_dubs.add(lang.lower())
 
         # determine wanted subs from config
         wanted_subs = set()
-        for lang in config["mdnx"]["cli-defaults"]["dlsubs"]:
+        for lang in config.mdnx.cli_defaults.dlsubs:
             wanted_subs.add(lang.lower())
 
         for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(bucket):

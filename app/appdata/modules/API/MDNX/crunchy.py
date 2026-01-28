@@ -17,8 +17,8 @@ class CR_MDNX_API:
         self.mdnx_path = MDNX_SERVICE_BIN_PATH
         self.mdnx_service = "crunchy"
         self.queue_service = "crunchy"
-        self.username = str(config["app"]["CR_USERNAME"])
-        self.password = str(config["app"]["CR_PASSWORD"])
+        self.username = str(config.app.cr_username)
+        self.password = str(config.app.cr_password)
         self.download_thread = None
         self.download_proc = None
         self.download_lock = threading.Lock()
@@ -56,7 +56,7 @@ class CR_MDNX_API:
             log_manager.debug("stdbuf not found, using default command without buffering.")
 
         # skip API test if user wants to
-        if config["app"]["CR_SKIP_API_TEST"] == False:
+        if config.app.cr_skip_api_test is False:
             self.test()
         else:
             log_manager.info("API test skipped by user.")
