@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import json
 import subprocess
 import threading
 
@@ -78,21 +79,27 @@ class HIDIVE_MDNX_API:
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8").stdout
         log_manager.debug(f"MDNX API test result:\n{result}")
 
-        json_result = self._process_console_output(result, add2queue=False)
-        log_manager.info(f"Processed console output:\n{json_result}")
+        dict_result = self._process_console_output(result, add2queue=False)
+        log_manager.info(f"Processed console output:\n{json.dumps(dict_result)}")
 
-        # --- This needs to be researched/tested more. I am not sure what anidl outputs on auth errors with HiDive.
-        # --- Leaving commented out for now. This means there will be no auto re-auth on auth errors for HiDive.
-        # --- Check if the output contains authentication errors
-        # error_triggers = ["invalid_grant", "Token Refresh Failed", "Authentication required", "Anonymous"]
-        # if any(trigger in result for trigger in error_triggers):
-        #     log_manager.info("Authentication error detected. Forcing re-authentication...")
-        #     self.auth()
-        # else:
-        #     log_manager.info("MDNX API test successful.")
+        # check if the output contains authentication errors
+        error_triggers = ["[ERROR] Failed to download episode: You do not have access to this"]
+        if any(trigger in result for trigger in error_triggers):
+            log_manager.error("Authentication error detected in console output. Forcing re-authentication...")
+            self.auth()
+            return
 
-        log_manager.info("MDNX API test successful.")
-        return
+        # check if returned dict available_dubs and available_subs lists are populated
+        # (usually empty if issue occurred in parsing, which would happen if user isnt authed)
+        for series_info in dict_result.values():
+            for season_info in series_info.get("seasons", {}).values():
+                for episode_info in season_info.get("episodes", {}).values():
+                    dubs = episode_info.get("available_dubs", [])
+                    subs = episode_info.get("available_subs", [])
+                    if not dubs or not subs:
+                        log_manager.error("Authentication error detected in JSON output (no dubs or subs for series). Forcing re-authentication...")
+                        self.auth()
+                        return
 
     def auth(self) -> str:
         """Authenticate with the MDNX service using provided credentials."""

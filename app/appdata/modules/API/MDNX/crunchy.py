@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import json
 import subprocess
 import threading
 
@@ -72,8 +73,8 @@ class CR_MDNX_API:
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8").stdout
         log_manager.info(f"MDNX API test result:\n{result}")
 
-        json_result = self._process_console_output(result, add2queue=False)
-        log_manager.info(f"Processed console output:\n{json_result}")
+        dict_result = self._process_console_output(result, add2queue=False)
+        log_manager.info(f"Processed console output:\n{json.dumps(dict_result)}")
 
         # check if the output contains authentication errors
         error_triggers = ["invalid_grant", "Token Refresh Failed", "Authentication required", "Anonymous"]
