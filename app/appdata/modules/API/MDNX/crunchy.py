@@ -104,7 +104,7 @@ class CR_MDNX_API:
     def start_monitor(self, series_id: str) -> str:
         """Starts monitoring a series by its ID using the MDNX service."""
 
-        log_manager.info(f"Monitoring series with ID: {series_id}")
+        log_manager.debug(f"Monitoring series with ID: {series_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
@@ -119,13 +119,13 @@ class CR_MDNX_API:
         """Stops monitoring a series by its ID using the MDNX service."""
 
         queue_manager.remove(series_id, self.queue_service)
-        log_manager.info(f"Stopped monitoring series with ID: {series_id}")
+        log_manager.debug(f"Stopped monitoring series with ID: {series_id}")
         return
 
     def update_monitor(self, series_id: str) -> str:
         """Updates monitoring for a series by its ID using the MDNX service."""
 
-        log_manager.info(f"Updating monitor for series with ID: {series_id}")
+        log_manager.debug(f"Updating monitor for series with ID: {series_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
