@@ -201,9 +201,6 @@ BIN_DIR = config.app.bin_dir
 LOG_DIR = config.app.log_dir
 DATA_DIR = config.app.data_dir
 
-# MDNX config settings
-MDNX_CONFIG = config.mdnx
-
 # Dynamic paths
 MDNX_SERVICE_BIN_PATH = os.path.join(BIN_DIR, "mdnx", "aniDL")
 MDNX_SERVICE_CR_TOKEN_PATH = os.path.join(BIN_DIR, "mdnx", "config", "cr_token.yml")
@@ -714,16 +711,17 @@ def update_mdnx_config():
 
     _log("Updating MDNX config files with new settings from config.json...")
 
-    for mdnx_config_file, mdnx_config_settings in MDNX_CONFIG.items():
+    mdnx_config_dict = config.mdnx.model_dump(by_alias=True)
+
+    for mdnx_config_file, mdnx_config_settings in mdnx_config_dict.items():
         file_path = os.path.join(BIN_DIR, "mdnx", "config", f"{mdnx_config_file}.yml")
 
         lines = []
         for setting_key, setting_value in mdnx_config_settings.items():
             formatted_value = format_value(setting_value)
-            line = f"{setting_key}: {formatted_value}\n"
-            lines.append(line)
+            lines.append(f"{setting_key}: {formatted_value}\n")
 
-        with open(file_path, "w") as file:
+        with open(file_path, "w", encoding="utf-8") as file:
             file.writelines(lines)
 
         _log(f"Updated {file_path} with new settings.", level="debug")
