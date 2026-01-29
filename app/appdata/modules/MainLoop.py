@@ -51,6 +51,7 @@ class MainLoop:
                     log_manager.info("SKIP_QUEUE_REFRESH is True. Skipping queue refresh step and using old queue data.")
                 else:
                     cr_state, hd_state = self._refresh_queue()
+                    log_manager.info(f"Queue refresh states: Crunchyroll={cr_state}, HiDive={hd_state}, types: {type(cr_state)}, {type(hd_state)}")
 
                     # if *_state is an int:
                     #   - if that int is 1, the service wasnt enabled
