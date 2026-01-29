@@ -79,7 +79,7 @@ class CR_MDNX_API:
         # check if the output contains authentication errors
         error_triggers = ["invalid_grant", "Token Refresh Failed", "Authentication required", "Anonymous"]
         if any(trigger in result for trigger in error_triggers):
-            log_manager.info("Authentication error detected. Forcing re-authentication...")
+            log_manager.info("Authentication error detected in console output. Forcing re-authentication...")
             self.auth()
         else:
             log_manager.info("MDNX API test successful.")
