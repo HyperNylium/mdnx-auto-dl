@@ -94,6 +94,9 @@ class HIDIVE_MDNX_API:
                         self.auth()
                         return
 
+        log_manager.info("MDNX API test successful.")
+        return
+
     def auth(self) -> str:
         """Authenticate with the MDNX service using provided credentials."""
 
