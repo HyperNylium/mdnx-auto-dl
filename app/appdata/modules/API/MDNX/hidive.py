@@ -90,7 +90,7 @@ class HIDIVE_MDNX_API:
                     dubs = episode_info.get("available_dubs", [])
                     subs = episode_info.get("available_subs", [])
                     if not dubs or not subs:
-                        log_manager.error("Authentication error detected in JSON output (no dubs or subs for series. Forcing re-authentication...")
+                        log_manager.error("Authentication error detected in JSON output (no dubs or subs for series). Forcing re-authentication...")
                         self.auth()
                         return
 
