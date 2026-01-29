@@ -63,7 +63,7 @@ class MainLoop:
                                 log_manager.info("Your 'cr_monitor_series_id' list is empty. Skipped refreshing empty list.")
 
                     if isinstance(hd_state, int):
-                        match cr_state:
+                        match hd_state:
                             case 1:
                                 log_manager.info("HiDive queue refresh skipped because the service wasnt enabled.")
                             case 2:
