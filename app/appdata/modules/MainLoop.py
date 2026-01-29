@@ -55,14 +55,14 @@ class MainLoop:
                     # if *_state is an int:
                     #   - if that int is 1, the service wasnt enabled
                     #   - if that int is 2, monitor lists were empty, so nothing to do/refresh for said service
-                    if isinstance(cr_state, int):
+                    if cr_state is not None:
                         match cr_state:
                             case 1:
                                 log_manager.info("Crunchyroll queue refresh skipped because the service wasnt enabled.")
                             case 2:
                                 log_manager.info("Your 'cr_monitor_series_id' list is empty. Skipped refreshing empty list.")
 
-                    if isinstance(hd_state, int):
+                    if hd_state is not None:
                         match hd_state:
                             case 1:
                                 log_manager.info("HiDive queue refresh skipped because the service wasnt enabled.")
@@ -256,7 +256,7 @@ class MainLoop:
         finally:
             self.notifications_buffer.clear()
 
-    def _refresh_queue(self) -> tuple[int | bool, int | bool]:
+    def _refresh_queue(self) -> tuple[int | None, int | None]:
         """Refresh the MDNX queue and start/stop monitors as needed."""
 
         log_manager.info("Getting the current queue IDs...")
@@ -264,7 +264,7 @@ class MainLoop:
         cr_monitor_ids = set(config.cr_monitor_series_id.keys())
         hd_monitor_ids = set(config.hidive_monitor_series_id.keys())
 
-        def process_service(service: str, service_configured: bool, api, monitor_ids: set) -> int | bool:
+        def process_service(service: str, service_configured: bool, api, monitor_ids: set) -> int | None:
             """Process monitor start/stop for a given service."""
 
             # if service not configured, dont refresh queue for said service.
