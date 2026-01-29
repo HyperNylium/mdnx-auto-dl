@@ -82,14 +82,7 @@ class HIDIVE_MDNX_API:
         dict_result = self._process_console_output(result, add2queue=False)
         log_manager.info(f"Processed console output:\n{json.dumps(dict_result)}")
 
-        # check if the output contains authentication errors
-        error_triggers = ["[ERROR] Failed to download episode: You do not have access to this"]
-        if any(trigger in result for trigger in error_triggers):
-            log_manager.error("Authentication error detected in console output. Forcing re-authentication...")
-            self.auth()
-            return
-
-        # check if returned dict available_dubs and available_subs lists are populated
+        # check if returned dict available_dubs and available_subs lists are populated for every episode
         # (usually empty if issue occurred in parsing, which would happen if user isnt authed)
         for series_info in dict_result.values():
             for season_info in series_info.get("seasons", {}).values():
@@ -97,7 +90,7 @@ class HIDIVE_MDNX_API:
                     dubs = episode_info.get("available_dubs", [])
                     subs = episode_info.get("available_subs", [])
                     if not dubs or not subs:
-                        log_manager.error("Authentication error detected in JSON output (no dubs or subs for series). Forcing re-authentication...")
+                        log_manager.error("Authentication error detected in JSON output (no dubs or subs for series. Forcing re-authentication...")
                         self.auth()
                         return
 
