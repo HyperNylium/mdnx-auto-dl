@@ -12,7 +12,7 @@ from appdata.modules.Vars import (
     update_mdnx_config, update_app_config, handle_exception, get_running_user, output_effective_config
 )
 
-__VERSION__ = "2.3.1-dev-4"
+__VERSION__ = "2.3.1-dev-5"
 
 
 def app():
@@ -88,7 +88,7 @@ def app():
                     log_manager.critical(
                         "Widevine CDM not properly configured. Downloading will not work without resolving this issue.\n"
                         "Please ensure you have either the .wvd file or both .bin and .pem blob files mounted to the correct path.\n"
-                        "Should be as simple as uncommenting the '# Widevine' section in your docker-compose.yml and putting the files in the right place.\n"
+                        "Should be as simple as uncommenting the '# Widevine' section in your docker-compose.yaml and putting the files in the right place.\n"
                         "If you need more help, feel free to open a discussion on the GitHub repo :)"
                     )
                     sys.exit(1)
@@ -149,7 +149,7 @@ def app():
                     log_manager.critical(
                         "Playready CDM not properly configured. Downloading will not work without resolving this issue.\n"
                         "Please ensure you have either the .prd file or both bgroupcert.dat and zgpriv.dat blob files mounted to the correct path.\n"
-                        "Should be as simple as uncommenting the '# Playready' section in your docker-compose.yml and putting the files in the right place.\n"
+                        "Should be as simple as uncommenting the '# Playready' section in your docker-compose.yaml and putting the files in the right place.\n"
                         "If you need more help, feel free to open a discussion on the GitHub repo :)"
                     )
                     sys.exit(1)
@@ -163,8 +163,8 @@ def app():
     if not widevine_cdm_found and not playready_cdm_found:
         log_manager.critical(
             "No valid CDMs found. Downloading will not work without resolving this issue.\n"
-            "Please ensure you have either the Widevine or Playready CDM files mounted to the correct path.\n"
-            "Should be as simple as uncommenting the relevant section in your docker-compose.yml and putting the files in the right place.\n"
+            "Please ensure you have either a Widevine or Playready CDM mounted to the correct path.\n"
+            "Should be as simple as uncommenting the relevant section in your docker-compose.yaml and putting the files in the right place.\n"
             "If you need more help, feel free to open a discussion on the GitHub repo :)"
         )
         sys.exit(1)
