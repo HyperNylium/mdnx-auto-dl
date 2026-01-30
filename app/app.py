@@ -37,6 +37,9 @@ def app():
         # if no files, skip checks
         has_files = False
         for name in service_folder_contents:
+            if name == ".gitkeep":
+                continue
+
             full = os.path.join(service_path, name)
             if os.path.isfile(full):
                 has_files = True
