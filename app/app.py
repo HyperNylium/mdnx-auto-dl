@@ -7,7 +7,7 @@ from appdata.modules.Globals import file_manager, log_manager
 from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
 from appdata.modules.Vars import (
     config,
-    MDNX_SERVICE_CR_TOKEN_PATH, MDNX_SERVICE_HIDIVE_TOKEN_PATH,
+    MDNX_SERVICE_CR_TOKEN_PATH, MDNX_SERVICE_HIDIVE_TOKEN_PATH, MDNX_SERVICE_WIDEVINE_PATH, MDNX_SERVICE_PLAYREADY_PATH,
     MDNX_CR_ENABLED, MDNX_HIDIVE_ENABLED, PLEX_CONFIGURED, JELLY_CONFIGURED,
     update_mdnx_config, update_app_config, handle_exception, get_running_user, output_effective_config
 )
@@ -17,9 +17,143 @@ __VERSION__ = "2.3.1-dev-4"
 
 def app():
 
+    # can we reliably read/write to the destination directory?
     if file_manager.test() == False:
         log_manager.error("FileManager test failed. Please check your configuration and ensure the application has read/write access to the destination directory.")
         sys.exit(1)
+
+    # check if user has a widevine or playready CDM, and do checks to see if they are valid.
+    widevine_cdm_found = False
+    playready_cdm_found = False
+    services = [
+        (MDNX_SERVICE_WIDEVINE_PATH, "Widevine"),
+        (MDNX_SERVICE_PLAYREADY_PATH, "PlayReady")
+    ]
+
+    for service_path, service_name in services:
+        service_folder_contents = os.listdir(service_path)
+
+        # folder exists, but may have no files (user not using this CDM)
+        # if no files, skip checks
+        has_files = False
+        for name in service_folder_contents:
+            full = os.path.join(service_path, name)
+            if os.path.isfile(full):
+                has_files = True
+                break
+
+        if not has_files:
+            log_manager.debug(f"{service_name} CDM path is empty (no files). Skipping {service_name} checks.")
+            continue
+
+        match service_name:
+            case "Widevine":
+                log_manager.info(f"Checking Widevine CDM at {service_path}...")
+
+                found_file = False
+                found_blobs = {
+                    ".bin": False,
+                    ".pem": False
+                }
+
+                for name in service_folder_contents:
+                    full = os.path.join(service_path, name)
+                    if not os.path.isfile(full):
+                        continue
+
+                    lower = name.lower()
+
+                    if lower.endswith(".wvd"):
+                        found_file = True
+                        break
+
+                    for ext in found_blobs:
+                        if lower.endswith(ext):
+                            found_blobs[ext] = True
+
+                if found_file:
+                    log_manager.info("Widevine CDM file (.wvd) found. Good to go!")
+                    widevine_cdm_found = True
+                    break
+                elif all(found_blobs.values()):
+                    log_manager.info("Widevine CDM blob files (.bin and .pem) found. Good to go!")
+                    widevine_cdm_found = True
+                    break
+                else:
+                    log_manager.critical(
+                        "Widevine CDM not properly configured. Downloading will not work without resolving this issue.\n"
+                        "Please ensure you have either the .wvd file or both .bin and .pem blob files mounted to the correct path.\n"
+                        "Should be as simple as uncommenting the '# Widevine' section in your docker-compose.yml and putting the files in the right place.\n"
+                        "If you need more help, feel free to open a discussion on the GitHub repo :)"
+                    )
+                    sys.exit(1)
+
+            case "PlayReady":
+                log_manager.info(f"Checking PlayReady CDM at {service_path}...")
+
+                found_file = False
+                found_blobs = {
+                    "bgroupcert.dat": False,
+                    "zgpriv.dat": False
+                }
+
+                for name in service_folder_contents:
+                    full = os.path.join(service_path, name)
+                    if not os.path.isfile(full):
+                        continue
+
+                    lower = name.lower()
+
+                    if lower.endswith(".prd"):
+                        found_file = True
+                        break
+
+                    for blob_name in found_blobs:
+                        if lower == blob_name.lower():
+                            found_blobs[blob_name] = True
+
+                if found_file:
+                    log_manager.info("Playready CDM file (.prd) found. Good to go!")
+                    playready_cdm_found = True
+                    break
+                elif all(found_blobs.values()):
+                    log_manager.info("Playready CDM blob files (bgroupcert.dat and zgpriv.dat) found. Checking to see if they are valid...")
+
+                    # check that bgroupcert.dat is at least 1KB, and zgpriv.dat is exactly 32 bytes.
+                    # these stats are from multi-downloader-nx's docs.
+                    bgroupcert_path = os.path.join(service_path, "bgroupcert.dat")
+                    zgpriv_path = os.path.join(service_path, "zgpriv.dat")
+
+                    bgroupcert_size = os.path.getsize(bgroupcert_path)
+                    zgpriv_size = os.path.getsize(zgpriv_path)
+
+                    if bgroupcert_size >= 1024 and zgpriv_size == 32:
+                        log_manager.info("Playready CDM blob files look valid. Good to go!")
+                        playready_cdm_found = True
+                        break
+                    else:
+                        log_manager.critical(
+                            "Playready CDM blob files found but look invalid:\n"
+                            f"- bgroupcert.dat size: {bgroupcert_size} bytes (should be at least 1024 bytes)\n"
+                            f"- zgpriv.dat size: {zgpriv_size} bytes (should be exactly 32 bytes)\n"
+                            "Please check your mounted files."
+                        )
+                        sys.exit(1)
+
+                else:
+                    log_manager.critical(
+                        "Playready CDM not properly configured. Downloading will not work without resolving this issue.\n"
+                        "Please ensure you have either the .prd file or both bgroupcert.dat and zgpriv.dat blob files mounted to the correct path.\n"
+                        "Should be as simple as uncommenting the '# Playready' section in your docker-compose.yml and putting the files in the right place.\n"
+                        "If you need more help, feel free to open a discussion on the GitHub repo :)"
+                    )
+                    sys.exit(1)
+
+    if widevine_cdm_found:
+        log_manager.info("Widevine CDM is properly configured. multi-downloader-nx will utilize mp4decrypt with a widevine CDM for decryption.")
+
+    if playready_cdm_found:
+        log_manager.info("Playready CDM is properly configured. multi-downloader-nx will utilize mp4decrypt with a playready CDM for decryption.")
 
     # authenticate with media server(s) if configured
     if PLEX_CONFIGURED is True or JELLY_CONFIGURED is True:
