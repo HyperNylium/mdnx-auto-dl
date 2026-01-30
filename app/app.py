@@ -33,6 +33,8 @@ def app():
     for service_path, service_name in services:
         service_folder_contents = os.listdir(service_path)
 
+        log_manager.debug(f"Checking {service_name} CDM path at: {service_path}.\nContents: {service_folder_contents}")
+
         # folder exists, but may have no files (user not using this CDM)
         # if no files, skip checks
         has_files = False
@@ -157,6 +159,15 @@ def app():
 
     if playready_cdm_found:
         log_manager.info("Playready CDM is properly configured. multi-downloader-nx will utilize mp4decrypt with a playready CDM for decryption.")
+
+    if not widevine_cdm_found and not playready_cdm_found:
+        log_manager.critical(
+            "No valid CDMs found. Downloading will not work without resolving this issue.\n"
+            "Please ensure you have either the Widevine or Playready CDM files mounted to the correct path.\n"
+            "Should be as simple as uncommenting the relevant section in your docker-compose.yml and putting the files in the right place.\n"
+            "If you need more help, feel free to open a discussion on the GitHub repo :)"
+        )
+        sys.exit(1)
 
     # authenticate with media server(s) if configured
     if PLEX_CONFIGURED is True or JELLY_CONFIGURED is True:
