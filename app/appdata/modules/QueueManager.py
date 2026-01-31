@@ -2,9 +2,7 @@ import os
 import json
 
 from .Globals import log_manager
-from .Vars import (
-    QUEUE_PATH,
-)
+from .Vars import QUEUE_PATH
 
 
 class QueueManager:

@@ -1,5 +1,6 @@
 import os
 import time
+from time import perf_counter
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -7,24 +8,35 @@ from .MediaServerManager import mediaserver_scan_library
 from .Globals import file_manager, queue_manager, log_manager
 from .Vars import (
     config,
-    TEMP_DIR, DATA_DIR, PLEX_CONFIGURED, JELLY_CONFIGURED, TZ,
+    TEMP_DIR, DATA_DIR, TZ,
+    MDNX_CR_ENABLED, MDNX_HIDIVE_ENABLED, PLEX_CONFIGURED, JELLY_CONFIGURED,
     get_episode_file_path, probe_streams, select_dubs, format_duration, iter_episodes
 )
 
 
 class MainLoop:
     def __init__(self, cr_mdnx_api, hidive_mdnx_api, notifier) -> None:
+
+        self.cr_enabled = MDNX_CR_ENABLED
         self.cr_mdnx_api = cr_mdnx_api
+        self.cr_mdnx_api_configured = False
+        if self.cr_enabled and self.cr_mdnx_api is not None:
+            self.cr_mdnx_api_configured = True
+
+        self.hidive_enabled = MDNX_HIDIVE_ENABLED
         self.hidive_mdnx_api = hidive_mdnx_api
+        self.hidive_mdnx_api_configured = False
+        if self.hidive_enabled and self.hidive_mdnx_api is not None:
+            self.hidive_mdnx_api_configured = True
+
         self.notifier = notifier
-        self.cr_enabled = config["app"]["CR_ENABLED"]
-        self.hidive_enabled = config["app"]["HIDIVE_ENABLED"]
-        self.check_missing_dub_sub = config["app"]["CHECK_MISSING_DUB_SUB"]
-        self.loop_timeout = int(config["app"]["CHECK_FOR_UPDATES_INTERVAL"])
-        self.between_episode_timeout = int(config["app"]["EPISODE_DL_DELAY"])
-        self.only_create_queue = config["app"]["ONLY_CREATE_QUEUE"]
-        self.skip_queue_refresh = config["app"]["SKIP_QUEUE_REFRESH"]
-        self.dry_run = config["app"]["DRY_RUN"]
+
+        self.check_missing_dub_sub = config.app.check_missing_dub_sub
+        self.loop_timeout = int(config.app.check_for_updates_interval)
+        self.between_episode_timeout = int(config.app.episode_dl_delay)
+        self.only_create_queue = config.app.only_create_queue
+        self.skip_queue_refresh = config.app.skip_queue_refresh
+        self.dry_run = config.app.dry_run
         self.notifications_buffer = []
         self.stop_requested = False
 
@@ -38,10 +50,24 @@ class MainLoop:
                 if self.skip_queue_refresh is True:
                     log_manager.info("SKIP_QUEUE_REFRESH is True. Skipping queue refresh step and using old queue data.")
                 else:
-                    refresh_ok = self._refresh_queue()
-                    if not refresh_ok:
-                        self.stop()
-                        return
+                    cr_state, hd_state = self._refresh_queue()
+
+                    # if *_state is an int:
+                    #   - if that int is 1, the service wasnt enabled
+                    #   - if that int is 2, monitor lists were empty, so nothing to do/refresh for said service
+                    if cr_state is not None:
+                        match cr_state:
+                            case 1:
+                                log_manager.info("Crunchyroll queue refresh skipped because the service wasnt enabled.")
+                            case 2:
+                                log_manager.info("Your 'cr_monitor_series_id' list is empty. Skipped refreshing empty list.")
+
+                    if hd_state is not None:
+                        match hd_state:
+                            case 1:
+                                log_manager.info("HiDive queue refresh skipped because the service wasnt enabled.")
+                            case 2:
+                                log_manager.info("Your 'hidive_monitor_series_id' list is empty. Skipped refreshing empty list.")
 
                 current_queue = queue_manager.output()
 
@@ -99,9 +125,9 @@ class MainLoop:
         self.stop_requested = True
 
         # cancel any active downloads
-        if self.cr_mdnx_api is not None:
+        if self.cr_mdnx_api_configured:
             self.cr_mdnx_api.cancel_active_download()
-        if self.hidive_mdnx_api is not None:
+        if self.hidive_mdnx_api_configured:
             self.hidive_mdnx_api.cancel_active_download()
 
         log_manager.info("MainLoop stop requested.")
@@ -113,12 +139,14 @@ class MainLoop:
         end = time.time() + timeout
         while not self.stop_requested and time.time() < end:
             time.sleep(1)
+
         if self.stop_requested:
             log_manager.info("Interrupt requested. Exiting wait early.")
             return True
+
         return False
 
-    def _snapshot_episode(self, series_name, episode_info, file_path, action_label: str, before_dubs=None, before_subs=None) -> dict:
+    def _snapshot_episode(self, series_name, episode_info, file_path, time_taken: float, action_label: str, before_dubs=None, before_subs=None) -> dict:
         """Create a snapshot of the episode's dub/sub state before and after download."""
 
         # probe the file to get current local dubs and subs
@@ -148,6 +176,7 @@ class MainLoop:
             "after_dubs": sorted(after_dubs),
             "after_subs": sorted(after_subs),
             "path": file_path,
+            "time_taken": format_duration(int(time_taken)),
         }
 
     def _flush_notifications(self) -> None:
@@ -195,6 +224,7 @@ class MainLoop:
                     f"Episode dubs: {', '.join(item['after_dubs']) or 'None'}",
                     f"Episode subs: {', '.join(item['after_subs']) or 'None'}",
                     f"Episode path: {item['path']}",
+                    f"Time taken to download: {item['time_taken']}",
                     ""
                 ]
             lines.append("---------------------------")
@@ -213,6 +243,7 @@ class MainLoop:
                     f"Episode after dubs: {', '.join(item['after_dubs']) or 'None'}",
                     f"Episode after subs: {', '.join(item['after_subs']) or 'None'}",
                     f"Episode path: {item['path']}",
+                    f"Time taken to download: {item['time_taken']}",
                     ""
                 ]
             lines.append("---------------------------")
@@ -225,20 +256,21 @@ class MainLoop:
         finally:
             self.notifications_buffer.clear()
 
-    def _refresh_queue(self) -> bool:
+    def _refresh_queue(self) -> tuple[int | None, int | None]:
         """Refresh the MDNX queue and start/stop monitors as needed."""
 
         log_manager.info("Getting the current queue IDs...")
 
-        cr_monitor_ids = set(config["cr_monitor_series_id"].keys())
-        hd_monitor_ids = set(config["hidive_monitor_series_id"].keys())
+        cr_monitor_ids = set(config.cr_monitor_series_id.keys())
+        hd_monitor_ids = set(config.hidive_monitor_series_id.keys())
 
-        def process_service(service: str, enabled: bool, api, monitor_ids: set) -> bool:
+        def process_service(service: str, service_configured: bool, api, monitor_ids: set) -> int | None:
             """Process monitor start/stop for a given service."""
 
-            if not enabled or api is None:
-                log_manager.info(f"{service} is disabled or API not initialized. Skipping monitor refresh for {service}.")
-                return True
+            # if service not configured, dont refresh queue for said service.
+            if not service_configured:
+                log_manager.debug(f"{service} is disabled. Skipping monitor refresh for {service}.")
+                return 1
 
             # only look at the correct bucket inside queue.json for this service
             bucket = queue_manager.output(service) or {}
@@ -246,8 +278,8 @@ class MainLoop:
 
             # if both lists are empty, nothing to do, exit early
             if not monitor_ids and not queue_ids:
-                log_manager.info(f"No {service} series to monitor/stop. (both monitor list and queue are empty)")
-                return True
+                log_manager.debug(f"No {service} series to monitor/stop. (both the monitor list and queue are empty)")
+                return 2
 
             # start or update monitors
             log_manager.info(f"Checking {service} monitors...")
@@ -267,24 +299,24 @@ class MainLoop:
                     api.stop_monitor(series_id)
 
             log_manager.info(f"{service} monitor refresh complete.")
-            return True
+            return None
 
-        ok_cr = process_service(
+        mdnx_cr_refresh_state = process_service(
             service="Crunchyroll",
-            enabled=self.cr_enabled,
+            service_configured=self.cr_mdnx_api_configured,
             api=self.cr_mdnx_api,
             monitor_ids=cr_monitor_ids,
         )
 
-        ok_hd = process_service(
+        mdnx_hd_refresh_state = process_service(
             service="HiDive",
-            enabled=self.hidive_enabled,
+            service_configured=self.hidive_mdnx_api_configured,
             api=self.hidive_mdnx_api,
             monitor_ids=hd_monitor_ids,
         )
 
         log_manager.info("MDNX queue refresh complete.")
-        return ok_cr and ok_hd
+        return (mdnx_cr_refresh_state, mdnx_hd_refresh_state)
 
     def _download_for_service(self, service: str, mdnx_api, current_queue: dict) -> None:
         """Download missing / not yet downloaded episodes for the specified service."""
@@ -330,17 +362,19 @@ class MainLoop:
 
                 dub_override = select_dubs(episode_info)
 
+                dl_start = perf_counter()
                 download_successful = mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override)
-                if download_successful:
-                    log_manager.info("Episode downloaded successfully.")
+                dl_end = perf_counter()
+                dl_elapsed = dl_end - dl_start
 
+                if download_successful:
                     temp_path = os.path.join(TEMP_DIR, "output.mkv")
 
                     if file_manager.transfer(temp_path, file_path):
                         log_manager.info("Transfer complete.")
                         queue_manager.update_episode_status(series_id, season_key, episode_key, True, service)
                         series_name = bucket[series_id]["series"]["series_name"]
-                        snapshot = self._snapshot_episode(series_name, episode_info, file_path, action_label="new")
+                        snapshot = self._snapshot_episode(series_name, episode_info, file_path, dl_elapsed, action_label="new")
                         self.notifications_buffer.append(snapshot)
                     else:
                         log_manager.error("Transfer failed.")
@@ -368,12 +402,12 @@ class MainLoop:
 
         # determine wanted dubs and subs from config
         wanted_dubs = set()
-        for lang in config["mdnx"]["cli-defaults"]["dubLang"]:
+        for lang in config.mdnx.cli_defaults.dubLang:
             wanted_dubs.add(lang.lower())
 
         # determine wanted subs from config
         wanted_subs = set()
-        for lang in config["mdnx"]["cli-defaults"]["dlsubs"]:
+        for lang in config.mdnx.cli_defaults.dlsubs:
             wanted_subs.add(lang.lower())
 
         for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(bucket):
@@ -468,12 +502,18 @@ class MainLoop:
 
             dub_override = select_dubs(episode_info)
 
-            if mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override):
+            dl_start = perf_counter()
+            download_successful = mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override)
+            dl_end = perf_counter()
+            dl_elapsed = dl_end - dl_start
+
+            if download_successful:
                 temp_path = os.path.join(TEMP_DIR, "output.mkv")
+
                 if file_manager.transfer(temp_path, file_path, overwrite=True):
                     log_manager.info("Transfer complete.")
                     series_name = bucket[series_id]["series"]["series_name"]
-                    snapshot = self._snapshot_episode(series_name, episode_info, file_path, action_label="updated", before_dubs=local_dubs, before_subs=local_subs)
+                    snapshot = self._snapshot_episode(series_name, episode_info, file_path, dl_elapsed, action_label="updated", before_dubs=local_dubs, before_subs=local_subs)
                     self.notifications_buffer.append(snapshot)
                 else:
                     log_manager.error("Transfer failed")
