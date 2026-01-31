@@ -29,11 +29,11 @@ class LogManager:
 
         # normalize log level from config (defaults to INFO)
         self.min_level = LEVEL_VALUES.get(
-            str(config["app"]["LOG_LEVEL"]).upper(),
+            str(config.app.log_level).upper(),
             LEVEL_VALUES["INFO"]
         )
 
-        self.max_archives = config["app"]["MAX_LOG_ARCHIVES"]
+        self.max_archives = config.app.max_log_archives
         self.lock = threading.Lock()
 
         # rotate any existing log from the previous run.

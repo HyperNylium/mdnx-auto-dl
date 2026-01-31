@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import json
 import subprocess
 import threading
 
@@ -17,8 +18,8 @@ class HIDIVE_MDNX_API:
         self.mdnx_path = MDNX_SERVICE_BIN_PATH
         self.mdnx_service = "hidive"
         self.queue_service = "hidive"
-        self.username = str(config["app"]["HIDIVE_USERNAME"])
-        self.password = str(config["app"]["HIDIVE_PASSWORD"])
+        self.username = str(config.app.hidive_username)
+        self.password = str(config.app.hidive_password)
         self.download_thread = None
         self.download_proc = None
         self.download_lock = threading.Lock()
@@ -50,7 +51,9 @@ class HIDIVE_MDNX_API:
         self.special_episode_title_flag = re.compile(r'\b(recaps?|digest|compilation|summary|omake|extra|preview|prologue|specials?|ova|oad|ona)\b', re.IGNORECASE)
 
         # Display name -> (audio_code, subtitle_locale), e.g., "English" -> ("eng", "en")
-        self._lang_display_to_pair = {name.lower(): pair for name, pair in LANG_MAP.items()}
+        self._lang_display_to_pair = {}
+        for name, pair in LANG_MAP.items():
+            self._lang_display_to_pair[name.lower()] = pair
 
         # stdout line-buffering if available
         if os.path.exists("/usr/bin/stdbuf"):
@@ -59,6 +62,11 @@ class HIDIVE_MDNX_API:
         else:
             self.stdbuf_exists = False
             log_manager.debug("stdbuf not found, using default command without buffering.")
+
+        if config.app.hidive_skip_api_test == False:
+            self.test()
+        else:
+            log_manager.info("API test skipped by user.")
 
         log_manager.info(f"MDNX API initialized with: Path: {self.mdnx_path} | Service: {self.mdnx_service}")
 
@@ -71,18 +79,20 @@ class HIDIVE_MDNX_API:
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8").stdout
         log_manager.debug(f"MDNX API test result:\n{result}")
 
-        json_result = self._process_console_output(result, add2queue=False)
-        log_manager.info(f"Processed console output:\n{json_result}")
+        dict_result = self._process_console_output(result, add2queue=False)
+        log_manager.info(f"Processed console output:\n{json.dumps(dict_result)}")
 
-        # --- This needs to be researched/tested more. I am not sure what anidl outputs on auth errors with HiDive.
-        # --- Leaving commented out for now. This means there will be no auto re-auth on auth errors for HiDive.
-        # --- Check if the output contains authentication errors
-        # error_triggers = ["invalid_grant", "Token Refresh Failed", "Authentication required", "Anonymous"]
-        # if any(trigger in result for trigger in error_triggers):
-        #     log_manager.info("Authentication error detected. Forcing re-authentication...")
-        #     self.auth()
-        # else:
-        #     log_manager.info("MDNX API test successful.")
+        # check if returned dict available_dubs and available_subs lists are populated for every episode
+        # (usually empty if issue occurred in parsing, which would happen if user isnt authed)
+        for series_info in dict_result.values():
+            for season_info in series_info.get("seasons", {}).values():
+                for episode_info in season_info.get("episodes", {}).values():
+                    dubs = episode_info.get("available_dubs", [])
+                    subs = episode_info.get("available_subs", [])
+                    if not dubs or not subs:
+                        log_manager.error("Authentication error detected in JSON output (no dubs or subs for series). Forcing re-authentication...")
+                        self.auth()
+                        return
 
         log_manager.info("MDNX API test successful.")
         return
@@ -106,7 +116,7 @@ class HIDIVE_MDNX_API:
     def start_monitor(self, series_id: str) -> str:
         """Starts monitoring a series by its ID using the MDNX service."""
 
-        log_manager.info(f"Monitoring series with ID: {series_id}")
+        log_manager.debug(f"Monitoring series with ID: {series_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
@@ -121,13 +131,13 @@ class HIDIVE_MDNX_API:
         """Stops monitoring a series by its ID using the MDNX service."""
 
         queue_manager.remove(series_id, self.queue_service)
-        log_manager.info(f"Stopped monitoring series with ID: {series_id}")
+        log_manager.debug(f"Stopped monitoring series with ID: {series_id}")
         return
 
     def update_monitor(self, series_id: str) -> str:
         """Updates monitoring for a series by its ID using the MDNX service."""
 
-        log_manager.info(f"Updating monitor for series with ID: {series_id}")
+        log_manager.debug(f"Updating monitor for series with ID: {series_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
@@ -514,8 +524,7 @@ class HIDIVE_MDNX_API:
             }
 
         # apply per-series blacklist to mark episodes to skip
-        hidive_monitor_series_config = config.get("hidive_monitor_series_id", {})
-        tmp_dict = apply_series_blacklist(tmp_dict, hidive_monitor_series_config, service="hidive")
+        tmp_dict = apply_series_blacklist(tmp_dict, config.hidive_monitor_series_id, service="hidive")
 
         # fill in total ep count on series metadata
         tmp_dict[current_series_id]["series"]["eps_count"] = str(total_episodes)

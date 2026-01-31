@@ -8,7 +8,7 @@ from .Vars import config
 
 class ntfy:
     def __init__(self):
-        self.ntfy_script_path = config["app"]["NTFY_SCRIPT_PATH"]
+        self.ntfy_script_path = config.app.ntfy_script_path
 
     def notify(self, subject, message):
         """Send notification using ntfy script."""
@@ -23,13 +23,13 @@ class ntfy:
 
 class SMTP:
     def __init__(self):
-        self.SMTP_FROM = config["app"]["SMTP_FROM"]
-        self.SMTP_TO = config["app"]["SMTP_TO"]
-        self.SMTP_HOST = config["app"]["SMTP_HOST"]
-        self.SMTP_USERNAME = config["app"]["SMTP_USERNAME"]
-        self.SMTP_PASSWORD = config["app"]["SMTP_PASSWORD"]
-        self.SMTP_PORT = config["app"]["SMTP_PORT"]
-        self.SMTP_STARTTLS = config["app"]["SMTP_STARTTLS"]
+        self.SMTP_FROM = config.app.smtp_from
+        self.SMTP_TO = config.app.smtp_to
+        self.SMTP_HOST = config.app.smtp_host
+        self.SMTP_USERNAME = config.app.smtp_username
+        self.SMTP_PASSWORD = config.app.smtp_password
+        self.SMTP_PORT = config.app.smtp_port
+        self.SMTP_STARTTLS = config.app.smtp_starttls
 
     def notify(self, subject, message):
         """Send email notification using SMTP."""

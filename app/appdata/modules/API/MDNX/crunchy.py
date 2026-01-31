@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import json
 import subprocess
 import threading
 
@@ -17,8 +18,8 @@ class CR_MDNX_API:
         self.mdnx_path = MDNX_SERVICE_BIN_PATH
         self.mdnx_service = "crunchy"
         self.queue_service = "crunchy"
-        self.username = str(config["app"]["CR_USERNAME"])
-        self.password = str(config["app"]["CR_PASSWORD"])
+        self.username = str(config.app.cr_username)
+        self.password = str(config.app.cr_password)
         self.download_thread = None
         self.download_proc = None
         self.download_lock = threading.Lock()
@@ -56,7 +57,7 @@ class CR_MDNX_API:
             log_manager.debug("stdbuf not found, using default command without buffering.")
 
         # skip API test if user wants to
-        if config["app"]["CR_SKIP_API_TEST"] == False:
+        if config.app.cr_skip_api_test is False:
             self.test()
         else:
             log_manager.info("API test skipped by user.")
@@ -72,13 +73,13 @@ class CR_MDNX_API:
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8").stdout
         log_manager.info(f"MDNX API test result:\n{result}")
 
-        json_result = self._process_console_output(result, add2queue=False)
-        log_manager.info(f"Processed console output:\n{json_result}")
+        dict_result = self._process_console_output(result, add2queue=False)
+        log_manager.info(f"Processed console output:\n{json.dumps(dict_result)}")
 
         # check if the output contains authentication errors
         error_triggers = ["invalid_grant", "Token Refresh Failed", "Authentication required", "Anonymous"]
         if any(trigger in result for trigger in error_triggers):
-            log_manager.info("Authentication error detected. Forcing re-authentication...")
+            log_manager.info("Authentication error detected in console output. Forcing re-authentication...")
             self.auth()
         else:
             log_manager.info("MDNX API test successful.")
@@ -104,7 +105,7 @@ class CR_MDNX_API:
     def start_monitor(self, series_id: str) -> str:
         """Starts monitoring a series by its ID using the MDNX service."""
 
-        log_manager.info(f"Monitoring series with ID: {series_id}")
+        log_manager.debug(f"Monitoring series with ID: {series_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
@@ -119,13 +120,13 @@ class CR_MDNX_API:
         """Stops monitoring a series by its ID using the MDNX service."""
 
         queue_manager.remove(series_id, self.queue_service)
-        log_manager.info(f"Stopped monitoring series with ID: {series_id}")
+        log_manager.debug(f"Stopped monitoring series with ID: {series_id}")
         return
 
     def update_monitor(self, series_id: str) -> str:
         """Updates monitoring for a series by its ID using the MDNX service."""
 
-        log_manager.info(f"Updating monitor for series with ID: {series_id}")
+        log_manager.debug(f"Updating monitor for series with ID: {series_id}")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
@@ -531,8 +532,7 @@ class CR_MDNX_API:
         _commit_staged()
 
         # apply per-series blacklist to mark episodes to skip
-        crunchy_monitor_series_config = config.get("cr_monitor_series_id", {})
-        tmp_dict = apply_series_blacklist(tmp_dict, crunchy_monitor_series_config, service="cr")
+        tmp_dict = apply_series_blacklist(tmp_dict, config.cr_monitor_series_id, service="cr")
 
         # remove empty seasons and renumber contiguous S1..SX to keep structure compact
         for series_id, series_info in tmp_dict.items():
