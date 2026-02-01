@@ -179,7 +179,7 @@ class HIDIVE_MDNX_API:
             if self.download_proc is proc:
                 self.download_proc = None
 
-    def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list | None = None) -> bool:
+    def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list | None = None, sub_override: list | None = None) -> bool:
         """Downloads a specific episode using the MDNX service."""
 
         log_manager.info(f"Downloading episode {episode_number} for series {series_id} season {season_id}")
@@ -193,6 +193,10 @@ class HIDIVE_MDNX_API:
         if dub_override:
             tmp_cmd += ["--dubLang", *dub_override]
             log_manager.info(f"Using dubLang override: {' '.join(dub_override)}")
+
+        if sub_override:
+            tmp_cmd += ["--dlsubs", *sub_override]
+            log_manager.info(f"Using dlsubs override: {' '.join(sub_override)}")
 
         # Hardcoded options.
         # These can not be modified by config.json, or things will break/not work as expected.
