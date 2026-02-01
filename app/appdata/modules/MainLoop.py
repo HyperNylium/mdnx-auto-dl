@@ -10,7 +10,7 @@ from .Vars import (
     config,
     TEMP_DIR, DATA_DIR, TZ,
     MDNX_CR_ENABLED, MDNX_HIDIVE_ENABLED, PLEX_CONFIGURED, JELLY_CONFIGURED,
-    get_episode_file_path, probe_streams, select_dubs, format_duration, iter_episodes
+    get_episode_file_path, probe_streams, select_dubs, format_duration, iter_episodes, get_monitor_season_config
 )
 
 
@@ -353,40 +353,54 @@ class MainLoop:
                 log_manager.info(f"Episode already exists at {file_path}. Updating 'episode_downloaded' status to True and skipping download.")
                 queue_manager.update_episode_status(series_id, season_key, episode_key, True, service)
                 continue
-            else:
-                if self.dry_run:
-                    log_manager.info(f"DRY_RUN is True. Would have downloaded episode for {series_id} season {season_key} episode {episode_key} that would have been stored at {file_path}.\nSkipping actual download.")
-                    continue
 
-                log_manager.info(f"Episode not found at {file_path} and 'episode_downloaded' status is False. Initiating download.")
+            if self.dry_run:
+                log_manager.info(f"DRY_RUN is True. Would have downloaded episode for {series_id} season {season_key} episode {episode_key} that would have been stored at {file_path}.\nSkipping actual download.")
+                continue
 
-                dub_override = select_dubs(episode_info)
+            log_manager.info(f"Episode not found at {file_path} and 'episode_downloaded' status is False. Initiating download.")
 
-                dl_start = perf_counter()
-                download_successful = mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override)
-                dl_end = perf_counter()
-                dl_elapsed = dl_end - dl_start
+            season_id = season_info["season_id"]
 
-                if download_successful:
-                    temp_path = os.path.join(TEMP_DIR, "output.mkv")
+            season_cfg = get_monitor_season_config(service, series_id, season_id)
 
-                    if file_manager.transfer(temp_path, file_path):
-                        log_manager.info("Transfer complete.")
-                        queue_manager.update_episode_status(series_id, season_key, episode_key, True, service)
-                        series_name = bucket[series_id]["series"]["series_name"]
-                        snapshot = self._snapshot_episode(series_name, episode_info, file_path, dl_elapsed, action_label="new")
-                        self.notifications_buffer.append(snapshot)
-                    else:
-                        log_manager.error("Transfer failed.")
-                        queue_manager.update_episode_status(series_id, season_key, episode_key, False, service)
+            dub_overrides = None
+            sub_overrides = None
+
+            if season_cfg is not None:
+                if season_cfg.dub_overrides:
+                    dub_overrides = season_cfg.dub_overrides
+
+                if season_cfg.sub_overrides:
+                    sub_overrides = season_cfg.sub_overrides
+
+            dub_override = select_dubs(episode_info, dub_overrides)
+
+            dl_start = perf_counter()
+            download_successful = mdnx_api.download_episode(series_id, season_id, episode_info["episode_number_download"], dub_override, sub_overrides)
+            dl_end = perf_counter()
+            dl_elapsed = dl_end - dl_start
+
+            if download_successful:
+                temp_path = os.path.join(TEMP_DIR, "output.mkv")
+
+                if file_manager.transfer(temp_path, file_path):
+                    log_manager.info("Transfer complete.")
+                    queue_manager.update_episode_status(series_id, season_key, episode_key, True, service)
+                    series_name = bucket[series_id]["series"]["series_name"]
+                    snapshot = self._snapshot_episode(series_name, episode_info, file_path, dl_elapsed, action_label="new")
+                    self.notifications_buffer.append(snapshot)
                 else:
-                    log_manager.error(f"Episode download failed for {series_id} season {season_key} - {episode_key}.")
+                    log_manager.error("Transfer failed.")
                     queue_manager.update_episode_status(series_id, season_key, episode_key, False, service)
+            else:
+                log_manager.error(f"Episode download failed for {series_id} season {season_key} - {episode_key}.")
+                queue_manager.update_episode_status(series_id, season_key, episode_key, False, service)
 
-                file_manager.remove_temp_files()
-                log_manager.info(f"Waiting for {format_duration(self.between_episode_timeout)} before next iteration.")
-                if self._wait_or_interrupt(timeout=self.between_episode_timeout):
-                    return
+            file_manager.remove_temp_files()
+            log_manager.info(f"Waiting for {format_duration(self.between_episode_timeout)} before next iteration.")
+            if self._wait_or_interrupt(timeout=self.between_episode_timeout):
+                return
 
     def _refresh_dub_sub_for_service(self, service: str, mdnx_api, current_queue: dict) -> None:
         """Check existing episodes for missing dubs/subs and re-download if needed."""
@@ -399,16 +413,6 @@ class MainLoop:
 
         # only look at the correct bucket inside queue.json for this service
         bucket = current_queue.get(service, {})
-
-        # determine wanted dubs and subs from config
-        wanted_dubs = set()
-        for lang in config.mdnx.cli_defaults.dubLang:
-            wanted_dubs.add(lang.lower())
-
-        # determine wanted subs from config
-        wanted_subs = set()
-        for lang in config.mdnx.cli_defaults.dlsubs:
-            wanted_subs.add(lang.lower())
 
         for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(bucket):
 
@@ -430,6 +434,38 @@ class MainLoop:
             if not os.path.exists(file_path):
                 continue
 
+            season_id = season_info["season_id"]
+
+            season_cfg = get_monitor_season_config(service, series_id, season_id)
+
+            dub_overrides = None
+            sub_overrides = None
+
+            if season_cfg is not None:
+                if season_cfg.dub_overrides:
+                    dub_overrides = season_cfg.dub_overrides
+
+                if season_cfg.sub_overrides:
+                    sub_overrides = season_cfg.sub_overrides
+
+            # wanted dubs
+            wanted_dubs_source = config.mdnx.cli_defaults.dubLang
+            if dub_overrides is not None:
+                wanted_dubs_source = dub_overrides
+
+            wanted_dubs = set()
+            for lang in wanted_dubs_source:
+                wanted_dubs.add(str(lang).lower())
+
+            # wanted subs
+            wanted_subs_source = config.mdnx.cli_defaults.dlsubs
+            if sub_overrides is not None:
+                wanted_subs_source = sub_overrides
+
+            wanted_subs = set()
+            for lang in wanted_subs_source:
+                wanted_subs.add(str(lang).lower())
+
             # probe existing file for local dubs and subs
             local_dubs, local_subs = probe_streams(file_path)
 
@@ -450,12 +486,12 @@ class MainLoop:
 
             # get available dubs and subs from episode info
             avail_dubs = set()
-            for dub in episode_info.get("available_dubs", []):
-                avail_dubs.add(dub.lower())
+            for dub in episode_info["available_dubs"]:
+                avail_dubs.add(str(dub).lower())
 
             avail_subs = set()
-            for sub in episode_info.get("available_subs", []):
-                avail_subs.add(sub.lower())
+            for sub in episode_info["available_subs"]:
+                avail_subs.add(str(sub).lower())
 
             # only consider missing dubs/subs that are actually available from the service
             effective_missing_dubs = set()
@@ -500,10 +536,10 @@ class MainLoop:
             if effective_missing_subs:
                 log_manager.info(f"Missing subs detected for {episode_basename}: {', '.join(effective_missing_subs)}. Re-downloading episode to acquire missing subs.")
 
-            dub_override = select_dubs(episode_info)
+            dub_override = select_dubs(episode_info, dub_overrides)
 
             dl_start = perf_counter()
-            download_successful = mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override)
+            download_successful = mdnx_api.download_episode(series_id, season_id, episode_info["episode_number_download"], dub_override, sub_overrides)
             dl_end = perf_counter()
             dl_elapsed = dl_end - dl_start
 

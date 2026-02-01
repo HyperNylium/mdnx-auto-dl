@@ -535,9 +535,6 @@ class CR_MDNX_API:
         # commit any trailing staged episode once the loop ends
         _commit_staged()
 
-        # apply per-series blacklist to mark episodes to skip
-        tmp_dict = apply_series_blacklist(tmp_dict, config.cr_monitor_series_id, service="cr")
-
         # remove empty seasons and renumber contiguous S1..SX to keep structure compact
         for series_id, series_info in tmp_dict.items():
             seasons = series_info["seasons"]
@@ -562,6 +559,9 @@ class CR_MDNX_API:
                 new_idx += 1
 
             series_info["seasons"] = new_seasons
+
+        # apply per-series blacklist to mark episodes to skip
+        tmp_dict = apply_series_blacklist(tmp_dict, config.cr_monitor_series_id, service="Crunchyroll")
 
         log_manager.debug("Console output processed.")
 

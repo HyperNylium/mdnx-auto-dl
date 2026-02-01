@@ -16,6 +16,15 @@ QUEUE_PATH = os.getenv("QUEUE_FILE", "appdata/config/queue.json")
 TZ = os.getenv("TZ", "America/New_York")
 
 
+class MonitorOverrides(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    blacklists: list[str] = Field(default_factory=list)
+    season_override: str | None = None
+    dub_overrides: list[str] | None = None
+    sub_overrides: list[str] | None = None
+
+
 class AppConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
@@ -111,8 +120,8 @@ class MdnxConfig(BaseModel):
 class Config(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    cr_monitor_series_id: dict[str, list[str]] = Field(default_factory=dict)
-    hidive_monitor_series_id: dict[str, list[str]] = Field(default_factory=dict)
+    cr_monitor_series_id: dict[str, dict[str, MonitorOverrides]] = Field(default_factory=dict)
+    hidive_monitor_series_id: dict[str, dict[str, MonitorOverrides]] = Field(default_factory=dict)
 
     app: AppConfig = Field(default_factory=AppConfig)
     mdnx: MdnxConfig = Field(default_factory=MdnxConfig)
@@ -373,11 +382,18 @@ def format_duration(seconds: int) -> str:
     return ", ".join(parts[:-1]) + f" and {parts[-1]}"
 
 
-def select_dubs(episode_info: dict):
+def select_dubs(episode_info: dict, desired_dubs_override: list[str] | None = None):
     """Determine which dubs to download based on desired, backup, and available dubs."""
 
+    desired_dubs_source = None
+
+    if desired_dubs_override is not None and len(desired_dubs_override) > 0:
+        desired_dubs_source = desired_dubs_override
+    else:
+        desired_dubs_source = config.mdnx.cli_defaults.dubLang
+
     desired_dubs = set()
-    for lang in config.mdnx.cli_defaults.dubLang:
+    for lang in desired_dubs_source:
         desired_dubs.add(lang)
 
     backup_dubs = set()
@@ -483,94 +499,134 @@ def probe_streams(file_path: str) -> tuple[set, set]:
     return audio_langs, sub_langs
 
 
-def apply_series_blacklist(tmp_dict: dict, monitor_series_config: dict, service: str) -> dict:
-    """Apply series/season/episode blacklists from config to the given tmp_dict structure."""
+def get_monitor_season_config(service: str, series_id: str, season_id: str):
+    """Get the season override config object for a series/season pair."""
 
-    if not isinstance(monitor_series_config, dict):
-        _log(f"{service}_monitor_series_id must be a dict.", level="error")
-        monitor_series_config = {}
+    if not season_id:
+        return None
 
-    # rules are strings like "S:<season_id>", "S:<season_id>:E:<index>", or "S:<season_id>:E:<start>-<end>"
-    def parse_blacklist_rules(rules):
-        blacklisted_season_ids = set()
-        # season_id -> list of rules; each rule is int (single ep) or (start, end) tuple
-        episode_blacklist_rules = {}
-        if not rules:
-            return blacklisted_season_ids, episode_blacklist_rules
+    match service:
+        case "Crunchyroll":
+            monitor_config = config.cr_monitor_series_id
+        case "HiDive":
+            monitor_config = config.hidive_monitor_series_id
+        case _:
+            return None
 
-        if isinstance(rules, str):
-            if not rules.strip():  # empty string means no blacklist
-                return blacklisted_season_ids, episode_blacklist_rules
-            rules = [rules]
+    if series_id not in monitor_config:
+        return None
 
-        for raw_rule in rules:
-            if not raw_rule:
+    series_config = monitor_config[series_id]
+
+    if season_id not in series_config:
+        return None
+
+    return series_config[season_id]
+
+
+def apply_series_blacklist(tmp_dict: dict, monitor_series_config: dict[str, dict[str, MonitorOverrides]], service: str) -> dict:
+    """Apply blacklist overrides from config to the tmp_dict structure."""
+
+    def parse_blacklist_tokens(tokens):
+        """Parse blacklist tokens like '*', '3', or '1-4'."""
+
+        if not tokens:
+            return False, set(), []
+
+        wildcard_all = False
+        single_indices = set()
+        ranges = []
+
+        for raw_token in tokens:
+            token = str(raw_token).strip()
+            if not token:
                 continue
-            rule_text = str(raw_rule).strip()
-            match = re.fullmatch(r"S:([^:]+)(?::E:(\d+)(?:-(\d+))?)?", rule_text)
-            if not match:
+
+            if token == "*":
+                wildcard_all = True
+                break
+
+            if re.fullmatch(r"\d+", token):
+                single_indices.add(int(token))
                 continue
 
-            season_id_str = match.group(1)
-            start_str = match.group(2)
-            end_str = match.group(3)
+            range_match = re.fullmatch(r"(\d+)\s*-\s*(\d+)", token)
+            if range_match:
+                start_idx = int(range_match.group(1))
+                end_idx = int(range_match.group(2))
 
-            if start_str is None:
-                # whole season blacklist
-                blacklisted_season_ids.add(season_id_str)
-            else:
-                rules_for_season = episode_blacklist_rules.setdefault(season_id_str, [])
-                if end_str is None:
-                    # single episode
-                    rules_for_season.append(int(start_str))
-                else:
-                    # episode range
-                    start_idx, end_idx = int(start_str), int(end_str)
-                    if start_idx > end_idx:
-                        start_idx = end_idx
-                        end_idx = start_idx
-                    rules_for_season.append((start_idx, end_idx))
+                if start_idx > end_idx:
+                    start_idx, end_idx = end_idx, start_idx
 
-        return blacklisted_season_ids, episode_blacklist_rules
+                ranges.append((start_idx, end_idx))
+                continue
 
-    for series_id, series_info in (tmp_dict or {}).items():
-        rules_value = monitor_series_config.get(series_id)
-        if rules_value is None:
+        return wildcard_all, single_indices, ranges
+
+    for series_id, series_info in tmp_dict.items():
+        if series_id not in monitor_series_config:
             continue
 
-        blacklisted_season_ids, episode_blacklist_rules = parse_blacklist_rules(rules_value)
-        if not blacklisted_season_ids and not episode_blacklist_rules:
-            continue
+        series_cfg = monitor_series_config[series_id]
 
-        for _season_key, season_info in (series_info.get("seasons") or {}).items():
-            season_id = season_info.get("season_id")
+        for _season_key, season_info in series_info["seasons"].items():
+            season_id = season_info["season_id"]
             if not season_id:
                 continue
 
-            # season-level blacklist
-            if season_id in blacklisted_season_ids:
-                for episode_info in (season_info.get("episodes") or {}).values():
+            # clear these each refresh so removing an override from config works.
+            season_info["dub_overrides"] = None
+            season_info["sub_overrides"] = None
+
+            episodes = season_info["episodes"]
+
+            # Reset episode_skip each refresh so config changes apply cleanly.
+            for episode_info in episodes.values():
+                episode_info["episode_skip"] = False
+
+            if season_id not in series_cfg:
+                continue
+
+            season_cfg = series_cfg[season_id]
+
+            # season_override must be numeric since build_folder_structure converts it to int
+            season_override = season_cfg.season_override
+            if season_override is not None:
+                season_override_text = str(season_override).strip()
+                if season_override_text.isdigit():
+                    season_info["season_number"] = season_override_text
+                else:
+                    _log(f"{service}: season_override for series '{series_id}' season '{season_id}' must be numeric. Ignoring it.", level="warning")
+
+            # dub/sub overrides
+            if season_cfg.dub_overrides:
+                season_info["dub_overrides"] = season_cfg.dub_overrides
+
+            if season_cfg.sub_overrides:
+                season_info["sub_overrides"] = season_cfg.sub_overrides
+
+            # blacklists for this season
+            wildcard_all, single_indices, ranges = parse_blacklist_tokens(season_cfg.blacklists)
+
+            if wildcard_all:
+                for episode_info in episodes.values():
                     episode_info["episode_skip"] = True
                 continue
 
-            # episode-level blacklist for this season_id
-            rules_for_season = episode_blacklist_rules.get(season_id)
-            if rules_for_season:
-                for episode_key, episode_info in (season_info.get("episodes") or {}).items():
-                    try:
-                        episode_index = int(str(episode_key).lstrip("E"))
-                    except Exception:
-                        continue
+            for episode_key, episode_info in episodes.items():
+                try:
+                    episode_index = int(str(episode_key).lstrip("E"))
+                except Exception:
+                    continue
 
-                    for rule in rules_for_season:
-                        if isinstance(rule, tuple):
-                            if rule[0] <= episode_index <= rule[1]:
-                                episode_info["episode_skip"] = True
-                                break
-                        else:
-                            if episode_index == rule:
-                                episode_info["episode_skip"] = True
-                                break
+                if episode_index in single_indices:
+                    episode_info["episode_skip"] = True
+                    continue
+
+                for start_idx, end_idx in ranges:
+                    if start_idx <= episode_index <= end_idx:
+                        episode_info["episode_skip"] = True
+                        break
 
     return tmp_dict
 

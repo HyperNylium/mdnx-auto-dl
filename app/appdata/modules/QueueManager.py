@@ -88,10 +88,17 @@ class QueueManager:
 
                         seen[season_info["season_id"]] = canonical_key
 
+                season_existed = canonical_key in existing_seasons
                 season = existing_seasons.setdefault(
                     canonical_key,
                     {**season_info, "episodes": {}}
                 )
+
+                old_dub_overrides = None
+                old_sub_overrides = None
+                if season_existed:
+                    old_dub_overrides = season.get("dub_overrides")
+                    old_sub_overrides = season.get("sub_overrides")
 
                 for field_name, field_value in season_info.items():
                     if field_name == "episodes":
@@ -99,22 +106,50 @@ class QueueManager:
 
                     season[field_name] = field_value
 
+                override_changed = False
+                if season_existed:
+                    new_dub_overrides = season_info.get("dub_overrides")
+                    new_sub_overrides = season_info.get("sub_overrides")
+
+                    if old_dub_overrides != new_dub_overrides:
+                        override_changed = True
+                    if old_sub_overrides != new_sub_overrides:
+                        override_changed = True
+
                 for ep_key, new_ep in season_info.get("episodes", {}).items():
                     old_ep = season["episodes"].get(ep_key)
 
-                    # preserve local flags when refreshing episode data
+                    # preserve local downloaded state, but do not preserve config-based skip flags
                     if old_ep:
                         new_ep["episode_downloaded"] = old_ep.get("episode_downloaded", False)
-                        new_ep["episode_skip"] = old_ep.get("episode_skip", False)
-                        new_ep["has_all_dubs_subs"] = old_ep.get("has_all_dubs_subs", False)
                     else:
                         new_ep.setdefault("episode_downloaded", False)
-                        new_ep.setdefault("episode_skip", False)
-                        new_ep.setdefault("has_all_dubs_subs", False)
+
+                    new_ep.setdefault("episode_skip", False)
+                    new_ep.setdefault("has_all_dubs_subs", False)
+
+                    # if overrides changed or the service reported new available tracks,
+                    # force a re-check for missing dubs/subs
+                    if old_ep:
+                        old_avail_dubs = set(old_ep.get("available_dubs", []) or [])
+                        old_avail_subs = set(old_ep.get("available_subs", []) or [])
+                        new_avail_dubs = set(new_ep.get("available_dubs", []) or [])
+                        new_avail_subs = set(new_ep.get("available_subs", []) or [])
+
+                        available_changed = False
+                        if old_avail_dubs != new_avail_dubs:
+                            available_changed = True
+                        if old_avail_subs != new_avail_subs:
+                            available_changed = True
+
+                        if override_changed or available_changed:
+                            new_ep["has_all_dubs_subs"] = False
+                        else:
+                            new_ep["has_all_dubs_subs"] = old_ep.get("has_all_dubs_subs", False)
 
                     season["episodes"][ep_key] = new_ep
 
-            log_manager.debug(f"Updated series '{series_id}' in '{bucket_name}'.")
+                log_manager.debug(f"Updated series '{series_id}' in '{bucket_name}'.")
 
         self._save_queue()
 
