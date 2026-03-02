@@ -79,6 +79,9 @@ class HIDIVE_MDNX_API:
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
         log_manager.info(f"MDNX API test result:\n{result.stdout}")
 
+        if result.stderr:
+            log_manager.warning(f"MDNX API test result (stderr):\n{result.stderr}")
+
         dict_result = self._process_console_output(result.stdout, add2queue=False)
         log_manager.info(f"Processed console output:\n{json.dumps(dict_result)}")
 
@@ -110,6 +113,9 @@ class HIDIVE_MDNX_API:
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
         log_manager.info(f"Console output for auth process:\n{result.stdout}")
 
+        if result.stderr:
+            log_manager.warning(f"Console output for auth process (stderr):\n{result.stderr}")
+
         log_manager.info(f"Authentication with {self.mdnx_service} complete.")
         return result.stdout
 
@@ -121,6 +127,9 @@ class HIDIVE_MDNX_API:
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
         log_manager.debug(f"Console output for start_monitor process:\n{result.stdout}")
+
+        if result.stderr:
+            log_manager.warning(f"Console output for start_monitor process (stderr):\n{result.stderr}")
 
         self._process_console_output(result.stdout)
 
@@ -142,6 +151,9 @@ class HIDIVE_MDNX_API:
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
         log_manager.debug(f"Console output for update_monitor process:\n{result.stdout}")
+
+        if result.stderr:
+            log_manager.warning(f"Console output for update_monitor process (stderr):\n{result.stderr}")
 
         self._process_console_output(result.stdout)
 
