@@ -76,10 +76,10 @@ class HIDIVE_MDNX_API:
         log_manager.info("Testing MDNX API...")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", "1244"]
-        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8").stdout
-        log_manager.debug(f"MDNX API test result:\n{result}")
+        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
+        log_manager.info(f"MDNX API test result:\n{result.stdout}")
 
-        dict_result = self._process_console_output(result, add2queue=False)
+        dict_result = self._process_console_output(result.stdout, add2queue=False)
         log_manager.info(f"Processed console output:\n{json.dumps(dict_result)}")
 
         # check if returned dict available_dubs and available_subs lists are populated for every episode

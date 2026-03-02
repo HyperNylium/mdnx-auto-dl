@@ -70,15 +70,15 @@ class CR_MDNX_API:
         log_manager.info("Testing MDNX API...")
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", "G8DHV78ZM"]
-        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8").stdout
-        log_manager.info(f"MDNX API test result:\n{result}")
+        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
+        log_manager.info(f"MDNX API test result:\n{result.stdout}")
 
-        dict_result = self._process_console_output(result, add2queue=False)
+        dict_result = self._process_console_output(result.stdout, add2queue=False)
         log_manager.info(f"Processed console output:\n{json.dumps(dict_result)}")
 
         # check if the output contains authentication errors
         error_triggers = ["invalid_grant", "Token Refresh Failed", "Authentication required", "Anonymous"]
-        if any(trigger in result for trigger in error_triggers):
+        if any(trigger in result.stdout for trigger in error_triggers):
             log_manager.info("Authentication error detected in console output. Forcing re-authentication...")
             self.auth()
         else:
