@@ -76,22 +76,16 @@ chmod +x /app/migration_runner.sh
 /app/migration_runner.sh
 
 # Create non-root user and start app with said user
-if grep -qEi 'microsoft|wsl' /proc/version 2>/dev/null; then
-    IS_LINUX=true
-else
-    IS_LINUX=$(uname | grep -qi linux && echo true || echo false)
+if ! getent group "$GROUP_ID" >/dev/null; then
+    groupadd -g "$GROUP_ID" "$USERNAME"
 fi
 
-if [ "$IS_LINUX" = true ]; then
-    if ! getent group "$GROUP_ID" >/dev/null; then
-        groupadd -g "$GROUP_ID" "$USERNAME"
-    fi
-    if ! id -u "$USER_ID" >/dev/null 2>&1; then
-        useradd -m -u "$USER_ID" -g "$GROUP_ID" "$USERNAME"
-    fi
-    chown -R "$USER_ID:$GROUP_ID" /app
-    chmod -R 775 /app
+if ! id -u "$USER_ID" >/dev/null 2>&1; then
+    useradd -m -u "$USER_ID" -g "$GROUP_ID" "$USERNAME"
 fi
+
+chown -R "$USER_ID:$GROUP_ID" /app
+chmod -R 775 /app
 
 NTFY_SCRIPT_PATH="$(jq -er '.app.NTFY_SCRIPT_PATH // ""' "$CONFIG_FILE")"
 
