@@ -70,6 +70,10 @@ else
   fi
 fi
 
+# Run migrations if needed
+echo "[entrypoint] Checking for required migrations..."
+chmod +x /app/migration_runner.sh
+/app/migration_runner.sh
 
 # Create non-root user and start app with said user
 if grep -qEi 'microsoft|wsl' /proc/version 2>/dev/null; then
