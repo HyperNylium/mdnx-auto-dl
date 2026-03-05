@@ -70,10 +70,6 @@ else
   fi
 fi
 
-# Run migrations if needed
-echo "[entrypoint] Checking for required migrations..."
-/app/migration_runner.sh
-
 # Create non-root user and start app with said user
 if ! getent group "$GROUP_ID" >/dev/null; then
     groupadd -g "$GROUP_ID" "$USERNAME"
@@ -85,6 +81,10 @@ fi
 
 chown -R "$USER_ID:$GROUP_ID" /app
 chmod -R 775 /app
+
+# Run migrations if needed
+echo "[entrypoint] Checking for required migrations..."
+gosu "$USER_ID:$GROUP_ID" bash -c "/app/migration_runner.sh"
 
 NTFY_SCRIPT_PATH="$(jq -er '.app.NTFY_SCRIPT_PATH // ""' "$CONFIG_FILE")"
 
