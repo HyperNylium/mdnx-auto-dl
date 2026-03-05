@@ -4,7 +4,7 @@ set -euo pipefail
 
 APP_FILE="/app/app.py"
 MIGRATIONS_DIR="/app/appdata/migrations"
-MIGRATION_STATE_FILE="${MIGRATION_STATE_FILE:-/app/appdata/config/migrations.json}"
+MIGRATION_STATE_FILE="${MIGRATION_FILE:-/app/appdata/config/migrations.json}"
 
 REQUIRED_MIGRATIONS=()
 
