@@ -2,15 +2,11 @@
 
 set -euo pipefail
 
-CONFIG_DIR="${CONFIG_DIR:-/app/appdata/config}"
-MIGRATIONS_DIR="${MIGRATIONS_DIR:-/app/appdata/migrations}"
-MIGRATION_STATE_FILE="${MIGRATION_STATE_FILE:-${CONFIG_DIR}/migrations.json}"
-APP_FILE="${APP_FILE:-/app/app.py}"
+APP_FILE="/app/app.py"
+MIGRATIONS_DIR="/app/appdata/migrations"
+MIGRATION_STATE_FILE="${MIGRATION_STATE_FILE:-/app/appdata/config/migrations.json}"
 
 REQUIRED_MIGRATIONS=()
-
-mkdir -p "$CONFIG_DIR"
-mkdir -p "$MIGRATIONS_DIR"
 
 APP_VERSION="$(APP_FILE="$APP_FILE" python - <<'PY'
 import os
