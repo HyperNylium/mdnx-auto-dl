@@ -255,27 +255,29 @@ You can find your `USER_ID` by running `curl http://<YOUR_SERVER_IP>:8096/Users?
 
 This is great for when you want to skip downloading certain seasons or episodes from a series you are monitoring.  
 An example use case is that you only want to download the simulcast season of One Piece, and skip all the other seasons.
+I only use `cr_monitor_series_id` for the examples. but all rules apply to `hidive_monitor_series_id` as well :)
 
-First, the migration of the `cr_monitor_series_id` and `hidive_monitor_series_id` from an array to an object needs to be done.  
-If this is your first time setting up mdnx-auto-dl, you can skip this step and just use the new format below.
-
-Format would go from:
+The general format is going to be this. more examples below:
 ```json
-{
-  "cr_monitor_series_id": [
-    "GQWH0M1J3",
-    "GT00362335"
-  ]
-}
-```
-
-To this. Doing this means it will download all episodes in the series, since nothing is blacklisted in the `[]` array for each series ID:
-```json
-{
-  "cr_monitor_series_id": {
-    "GQWH0M1J3": [],
-    "GT00362335": []
-  }
+"cr_monitor_series_id": {
+    "series_id": {
+        "season_id": {
+            "blacklists": [
+                "*", // all other blacklists are ignored, since it means all episodes in the season are blacklisted.
+                "episode_num", // that specific episode number is blacklisted from downloading, e.g. "3" means episode 3 is blacklisted.
+                "episode_num_start-episode_num_end" // all episodes between episode_num_start and episode_num_end (inclusive) are blacklisted from downloading, e.g. "1-3" means episodes 1, 2, and 3 are blacklisted.
+            ],
+            "season_override": "2", // if the season number in the filename is wrong (e.g, S03E01 instead of S01E01), you can set the correct season number (S03 -> S01 part) here to properly organize files in your library. This does not affect the actual download process, just how files are organized/named/saved in your library.
+            "dub_overrides": [
+                "eng",
+                "zho"
+            ],
+            "sub_overrides": [
+                "en",
+                "de"
+            ]
+        }
+    }
 }
 ```
 
@@ -283,22 +285,38 @@ You would blacklist an entire season like this:
 ```json
 {
   "cr_monitor_series_id": {
-    "GQWH0M1J3": ["S:GYE5CQNJ2"],
-    "GT00362335": ["S:GS00362336JAJP"]
+    "GQWH0M1J3": {
+        "GYE5CQNJ2": {
+            "blacklists": "*"
+        }
+    },
+    "GT00362335": {
+        "GS00362336JAJP": {
+            "blacklists": "*"
+        }
+    }
   }
 }
 ```
 
-Where `GYE5CQNJ2` and `GS00362336JAJP` are the season IDs you want to blacklist from downloading.  
+Where `GYE5CQNJ2` and `GS00362336JAJP` are the season IDs you want to blacklist from downloading in the series with IDs `GQWH0M1J3` and `GT00362335` respectively.
 This will skip downloading all episodes from those seasons.
 
 You would blacklist an episode from a season like this:
 ```json
 {
-  "cr_monitor_series_id": {
-    "GQWH0M1J3": ["S:GYE5CQNJ2:E:3"],
-    "GT00362335": ["S:GS00362336JAJP:E:6"]
-  }
+    "cr_monitor_series_id": {
+        "GQWH0M1J3": {
+            "GYE5CQNJ2": {
+                "blacklists": ["3"]
+            }
+        },
+        "GT00362335": {
+            "GS00362336JAJP": {
+                "blacklists": ["6"]
+            }
+        }
+     }
 }
 ```
 
@@ -308,27 +326,45 @@ This will skip downloading only episode 3 from season `GYE5CQNJ2`, and only epis
 Or multiple episodes from a season like this:
 ```json
 {
-  "cr_monitor_series_id": {
-    "GQWH0M1J3": ["S:GYE5CQNJ2:E:1-3"],
-    "GT00362335": ["S:GS00362336JAJP:E:1-5"]
-  }
+    "cr_monitor_series_id": {
+        "GQWH0M1J3": {
+            "GYE5CQNJ2": {
+                "blacklists": ["1-3"]
+            }
+        },
+        "GT00362335": {
+            "GS00362336JAJP": {
+                "blacklists": ["1-5"]
+            }
+        }
+     }
 }
 ```
 
 Where `1-3` and `1-5` are the episode ranges you want to blacklist from downloading in those seasons.  
 This will skip downloading episodes between 1 and 3 (inclusive) from season `GYE5CQNJ2`, and episodes between 1 and 5 (inclusive) from season `GS00362336JAJP`.
 
-Can of course blacklist multiple seasons/episodes as well:
+Can of course blacklist multiple seasons/episodes at the same time like this (it is a list of blacklists, so you can combine as many as you want):
 ```json
 {
-  "cr_monitor_series_id": {
-    "GQWH0M1J3": [
-      "S:GYE5CQNJ2",
-      "S:blablabla",
-      "S:blablablaaa:E:1-3"
-    ],
-    "GT00362335": ["S:GS00362336JAJP"]
-  }
+    "cr_monitor_series_id": {
+        "GQWH0M1J3": {
+            "GYE5CQNJ2": {
+                "blacklists": ["*"]
+            },
+            "blablabla": {
+                "blacklists": ["4", "6-8"]
+            },
+            "blablablaaa": {
+                "blacklists": ["1-3"]
+            }
+        },
+        "GT00362335": {
+            "GS00362336JAJP": {
+                "blacklists": ["*"]
+            }
+        }
+     }
 }
 ```
 
