@@ -6,7 +6,9 @@ APP_FILE="/app/app.py"
 MIGRATIONS_DIR="/app/appdata/migrations"
 MIGRATION_STATE_FILE="${MIGRATION_FILE:-/app/appdata/config/migrations.json}"
 
-REQUIRED_MIGRATIONS=()
+REQUIRED_MIGRATIONS=(
+    "2.4.0"
+)
 
 APP_VERSION="$(APP_FILE="$APP_FILE" python - <<'PY'
 import os

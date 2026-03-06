@@ -9,7 +9,7 @@ from appdata.modules.Globals import queue_manager, log_manager
 from appdata.modules.Vars import (
     config,
     VALID_LOCALES, NAME_TO_CODE, MDNX_SERVICE_BIN_PATH, MDNX_API_OK_LOGS,
-    sanitize, apply_series_blacklist
+    sanitize, apply_series_blacklist, get_season_monitor_config
 )
 
 
@@ -180,7 +180,7 @@ class CR_MDNX_API:
             if self.download_proc is proc:
                 self.download_proc = None
 
-    def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list | None = None) -> bool:
+    def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list[str] | None = None, sub_override: list[str] | None = None) -> bool:
         """Downloads a specific episode using the MDNX service."""
 
         log_manager.info(f"Downloading episode {episode_number} for series {series_id} season {season_id}")
@@ -194,6 +194,10 @@ class CR_MDNX_API:
         if dub_override:
             tmp_cmd += ["--dubLang", *dub_override]
             log_manager.info(f"Using dubLang override: {' '.join(dub_override)}")
+
+        if sub_override:
+            tmp_cmd += ["--dlsubs", *sub_override]
+            log_manager.info(f"Using dlsubs override: {' '.join(sub_override)}")
 
         # Hardcoded options.
         # These can not be modified by config.json, or things will break/not work as expected.
@@ -544,7 +548,7 @@ class CR_MDNX_API:
         _commit_staged()
 
         # apply per-series blacklist to mark episodes to skip
-        tmp_dict = apply_series_blacklist(tmp_dict, config.cr_monitor_series_id, service="cr")
+        tmp_dict = apply_series_blacklist(tmp_dict, service="cr")
 
         # remove empty seasons and renumber contiguous S1..SX to keep structure compact
         for series_id, series_info in tmp_dict.items():
@@ -564,7 +568,13 @@ class CR_MDNX_API:
                 new_key = f"S{new_idx}"
                 if new_key != old_key:
                     log_manager.debug(f"Renaming season {old_key} to {new_key} in series {series_id}")
-                season_info["season_number"] = str(new_idx)
+
+                stored_season_number = str(new_idx)
+                season_monitor = get_season_monitor_config("cr", series_id, season_info.get("season_id"))
+                if season_monitor is not None and season_monitor.season_override is not None:
+                    stored_season_number = str(season_monitor.season_override)
+
+                season_info["season_number"] = stored_season_number
                 season_info["eps_count"] = str(len(season_info["episodes"]))
                 new_seasons[new_key] = season_info
                 new_idx += 1
