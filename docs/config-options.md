@@ -254,7 +254,7 @@ You can find your `USER_ID` by running `curl http://<YOUR_SERVER_IP>:8096/Users?
 ## How to blacklist entire seasons or just specific episodes
 
 This is great for when you want to skip downloading certain seasons or episodes from a series you are monitoring.  
-An example use case is that you only want to download the simulcast season of One Piece, and skip all the other seasons.
+An example use case is that you only want to download the simulcast season of One Piece, and skip all the other seasons.  
 I only use `cr_monitor_series_id` for the examples. but all rules apply to `hidive_monitor_series_id` as well :)
 
 The general format is going to be this. more examples below:
@@ -344,7 +344,7 @@ Or multiple episodes from a season like this:
 Where `1-3` and `1-5` are the episode ranges you want to blacklist from downloading in those seasons.  
 This will skip downloading episodes between 1 and 3 (inclusive) from season `GYE5CQNJ2`, and episodes between 1 and 5 (inclusive) from season `GS00362336JAJP`.
 
-Can of course blacklist multiple seasons/episodes at the same time like this (it is a list of blacklists, so you can combine as many as you want):
+Can of course blacklist multiple seasons/episodes at the same time like this (it is a list of blacklists, so you can combine as many as you want (dont take that as a challenge lol)):
 ```json
 {
     "cr_monitor_series_id": {
