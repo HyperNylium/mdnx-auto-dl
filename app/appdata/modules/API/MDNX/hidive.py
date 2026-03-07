@@ -566,10 +566,8 @@ class HIDIVE_MDNX_API:
 
         log_manager.debug(f"Probing streams: {' '.join(cmd)}")
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
-            # combine streams because MDNX sometimes prints headers on stderr
-            combined_text = (result.stdout or "") + "\n" + (result.stderr or "")
-            log_manager.debug(f"Probe output:\n{combined_text}")
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8")
+            log_manager.debug(f"Probe output:\n{result.stdout}")
         except Exception as exc:
             # if the probe fails we return empty lists so the caller can decide how to proceed
             log_manager.error(f"Probe failed (series {series_id} season {season_id} episode {episode_index}): {exc}")
@@ -580,7 +578,7 @@ class HIDIVE_MDNX_API:
         in_audios = False    # simple state machine to read multi-line sections
         in_subs = False
 
-        for raw_line in combined_text.splitlines():
+        for raw_line in result.stdout.splitlines():
             line = raw_line.strip()
 
             if not line:
