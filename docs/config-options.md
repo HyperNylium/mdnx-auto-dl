@@ -114,7 +114,7 @@ Kaiju No. 8/S1/Kaiju No. 8 - S01E01
 | :----- | :---------- |
 | `none` | No notifications will be sent. |
 | `smtp` | Send notifications via SMTP email. Requires additional configuration in `config.json`. |
-| `ntfy` | Send notifications via ntfy.sh. Requires additional configuration in `config.json` and `app/appdata/config/ntfy.sh`. |
+| `ntfy` | Send notifications via ntfy.sh. Requires additional configuration in `config.json` and `appdata/config/ntfy.sh`. |
 
 ### SMTP (`NOTIFICATION_PREFERENCE: "smtp"`)
 Add the following key-value pairs to `config.json` right under the `NOTIFICATION_PREFERENCE` key:
@@ -263,7 +263,7 @@ The general format is going to be this. more examples below:
     "series_id": {
         "season_id": {
             "blacklists": [
-                "*", // all other blacklists are ignored, since it means all episodes in the season are blacklisted.
+                "*", // all other blacklists are ignored, since this means all episodes in the season are blacklisted.
                 "episode_num", // that specific episode number is blacklisted from downloading, e.g. "3" means episode 3 is blacklisted.
                 "episode_num_start-episode_num_end" // all episodes between episode_num_start and episode_num_end (inclusive) are blacklisted from downloading, e.g. "1-3" means episodes 1, 2, and 3 are blacklisted.
             ],
