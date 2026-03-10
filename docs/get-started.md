@@ -71,7 +71,7 @@ wget https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/maste
   ```json
   {
     "cr_monitor_series_id": {
-      "GG5H5XQ7D": []
+      "GG5H5XQ7D": {}
     }
   }
   ```
@@ -111,7 +111,7 @@ wget https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/maste
   ```json
   {
     "hidive_monitor_series_id": {
-      "1050": []
+      "1050": {}
     }
   }
   ```
