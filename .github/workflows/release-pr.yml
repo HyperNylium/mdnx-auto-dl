@@ -1,22 +1,45 @@
-name: Build image on Release
-run-name: "Build Docker image for ${{ github.event.release.name }}"
+name: Build PR image
 
 on:
-  release:
-    types: [ published ]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number"
+        required: true
+        type: string
 
 permissions:
-  contents: write
+  contents: read
   packages: write
+  pull-requests: write
 
 jobs:
-  build-and-push:
+  build-and-push-pr:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - name: Fetch PR info
+        id: pr
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          set -euo pipefail
 
-      - name: Get release git info
+          PR_JSON="$(gh api repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER})"
+
+          echo "HEAD_SHA=$(jq -r '.head.sha' <<<"$PR_JSON")" >> "$GITHUB_OUTPUT"
+          echo "HEAD_REF=$(jq -r '.head.ref' <<<"$PR_JSON")" >> "$GITHUB_OUTPUT"
+          echo "HEAD_REPO=$(jq -r '.head.repo.full_name' <<<"$PR_JSON")" >> "$GITHUB_OUTPUT"
+          echo "PR_NUMBER=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout PR head
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ steps.pr.outputs.HEAD_REPO }}
+          ref: ${{ steps.pr.outputs.HEAD_SHA }}
+
+      - name: Get PR git info
         id: git
         shell: bash
         run: |
@@ -24,7 +47,7 @@ jobs:
           echo "SHA=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "SHA7=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
           echo "CREATED=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
-          echo "REF_NAME=${GITHUB_REF}" >> "$GITHUB_OUTPUT"
+          echo "REF_NAME=refs/pull/${{ steps.pr.outputs.PR_NUMBER }}/head" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -36,16 +59,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Compute image/tag vars
+      - name: Compute image vars
         id: vars
         shell: bash
         run: |
           set -euo pipefail
           REPO_LC="${GITHUB_REPOSITORY,,}"
           echo "IMAGE=ghcr.io/${REPO_LC}" >> "$GITHUB_OUTPUT"
-          TAG="${{ github.event.release.tag_name }}"
-          echo "TAG=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "VERSION=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "TAG=pr-${{ steps.pr.outputs.PR_NUMBER }}" >> "$GITHUB_OUTPUT"
 
       - name: Build & push (amd64)
         id: docker_build
@@ -60,8 +81,7 @@ jobs:
           sbom: false
           no-cache: true
           tags: |
-            ${{ steps.vars.outputs.IMAGE }}:${{ steps.vars.outputs.VERSION }}
-            ${{ steps.vars.outputs.IMAGE }}:latest
+            ${{ steps.vars.outputs.IMAGE }}:${{ steps.vars.outputs.TAG }}
           labels: |
             org.opencontainers.image.title=${{ github.event.repository.name }}
             org.opencontainers.image.description=${{ github.event.repository.description }}
@@ -70,25 +90,16 @@ jobs:
             org.opencontainers.image.created=${{ steps.git.outputs.CREATED }}
             org.opencontainers.image.revision=${{ steps.git.outputs.SHA }}
             org.opencontainers.image.ref.name=${{ steps.git.outputs.REF_NAME }}
-            org.opencontainers.image.version=${{ steps.vars.outputs.VERSION }}
+            org.opencontainers.image.version=${{ steps.vars.outputs.TAG }}
 
-      - name: Create release checksum file
+      - name: Comment on PR
         shell: bash
-        run: |
-          DIGEST="${{ steps.docker_build.outputs.digest }}"
-          {
-            echo "image=${{ steps.vars.outputs.IMAGE }}"
-            echo "tag=${{ steps.vars.outputs.VERSION }}"
-            echo "latest=true"
-            echo "digest=${DIGEST}"
-          } > release-sha256.txt
-          echo "Wrote release-sha256.txt:"
-          cat release-sha256.txt
-
-      - name: Upload checksum to release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.event.release.tag_name }}
-          files: release-sha256.txt
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          gh api \
+            --method POST \
+            repos/${GITHUB_REPOSITORY}/issues/${{ steps.pr.outputs.PR_NUMBER }}/comments \
+            -f body=$'Docker image for this PR has been built. You can test it out here:\n```bash\ndocker pull ${{ steps.vars.outputs.IMAGE }}:${{ steps.vars.outputs.TAG }}\n```'
