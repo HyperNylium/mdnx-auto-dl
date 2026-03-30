@@ -28,5 +28,6 @@ COPY app/ .
 
 # Convert Windows line-endings (CRLF) to LF
 RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+RUN sed -i 's/\r$//' /app/migration_runner.sh && chmod +x /app/migration_runner.sh
 
 ENTRYPOINT ["/app/entrypoint.sh"]

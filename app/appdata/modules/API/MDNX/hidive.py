@@ -9,7 +9,7 @@ from appdata.modules.Globals import queue_manager, log_manager
 from appdata.modules.Vars import (
     config,
     VALID_LOCALES, CODE_TO_LOCALE, LANG_MAP, MDNX_SERVICE_BIN_PATH, MDNX_API_OK_LOGS,
-    sanitize, dedupe_casefold, apply_series_blacklist
+    sanitize, dedupe_casefold, apply_series_blacklist, get_season_monitor_config
 )
 
 
@@ -79,6 +79,9 @@ class HIDIVE_MDNX_API:
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
         log_manager.info(f"MDNX API test result:\n{result.stdout}")
 
+        if result.stderr:
+            log_manager.warning(f"MDNX API test result (stderr):\n{result.stderr}")
+
         dict_result = self._process_console_output(result.stdout, add2queue=False)
         log_manager.info(f"Processed console output:\n{json.dumps(dict_result)}")
 
@@ -110,6 +113,9 @@ class HIDIVE_MDNX_API:
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
         log_manager.info(f"Console output for auth process:\n{result.stdout}")
 
+        if result.stderr:
+            log_manager.warning(f"Console output for auth process (stderr):\n{result.stderr}")
+
         log_manager.info(f"Authentication with {self.mdnx_service} complete.")
         return result.stdout
 
@@ -121,6 +127,9 @@ class HIDIVE_MDNX_API:
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
         log_manager.debug(f"Console output for start_monitor process:\n{result.stdout}")
+
+        if result.stderr:
+            log_manager.warning(f"Console output for start_monitor process (stderr):\n{result.stderr}")
 
         self._process_console_output(result.stdout)
 
@@ -142,6 +151,9 @@ class HIDIVE_MDNX_API:
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", series_id]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8")
         log_manager.debug(f"Console output for update_monitor process:\n{result.stdout}")
+
+        if result.stderr:
+            log_manager.warning(f"Console output for update_monitor process (stderr):\n{result.stderr}")
 
         self._process_console_output(result.stdout)
 
@@ -179,7 +191,7 @@ class HIDIVE_MDNX_API:
             if self.download_proc is proc:
                 self.download_proc = None
 
-    def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list | None = None) -> bool:
+    def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list[str] | None = None, sub_override: list[str] | None = None) -> bool:
         """Downloads a specific episode using the MDNX service."""
 
         log_manager.info(f"Downloading episode {episode_number} for series {series_id} season {season_id}")
@@ -193,6 +205,10 @@ class HIDIVE_MDNX_API:
         if dub_override:
             tmp_cmd += ["--dubLang", *dub_override]
             log_manager.info(f"Using dubLang override: {' '.join(dub_override)}")
+
+        if sub_override:
+            tmp_cmd += ["--dlsubs", *sub_override]
+            log_manager.info(f"Using dlsubs override: {' '.join(sub_override)}")
 
         # Hardcoded options.
         # These can not be modified by config.json, or things will break/not work as expected.
@@ -514,17 +530,22 @@ class HIDIVE_MDNX_API:
                 }
                 total_episodes += 1
 
+            stored_season_number = meta["season_number"]
+            season_monitor = get_season_monitor_config("hidive", current_series_id, season_id)
+            if season_monitor is not None and season_monitor.season_override is not None:
+                stored_season_number = str(season_monitor.season_override)
+
             # attach the season to the output
             tmp_dict[current_series_id]["seasons"][season_key] = {
                 "season_id": season_id,
                 "season_name": sanitize(meta["season_name"]),
-                "season_number": meta["season_number"],
+                "season_number": stored_season_number,
                 "episodes": episodes_dict,
                 "eps_count": str(len(episodes_dict))
             }
 
         # apply per-series blacklist to mark episodes to skip
-        tmp_dict = apply_series_blacklist(tmp_dict, config.hidive_monitor_series_id, service="hidive")
+        tmp_dict = apply_series_blacklist(tmp_dict, service="hidive")
 
         # fill in total ep count on series metadata
         tmp_dict[current_series_id]["series"]["eps_count"] = str(total_episodes)
@@ -545,10 +566,8 @@ class HIDIVE_MDNX_API:
 
         log_manager.debug(f"Probing streams: {' '.join(cmd)}")
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
-            # combine streams because MDNX sometimes prints headers on stderr
-            combined_text = (result.stdout or "") + "\n" + (result.stderr or "")
-            log_manager.debug(f"Probe output:\n{combined_text}")
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8")
+            log_manager.debug(f"Probe output:\n{result.stdout}")
         except Exception as exc:
             # if the probe fails we return empty lists so the caller can decide how to proceed
             log_manager.error(f"Probe failed (series {series_id} season {season_id} episode {episode_index}): {exc}")
@@ -559,7 +578,7 @@ class HIDIVE_MDNX_API:
         in_audios = False    # simple state machine to read multi-line sections
         in_subs = False
 
-        for raw_line in combined_text.splitlines():
+        for raw_line in result.stdout.splitlines():
             line = raw_line.strip()
 
             if not line:

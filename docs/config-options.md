@@ -56,13 +56,14 @@ If you choose to not include key-value pairs that you don't modify in `config.js
 | `FOLDER_STRUCTURE`                 | `${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}`| string        | Template for how seasons and episodes are laid out under `DATA_DIR`.                                                                                              |
 | `CHECK_MISSING_DUB_SUB`            | `true`                                                                        | boolean       | When `true`, detect and report episodes missing dub or subtitle tracks.                                                                                           |
 | `CHECK_FOR_UPDATES_INTERVAL`       | `3600`                                                                        | number        | Seconds to wait between complete library scans for new episodes or missing tracks.                                                                                |
-| `EPISODE_DL_DELAY` | `30`                                                                          | number        | Delay in seconds after each episode download to reduce API rate-limiting.                                                                                                         |
+| `EPISODE_DL_DELAY`                 | `30`                                                                          | number        | Delay in seconds after each episode download to reduce API rate-limiting.                                                                                         |
 | `CR_FORCE_REAUTH`                  | `false`                                                                       | boolean       | When `true`, always perform a fresh Crunchyroll login and overwrite `cr_token.yml`, then reset to `false`.                                                        |
 | `CR_SKIP_API_TEST`                 | `false`                                                                       | boolean       | When `true`, skip the startup self-test that probes the Crunchyroll API.                                                                                          |
 | `HIDIVE_FORCE_REAUTH`              | `false`                                                                       | boolean       | When `true`, always perform a fresh HiDive login and overwrite `hd_new_token.yml`, then reset to `false`.                                                         |
 | `HIDIVE_SKIP_API_TEST`             | `false`                                                                       | boolean       | When `true`, skip the startup self-test that probes the HiDive API.                                                                                               |
 | `ONLY_CREATE_QUEUE`                | `false`                                                                       | boolean       | When `true`, only create/update `queue.json` without downloading anything. Will exit with code 0 after it's done.                                                 |
 | `SKIP_QUEUE_REFRESH`               | `false`                                                                       | boolean       | When `true`, skip refreshing the `queue.json` file, and go into mainloop with whatever data currently exists.                                                     |
+| `SKIP_CDM_CHECK`                   | `false`                                                                       | boolean       | When `true`, skip the check for a working CDM, which is required for downloading. If you have a working CDM and want to skip the check, set this to `true`.       |
 | `DRY_RUN`                          | `false`                                                                       | boolean       | When `true`, simulate downloads without actually downloading any files. Useful for testing configuration.                                                         |
 | `LOG_LEVEL`                        | `info`                                                                        | string        | Set the logging level. Options: `debug`, `info`, `warning`, `error`, `critical`.                                                                                  |
 | `MAX_LOG_ARCHIVES`                 | `5`                                                                           | number        | Maximum number of archived log files to keep. Older logs beyond this number will be deleted.                                                                      |
@@ -113,7 +114,7 @@ Kaiju No. 8/S1/Kaiju No. 8 - S01E01
 | :----- | :---------- |
 | `none` | No notifications will be sent. |
 | `smtp` | Send notifications via SMTP email. Requires additional configuration in `config.json`. |
-| `ntfy` | Send notifications via ntfy.sh. Requires additional configuration in `config.json` and `app/appdata/config/ntfy.sh`. |
+| `ntfy` | Send notifications via ntfy.sh. Requires additional configuration in `config.json` and `appdata/config/ntfy.sh`. |
 
 ### SMTP (`NOTIFICATION_PREFERENCE: "smtp"`)
 Add the following key-value pairs to `config.json` right under the `NOTIFICATION_PREFERENCE` key:
@@ -253,28 +254,30 @@ You can find your `USER_ID` by running `curl http://<YOUR_SERVER_IP>:8096/Users?
 ## How to blacklist entire seasons or just specific episodes
 
 This is great for when you want to skip downloading certain seasons or episodes from a series you are monitoring.  
-An example use case is that you only want to download the simulcast season of One Piece, and skip all the other seasons.
+An example use case is that you only want to download the simulcast season of One Piece, and skip all the other seasons.  
+I only use `cr_monitor_series_id` for the examples. but all rules apply to `hidive_monitor_series_id` as well :)
 
-First, the migration of the `cr_monitor_series_id` and `hidive_monitor_series_id` from an array to an object needs to be done.  
-If this is your first time setting up mdnx-auto-dl, you can skip this step and just use the new format below.
-
-Format would go from:
+The general format is going to be this. more examples below:
 ```json
-{
-  "cr_monitor_series_id": [
-    "GQWH0M1J3",
-    "GT00362335"
-  ]
-}
-```
-
-To this. Doing this means it will download all episodes in the series, since nothing is blacklisted in the `[]` array for each series ID:
-```json
-{
-  "cr_monitor_series_id": {
-    "GQWH0M1J3": [],
-    "GT00362335": []
-  }
+"cr_monitor_series_id": {
+    "series_id": {
+        "season_id": {
+            "blacklists": [
+                "*", // all other blacklists are ignored, since this means all episodes in the season are blacklisted.
+                "episode_num", // that specific episode number is blacklisted from downloading, e.g. "3" means episode 3 is blacklisted.
+                "episode_num_start-episode_num_end" // all episodes between episode_num_start and episode_num_end (inclusive) are blacklisted from downloading, e.g. "1-3" means episodes 1, 2, and 3 are blacklisted.
+            ],
+            "season_override": "2", // if the season number in the filename is wrong (e.g, S03E01 instead of S01E01), you can set the correct season number (S03 -> S01 part) here to properly organize files in your library. This does not affect the actual download process, just how files are organized/named/saved in your library.
+            "dub_overrides": [
+                "eng",
+                "zho"
+            ],
+            "sub_overrides": [
+                "en",
+                "de"
+            ]
+        }
+    }
 }
 ```
 
@@ -282,22 +285,38 @@ You would blacklist an entire season like this:
 ```json
 {
   "cr_monitor_series_id": {
-    "GQWH0M1J3": ["S:GYE5CQNJ2"],
-    "GT00362335": ["S:GS00362336JAJP"]
+    "GQWH0M1J3": {
+        "GYE5CQNJ2": {
+            "blacklists": "*"
+        }
+    },
+    "GT00362335": {
+        "GS00362336JAJP": {
+            "blacklists": "*"
+        }
+    }
   }
 }
 ```
 
-Where `GYE5CQNJ2` and `GS00362336JAJP` are the season IDs you want to blacklist from downloading.  
+Where `GYE5CQNJ2` and `GS00362336JAJP` are the season IDs you want to blacklist from downloading in the series with IDs `GQWH0M1J3` and `GT00362335` respectively.
 This will skip downloading all episodes from those seasons.
 
 You would blacklist an episode from a season like this:
 ```json
 {
-  "cr_monitor_series_id": {
-    "GQWH0M1J3": ["S:GYE5CQNJ2:E:3"],
-    "GT00362335": ["S:GS00362336JAJP:E:6"]
-  }
+    "cr_monitor_series_id": {
+        "GQWH0M1J3": {
+            "GYE5CQNJ2": {
+                "blacklists": ["3"]
+            }
+        },
+        "GT00362335": {
+            "GS00362336JAJP": {
+                "blacklists": ["6"]
+            }
+        }
+     }
 }
 ```
 
@@ -307,27 +326,45 @@ This will skip downloading only episode 3 from season `GYE5CQNJ2`, and only epis
 Or multiple episodes from a season like this:
 ```json
 {
-  "cr_monitor_series_id": {
-    "GQWH0M1J3": ["S:GYE5CQNJ2:E:1-3"],
-    "GT00362335": ["S:GS00362336JAJP:E:1-5"]
-  }
+    "cr_monitor_series_id": {
+        "GQWH0M1J3": {
+            "GYE5CQNJ2": {
+                "blacklists": ["1-3"]
+            }
+        },
+        "GT00362335": {
+            "GS00362336JAJP": {
+                "blacklists": ["1-5"]
+            }
+        }
+     }
 }
 ```
 
 Where `1-3` and `1-5` are the episode ranges you want to blacklist from downloading in those seasons.  
 This will skip downloading episodes between 1 and 3 (inclusive) from season `GYE5CQNJ2`, and episodes between 1 and 5 (inclusive) from season `GS00362336JAJP`.
 
-Can of course blacklist multiple seasons/episodes as well:
+Can of course blacklist multiple seasons/episodes at the same time like this (it is a list of blacklists, so you can combine as many as you want (dont take that as a challenge lol)):
 ```json
 {
-  "cr_monitor_series_id": {
-    "GQWH0M1J3": [
-      "S:GYE5CQNJ2",
-      "S:blablabla",
-      "S:blablablaaa:E:1-3"
-    ],
-    "GT00362335": ["S:GS00362336JAJP"]
-  }
+    "cr_monitor_series_id": {
+        "GQWH0M1J3": {
+            "GYE5CQNJ2": {
+                "blacklists": ["*"]
+            },
+            "blablabla": {
+                "blacklists": ["4", "6-8"]
+            },
+            "blablablaaa": {
+                "blacklists": ["1-3"]
+            }
+        },
+        "GT00362335": {
+            "GS00362336JAJP": {
+                "blacklists": ["*"]
+            }
+        }
+     }
 }
 ```
 
@@ -347,5 +384,6 @@ These are the environment variables that you can set in the `docker-compose.yaml
 | `TZ`          | `America/New_York`                                                                                                        | Timezone for the container. Set to your local timezone from the "TZ identifier" column [here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones). |
 | `CONFIG_FILE` | `/app/appdata/config/config.json`                                                                                         | `config.json` file location in the container. |
 | `QUEUE_FILE`  | `/app/appdata/config/queue.json`                                                                                          | `queue.json` file location in the container. |
+| `MIGRATION_FILE` | `/app/appdata/config/migrations.json`                                                                            | `migrations.json` file location in the container. |
 | `BENTO4_URL`  | `https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/Bento4-SDK.zip`             | URL for downloading `Bento4-SDK.zip` if both the file itself and extracted folder doesn't exist. |
 | `MDNX_URL`    | `https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/mdnx.zip`                   | URL for downloading `mdnx.zip` if both the file itself and extracted folder doesn't exist. |
