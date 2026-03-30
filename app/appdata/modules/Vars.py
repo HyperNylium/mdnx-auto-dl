@@ -17,7 +17,7 @@ TZ = os.getenv("TZ", "America/New_York")
 
 
 class AppConfig(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
     temp_dir: str = Field("/app/appdata/temp", alias="TEMP_DIR")
     bin_dir: str = Field("/app/appdata/bin", alias="BIN_DIR")
@@ -49,6 +49,7 @@ class AppConfig(BaseModel):
 
     only_create_queue: bool = Field(False, alias="ONLY_CREATE_QUEUE")
     skip_queue_refresh: bool = Field(False, alias="SKIP_QUEUE_REFRESH")
+    skip_cdm_check: bool = Field(False, alias="SKIP_CDM_CHECK")
     dry_run: bool = Field(False, alias="DRY_RUN")
 
     log_level: str = Field("info", alias="LOG_LEVEL")
@@ -72,6 +73,15 @@ class AppConfig(BaseModel):
     jelly_url: str | None = Field(None, alias="JELLY_URL")
     jelly_api_key: str | None = Field(None, alias="JELLY_API_KEY")
     jelly_url_override: bool = Field(False, alias="JELLY_URL_OVERRIDE")
+
+
+class SeasonMonitorConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    blacklists: list[str] | None = None
+    season_override: str | None = None
+    dub_overrides: list[str] | None = None
+    sub_overrides: list[str] | None = None
 
 
 class MdnxBinPath(BaseModel):
@@ -111,8 +121,8 @@ class MdnxConfig(BaseModel):
 class Config(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    cr_monitor_series_id: dict[str, list[str]] = Field(default_factory=dict)
-    hidive_monitor_series_id: dict[str, list[str]] = Field(default_factory=dict)
+    cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
 
     app: AppConfig = Field(default_factory=AppConfig)
     mdnx: MdnxConfig = Field(default_factory=MdnxConfig)
@@ -135,14 +145,15 @@ def _log(message: str, level: str = "info", exc_info=None) -> None:
         return
 
     try:
-        if level == "debug":
-            log_manager.debug(message, exc_info=exc_info)
-        elif level == "warning":
-            log_manager.warning(message, exc_info=exc_info)
-        elif level == "error":
-            log_manager.error(message, exc_info=exc_info)
-        else:
-            log_manager.info(message, exc_info=exc_info)
+        match level:
+            case "debug":
+                log_manager.debug(message, exc_info=exc_info)
+            case "warning":
+                log_manager.warning(message, exc_info=exc_info)
+            case "error":
+                log_manager.error(message, exc_info=exc_info)
+            case _:
+                log_manager.info(message, exc_info=exc_info)
     except Exception:
         pass
 
@@ -373,24 +384,45 @@ def format_duration(seconds: int) -> str:
     return ", ".join(parts[:-1]) + f" and {parts[-1]}"
 
 
-def select_dubs(episode_info: dict):
+def select_dubs(episode_info: dict, dub_overrides: list[str] | None = None):
     """Determine which dubs to download based on desired, backup, and available dubs."""
 
+    available_dubs = set()
+    for dub_code in episode_info["available_dubs"]:
+        available_dubs.add(str(dub_code).lower())
+
+    _log(f"Available dubs: {available_dubs}", level="debug")
+
+    # if there are dub overrides for this season, use those instead of the global defaults.
+    if dub_overrides is not None:
+        desired_override_dubs = []
+        for lang_code in dub_overrides:
+            desired_override_dubs.append(str(lang_code).lower())
+
+        _log(f"Season dub overrides: {desired_override_dubs}", level="debug")
+
+        selected_override_dubs = []
+        for lang_code in desired_override_dubs:
+            if lang_code in available_dubs:
+                selected_override_dubs.append(lang_code)
+
+        if selected_override_dubs:
+            _log(f"Using season dub overrides: {selected_override_dubs}", level="debug")
+            return selected_override_dubs
+
+        _log("No season dub overrides are available for this episode. Skipping it.", level="debug")
+        return False
+
     desired_dubs = set()
-    for lang in config.mdnx.cli_defaults.dubLang:
-        desired_dubs.add(lang)
+    for lang_code in config.mdnx.cli_defaults.dubLang:
+        desired_dubs.add(str(lang_code).lower())
 
     backup_dubs = set()
-    for lang in config.app.backup_dubs:
-        backup_dubs.add(lang)
-
-    available_dubs = set()
-    for dub in episode_info["available_dubs"]:
-        available_dubs.add(dub)
+    for lang_code in config.app.backup_dubs:
+        backup_dubs.add(str(lang_code).lower())
 
     _log(f"Desired dubs: {desired_dubs}", level="debug")
     _log(f"Backup dubs: {backup_dubs}", level="debug")
-    _log(f"Available dubs: {available_dubs}", level="debug")
 
     # if desired dub is available, use the default already present.
     if desired_dubs & available_dubs:
@@ -413,6 +445,38 @@ def select_dubs(episode_info: dict):
     # will skip the episode in this case.
     _log("No dubs available at all for this episode. Skipping it.", level="debug")
     return False
+
+
+def select_subs(episode_info: dict, sub_overrides: list[str] | None = None):
+    """Determine which subtitles to download when a season subtitle override is set."""
+
+    if sub_overrides is None:
+        _log("No season sub overrides set. Not passing subtitle CLI override.", level="debug")
+        return None
+
+    available_subs = set()
+    for locale_code in episode_info["available_subs"]:
+        available_subs.add(str(locale_code).lower())
+
+    _log(f"Available subs: {available_subs}", level="debug")
+
+    desired_override_subs = []
+    for locale_code in sub_overrides:
+        desired_override_subs.append(str(locale_code).lower())
+
+    _log(f"Season sub overrides: {desired_override_subs}", level="debug")
+
+    selected_override_subs = []
+    for locale_code in desired_override_subs:
+        if locale_code in available_subs:
+            selected_override_subs.append(locale_code)
+
+    if selected_override_subs:
+        _log(f"Using season sub overrides: {selected_override_subs}", level="debug")
+        return selected_override_subs
+
+    _log("No season sub overrides are available for this episode. Skipping subtitle override.", level="debug")
+    return None
 
 
 def probe_streams(file_path: str) -> tuple[set, set]:
@@ -483,94 +547,125 @@ def probe_streams(file_path: str) -> tuple[set, set]:
     return audio_langs, sub_langs
 
 
-def apply_series_blacklist(tmp_dict: dict, monitor_series_config: dict, service: str) -> dict:
-    """Apply series/season/episode blacklists from config to the given tmp_dict structure."""
+def get_season_monitor_config(service: str, series_id: str, season_id: str | None):
+    """Get the monitor config for a specific series season."""
 
-    if not isinstance(monitor_series_config, dict):
-        _log(f"{service}_monitor_series_id must be a dict.", level="error")
-        monitor_series_config = {}
+    if not season_id:
+        return None
 
-    # rules are strings like "S:<season_id>", "S:<season_id>:E:<index>", or "S:<season_id>:E:<start>-<end>"
-    def parse_blacklist_rules(rules):
-        blacklisted_season_ids = set()
-        # season_id -> list of rules; each rule is int (single ep) or (start, end) tuple
-        episode_blacklist_rules = {}
-        if not rules:
-            return blacklisted_season_ids, episode_blacklist_rules
+    match str(service or "").strip().lower():
+        case "cr" | "crunchy" | "crunchyroll":
+            service_monitor_config = config.cr_monitor_series_id
+        case "hd" | "hidive":
+            service_monitor_config = config.hidive_monitor_series_id
+        case _:
+            _log(f"Unknown service '{service}' when reading season monitor config.", level="error")
+            return None
 
-        if isinstance(rules, str):
-            if not rules.strip():  # empty string means no blacklist
-                return blacklisted_season_ids, episode_blacklist_rules
-            rules = [rules]
+    series_config = service_monitor_config.get(series_id)
+    if not series_config:
+        return None
 
-        for raw_rule in rules:
-            if not raw_rule:
-                continue
-            rule_text = str(raw_rule).strip()
-            match = re.fullmatch(r"S:([^:]+)(?::E:(\d+)(?:-(\d+))?)?", rule_text)
-            if not match:
-                continue
+    return series_config.get(season_id)
 
-            season_id_str = match.group(1)
-            start_str = match.group(2)
-            end_str = match.group(3)
 
-            if start_str is None:
-                # whole season blacklist
-                blacklisted_season_ids.add(season_id_str)
-            else:
-                rules_for_season = episode_blacklist_rules.setdefault(season_id_str, [])
-                if end_str is None:
-                    # single episode
-                    rules_for_season.append(int(start_str))
-                else:
-                    # episode range
-                    start_idx, end_idx = int(start_str), int(end_str)
-                    if start_idx > end_idx:
-                        start_idx = end_idx
-                        end_idx = start_idx
-                    rules_for_season.append((start_idx, end_idx))
+def get_wanted_dubs_and_subs(service: str, series_id: str, season_id: str | None) -> tuple[set, set]:
+    """Get the wanted dub and sub lists for a season, using overrides when they exist."""
 
-        return blacklisted_season_ids, episode_blacklist_rules
+    season_monitor = get_season_monitor_config(service, series_id, season_id)
 
-    for series_id, series_info in (tmp_dict or {}).items():
-        rules_value = monitor_series_config.get(series_id)
-        if rules_value is None:
-            continue
+    # if there are dub/sub overrides for this season, use those.
+    # Otherwise, use the global defaults from config.
+    if season_monitor is not None and season_monitor.dub_overrides is not None:
+        wanted_dub_source = season_monitor.dub_overrides
+    else:
+        wanted_dub_source = config.mdnx.cli_defaults.dubLang
 
-        blacklisted_season_ids, episode_blacklist_rules = parse_blacklist_rules(rules_value)
-        if not blacklisted_season_ids and not episode_blacklist_rules:
-            continue
+    if season_monitor is not None and season_monitor.sub_overrides is not None:
+        wanted_sub_source = season_monitor.sub_overrides
+    else:
+        wanted_sub_source = config.mdnx.cli_defaults.dlsubs
 
-        for _season_key, season_info in (series_info.get("seasons") or {}).items():
+    wanted_dubs = set()
+    for language_code in wanted_dub_source:
+        wanted_dubs.add(str(language_code).lower())
+
+    wanted_subs = set()
+    for locale_code in wanted_sub_source:
+        wanted_subs.add(str(locale_code).lower())
+
+    _log(f"Effective wanted tracks for {service} {series_id}/{season_id}: dubs={wanted_dubs}, subs={wanted_subs}", level="debug")
+
+    return wanted_dubs, wanted_subs
+
+
+def apply_series_blacklist(tmp_dict: dict, service: str) -> dict:
+    """Apply season and episode blacklists from config to the given tmp_dict structure."""
+
+    if not isinstance(tmp_dict, dict):
+        return tmp_dict
+
+    for series_id, series_info in tmp_dict.items():
+        seasons = series_info.get("seasons") or {}
+
+        for _season_key, season_info in seasons.items():
             season_id = season_info.get("season_id")
-            if not season_id:
+            season_monitor = get_season_monitor_config(service, series_id, season_id)
+
+            if season_monitor is None:
                 continue
 
-            # season-level blacklist
-            if season_id in blacklisted_season_ids:
+            blacklist_rules = season_monitor.blacklists
+            if blacklist_rules is None:
+                continue
+
+            if "*" in blacklist_rules:
                 for episode_info in (season_info.get("episodes") or {}).values():
                     episode_info["episode_skip"] = True
                 continue
 
-            # episode-level blacklist for this season_id
-            rules_for_season = episode_blacklist_rules.get(season_id)
-            if rules_for_season:
-                for episode_key, episode_info in (season_info.get("episodes") or {}).items():
-                    try:
-                        episode_index = int(str(episode_key).lstrip("E"))
-                    except Exception:
+            for episode_key, episode_info in (season_info.get("episodes") or {}).items():
+                try:
+                    local_episode_number = int(str(episode_key).lstrip("E"))
+                except Exception:
+                    continue
+
+                should_skip_episode = False
+
+                for raw_rule in blacklist_rules:
+                    if raw_rule is None:
                         continue
 
-                    for rule in rules_for_season:
-                        if isinstance(rule, tuple):
-                            if rule[0] <= episode_index <= rule[1]:
-                                episode_info["episode_skip"] = True
-                                break
-                        else:
-                            if episode_index == rule:
-                                episode_info["episode_skip"] = True
-                                break
+                    rule_text = str(raw_rule).strip()
+                    if not rule_text:
+                        continue
+
+                    if "-" in rule_text:
+                        parts = rule_text.split("-", 1)
+                        try:
+                            range_start = int(parts[0])
+                            range_end = int(parts[1])
+                        except Exception:
+                            continue
+
+                        if range_start > range_end:
+                            range_start, range_end = range_end, range_start
+
+                        if range_start <= local_episode_number <= range_end:
+                            should_skip_episode = True
+                            break
+                    else:
+                        try:
+                            single_episode_number = int(rule_text)
+                        except Exception:
+                            continue
+
+                        if local_episode_number == single_episode_number:
+                            should_skip_episode = True
+                            break
+
+                if should_skip_episode:
+                    episode_info["episode_skip"] = True
 
     return tmp_dict
 
@@ -696,7 +791,7 @@ def format_value(val):
 
         for item in val:
             if isinstance(item, str):
-                formatted_elements.append(f"\"{item}\"")
+                formatted_elements.append(f'"{item}"')
             else:
                 formatted_elements.append(str(item))
 
@@ -837,7 +932,7 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
     return full_path
 
 
-def get_episode_file_path(queue, series_id, season_key, episode_key, base_dir, extension=".mkv"):
+def get_episode_file_path(queue: dict, series_id: str, season_key: str, episode_key: str, base_dir: str, extension=".mkv"):
     """Get the full file path for the given series/season/episode from the queue."""
 
     # get data from the queue.
