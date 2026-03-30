@@ -145,14 +145,15 @@ def _log(message: str, level: str = "info", exc_info=None) -> None:
         return
 
     try:
-        if level == "debug":
-            log_manager.debug(message, exc_info=exc_info)
-        elif level == "warning":
-            log_manager.warning(message, exc_info=exc_info)
-        elif level == "error":
-            log_manager.error(message, exc_info=exc_info)
-        else:
-            log_manager.info(message, exc_info=exc_info)
+        match level:
+            case "debug":
+                log_manager.debug(message, exc_info=exc_info)
+            case "warning":
+                log_manager.warning(message, exc_info=exc_info)
+            case "error":
+                log_manager.error(message, exc_info=exc_info)
+            case _:
+                log_manager.info(message, exc_info=exc_info)
     except Exception:
         pass
 
