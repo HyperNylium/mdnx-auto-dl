@@ -791,7 +791,7 @@ def format_value(val):
 
         for item in val:
             if isinstance(item, str):
-                formatted_elements.append(f"\"{item}\"")
+                formatted_elements.append(f'"{item}"')
             else:
                 formatted_elements.append(str(item))
 
@@ -932,7 +932,7 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
     return full_path
 
 
-def get_episode_file_path(queue, series_id, season_key, episode_key, base_dir, extension=".mkv"):
+def get_episode_file_path(queue: dict, series_id: str, season_key: str, episode_key: str, base_dir: str, extension=".mkv"):
     """Get the full file path for the given series/season/episode from the queue."""
 
     # get data from the queue.
