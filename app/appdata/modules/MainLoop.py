@@ -1,6 +1,5 @@
 import os
 import time
-from time import perf_counter
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -374,9 +373,9 @@ class MainLoop:
                 dub_override = select_dubs(episode_info, dub_overrides)
                 sub_override = select_subs(episode_info, sub_overrides)
 
-                dl_start = perf_counter()
+                dl_start = time.perf_counter()
                 download_successful = mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override, sub_override)
-                dl_end = perf_counter()
+                dl_end = time.perf_counter()
                 dl_elapsed = dl_end - dl_start
 
                 if download_successful:
@@ -521,9 +520,9 @@ class MainLoop:
             dub_override = select_dubs(episode_info, dub_overrides)
             sub_override = select_subs(episode_info, sub_overrides)
 
-            dl_start = perf_counter()
+            dl_start = time.perf_counter()
             download_successful = mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override, sub_override)
-            dl_end = perf_counter()
+            dl_end = time.perf_counter()
             dl_elapsed = dl_end - dl_start
 
             if download_successful:
