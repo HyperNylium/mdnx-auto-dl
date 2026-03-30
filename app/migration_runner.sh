@@ -79,6 +79,8 @@ if [[ ! -f "$MIGRATION_SCRIPT_PATH" ]]; then
     exit 1
 fi
 
+# ensure the migration script has LF line endings and is executable
+sed -i 's/\r$//' "$MIGRATION_SCRIPT_PATH"
 chmod +x "$MIGRATION_SCRIPT_PATH"
 
 echo "[migration_runner] Running migration script for version $APP_VERSION"
