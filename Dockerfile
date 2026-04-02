@@ -26,8 +26,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app/ .
 
-# Convert Windows line-endings (CRLF) to LF
-RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
-RUN sed -i 's/\r$//' /app/migration_runner.sh && chmod +x /app/migration_runner.sh
+RUN find /app -type f \( -name "*.sh" -o -name "*.py" \) -exec sed -i 's/\r$//' {} + && \
+    find /app -type f -name "*.sh" -exec chmod +x {} +
 
 ENTRYPOINT ["/app/entrypoint.sh"]
