@@ -166,3 +166,4 @@ appdata/mdnx/playready/*
 !appdata/mdnx/widevine/.gitkeep
 !appdata/mdnx/playready/.gitkeep
 notes.txt
+/__personal_helpers
