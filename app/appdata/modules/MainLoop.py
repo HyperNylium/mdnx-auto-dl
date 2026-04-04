@@ -146,7 +146,7 @@ class MainLoop:
 
         return False
 
-    def _snapshot_episode(self, series_name, episode_info, file_path, time_taken: float, action_label: str, before_dubs=None, before_subs=None) -> dict:
+    def _snapshot_episode(self, series_name: str, episode_info: dict, file_path: str, time_taken: float, action_label: str, before_dubs: set = None, before_subs: set = None) -> dict:
         """Create a snapshot of the episode's dub/sub state before and after download."""
 
         # probe the file to get current local dubs and subs
