@@ -360,8 +360,7 @@ class MainLoop:
 
                 log_manager.info(f"Episode not found at {file_path} and 'episode_downloaded' status is False. Initiating download.")
 
-                season_id = season_info.get("season_id")
-                season_monitor = get_season_monitor_config(service, series_id, season_id)
+                season_monitor = get_season_monitor_config(service, series_id, season_info["season_id"])
 
                 dub_overrides = None
                 sub_overrides = None
@@ -417,8 +416,7 @@ class MainLoop:
                 log_manager.info(f"Stop requested. Skipping dub/sub verification for {service}.")
                 return
 
-            season_id = season_info.get("season_id")
-            season_monitor = get_season_monitor_config(service, series_id, season_id)
+            season_monitor = get_season_monitor_config(service, series_id, season_info["season_id"])
 
             season_has_track_overrides = False
             if season_monitor is not None and (season_monitor.dub_overrides is not None or season_monitor.sub_overrides is not None):
@@ -438,7 +436,7 @@ class MainLoop:
             if not os.path.exists(file_path):
                 continue
 
-            wanted_dubs, wanted_subs = get_wanted_dubs_and_subs(service, series_id, season_id)
+            wanted_dubs, wanted_subs = get_wanted_dubs_and_subs(service, series_id, season_info["season_id"])
 
             # probe existing file for local dubs and subs
             local_dubs, local_subs = probe_streams(file_path)
