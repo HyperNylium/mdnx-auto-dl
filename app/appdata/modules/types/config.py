@@ -34,6 +34,7 @@ class AppConfig(BaseModel):
 
     only_create_queue: bool = Field(False, alias="ONLY_CREATE_QUEUE")
     skip_queue_refresh: bool = Field(False, alias="SKIP_QUEUE_REFRESH")
+    fallback_to_any_dub: bool = Field(False, alias="FALLBACK_TO_ANY_DUB")
     skip_cdm_check: bool = Field(False, alias="SKIP_CDM_CHECK")
     dry_run: bool = Field(False, alias="DRY_RUN")
 
