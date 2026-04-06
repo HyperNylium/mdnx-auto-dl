@@ -325,7 +325,7 @@ def select_dubs(episode_info: dict, dub_overrides: list[str] | None = None):
         return list(backup_dubs & available_dubs)
 
     # otherwise fall back to the alphabetically first available dub.
-    if available_dubs:
+    if available_dubs and config.app.fallback_to_any_dub:
         _log("Neither desired nor backup dubs are available. Falling back to first available dub.", level="debug")
         first_dub = next(iter(sorted(available_dubs)))
         return [first_dub]
