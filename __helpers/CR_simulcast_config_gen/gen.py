@@ -11,33 +11,40 @@ CR_SIMULCAST_HTML = r"""
 """
 
 
-def extract_series_ids(html: str) -> list[str]:
+def extract_series_info(html: str) -> list[tuple[str, str]]:
     soup = BeautifulSoup(html, "html.parser")
 
     collection = soup.find("div", class_="erc-browse-cards-collection")
     if not collection:
         return []
 
-    series_ids = []
-    pattern = re.compile(r"^/series/([A-Z0-9]+)/")
+    series = []
+    pattern = re.compile(r"^/series/([A-Z0-9]+)/([^/?#]+)")
 
     for card in collection.find_all("div", class_="browse-card", recursive=False):
         for a in card.find_all("a", href=True):
             match = pattern.match(a["href"])
             if match:
-                series_ids.append(match.group(1))
+                series_id = match.group(1)
+                series_name = match.group(2)
+                series.append((series_id, series_name))
                 break
 
-    return series_ids
+    return series
 
 
-ids = extract_series_ids(CR_SIMULCAST_HTML)
+series_info = extract_series_info(CR_SIMULCAST_HTML)
 
 output = {
     "cr_monitor_series_id": {}
 }
 
-for series_id in ids:
-    output["cr_monitor_series_id"][series_id] = {}
+text_lines = []
 
-print(json.dumps(output, indent=2))
+for series_id, series_name in series_info:
+    output["cr_monitor_series_id"][series_id] = {}
+    text_lines.append(f"{series_id} - {series_name}")
+
+print(json.dumps(output, indent=4))
+print()
+print("\n".join(text_lines))
