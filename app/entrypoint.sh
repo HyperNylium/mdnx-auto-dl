@@ -5,20 +5,79 @@ set -euo pipefail
 USER_ID=${UID:-1000}
 GROUP_ID=${GID:-1000}
 USERNAME=mdnx-auto-dl
-CONFIG_FILE="${CONFIG_FILE:-/app/appdata/config/config.json}"
+CONFIG_FILE="${CONFIG_FILE:-}"
 
 BENTO4_URL="${BENTO4_URL:-https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/Bento4-SDK.zip}"
 MDNX_URL="${MDNX_URL:-https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/mdnx.zip}"
 
-# If config.json doesn't exist, warn and exit
+if [[ -z "$CONFIG_FILE" ]]; then
+  CONFIG_CANDIDATES=(
+    "/app/appdata/config/config.json"
+    "/app/appdata/config/config.yaml"
+    "/app/appdata/config/config.yml"
+  )
+
+  for config_candidate in "${CONFIG_CANDIDATES[@]}"; do
+    if [[ -f "$config_candidate" ]]; then
+      CONFIG_FILE="$config_candidate"
+      break
+    fi
+  done
+
+  if [[ -z "$CONFIG_FILE" ]]; then
+    CONFIG_FILE="/app/appdata/config/config.json"
+  fi
+fi
+
+# If the config file does not exist, warn and exit
 if [[ ! -f "$CONFIG_FILE" ]]; then
   echo "[entrypoint] ERROR: $CONFIG_FILE not found."
   echo "[entrypoint] Please create the config file before starting the container."
   exit 1
 fi
 
-# Extract BIN_DIR (falls back to /app/appdata/bin if the JSON key is null/absent)
-BIN_DIR="$(jq -er '.app.BIN_DIR // "/app/appdata/bin"' "$CONFIG_FILE")"
+read_config_app_value() {
+  local config_key="$1"
+  local default_value="$2"
+
+  CONFIG_FILE="$CONFIG_FILE" CONFIG_KEY="$config_key" DEFAULT_VALUE="$default_value" python - <<'PY'
+import json
+import os
+import yaml
+
+config_file_path = os.environ["CONFIG_FILE"]
+config_key = os.environ["CONFIG_KEY"]
+default_value = os.environ["DEFAULT_VALUE"]
+
+config_extension = os.path.splitext(config_file_path)[1].lower()
+
+with open(config_file_path, "r", encoding="utf-8") as config_file:
+    match config_extension:
+        case ".json":
+            loaded_config = json.load(config_file)
+        case ".yaml" | ".yml":
+            loaded_config = yaml.safe_load(config_file) or {}
+        case _:
+            raise SystemExit(f"Unsupported config format: {config_file_path}")
+
+if not isinstance(loaded_config, dict):
+    raise SystemExit(f"Config root must be an object/dictionary in {config_file_path}")
+
+app_config = loaded_config.get("app")
+if not isinstance(app_config, dict):
+    app_config = {}
+
+value = app_config.get(config_key, default_value)
+
+if value is None:
+    value = default_value
+
+print(value)
+PY
+}
+
+# Extract BIN_DIR (falls back to /app/appdata/bin if the key is null/absent)
+BIN_DIR="$(read_config_app_value "BIN_DIR" "/app/appdata/bin")"
 
 echo "[entrypoint] Using CONFIG_FILE=$CONFIG_FILE"
 echo "[entrypoint] Using BIN_DIR=$BIN_DIR"
@@ -86,7 +145,7 @@ chmod -R 775 /app
 echo "[entrypoint] Checking for required migrations..."
 gosu "$USER_ID:$GROUP_ID" bash -c "/app/migration_runner.sh"
 
-NTFY_SCRIPT_PATH="$(jq -er '.app.NTFY_SCRIPT_PATH // ""' "$CONFIG_FILE")"
+NTFY_SCRIPT_PATH="$(read_config_app_value "NTFY_SCRIPT_PATH" "")"
 
 if [[ -n "$NTFY_SCRIPT_PATH" && -f "$NTFY_SCRIPT_PATH" ]]; then
   echo "[entrypoint] Found ntfy script at $NTFY_SCRIPT_PATH. Making it executable..."
