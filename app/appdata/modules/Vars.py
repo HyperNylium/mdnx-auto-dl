@@ -4,6 +4,7 @@ import sys
 import pwd
 import grp
 import json
+import yaml
 import subprocess
 import unicodedata
 from string import Template
@@ -11,19 +12,6 @@ from collections import OrderedDict
 from pydantic import ValidationError
 
 from .types.config import Config, AppConfig
-
-
-CONFIG_PATH = os.getenv("CONFIG_FILE", "appdata/config/config.json")
-QUEUE_PATH = os.getenv("QUEUE_FILE", "appdata/config/queue.json")
-TZ = os.getenv("TZ", "America/New_York")
-
-
-with open(CONFIG_PATH, 'r') as user_config_file:
-    overrides = json.load(user_config_file)
-
-config = Config.model_validate(overrides)
-
-del overrides
 
 
 def _log(message: str, level: str = "info", exc_info=None) -> None:
@@ -46,6 +34,63 @@ def _log(message: str, level: str = "info", exc_info=None) -> None:
                 log_manager.info(message, exc_info=exc_info)
     except Exception:
         pass
+
+
+def _resolve_config_path() -> str:
+    """Determine the config file path to use, checking environment variable and default locations."""
+
+    env_config_path = os.getenv("CONFIG_FILE")
+    if env_config_path:
+        return env_config_path
+
+    default_config_paths = [
+        "appdata/config/config.json",
+        "appdata/config/config.yaml",
+        "appdata/config/config.yml"
+    ]
+
+    for default_config_path in default_config_paths:
+        if os.path.exists(default_config_path):
+            _log(f"Found config file at {default_config_path}. Using it.", level="debug")
+            return default_config_path
+
+    return default_config_paths[0]
+
+
+def _read_config(config_path: str) -> dict:
+    """Read the config file from disk and return it as a dict."""
+
+    config_extension = os.path.splitext(config_path)[1].lower()
+
+    with open(config_path, "r", encoding="utf-8") as config_file:
+        match config_extension:
+            case ".json":
+                loaded_config = json.load(config_file)
+            case ".yaml" | ".yml":
+                loaded_config = yaml.safe_load(config_file) or {}
+            case _:
+                raise ValueError(f"Unsupported config format: {config_path}. Use .json, .yaml, or .yml.")
+
+    if not isinstance(loaded_config, dict):
+        raise ValueError(f"Config root must be an object/mapping in {config_path}.")
+
+    return loaded_config
+
+
+def _write_config(config_path: str, config_data: dict) -> None:
+    """Write the given config data dict to disk in the appropriate format based on file extension."""
+
+    config_extension = os.path.splitext(config_path)[1].lower()
+
+    with open(config_path, "w", encoding="utf-8") as config_file:
+        match config_extension:
+            case ".json":
+                json.dump(config_data, config_file, indent=4, ensure_ascii=False)
+                config_file.write("\n")
+            case ".yaml" | ".yml":
+                yaml.safe_dump(config_data, config_file, sort_keys=False, allow_unicode=True, indent=4)
+            case _:
+                raise ValueError(f"Unsupported config format: {config_path}. Use .json, .yaml, or .yml.")
 
 
 def output_effective_config(config: Config, max_chunk: int = 8000):
@@ -93,6 +138,18 @@ def output_effective_config(config: Config, max_chunk: int = 8000):
     for line in formatted_json.splitlines():
         for i in range(0, len(line), max_chunk):
             _log(line[i:i + max_chunk])
+
+
+CONFIG_PATH = _resolve_config_path()
+QUEUE_PATH = os.getenv("QUEUE_FILE", "appdata/config/queue.json")
+TZ = os.getenv("TZ", "America/New_York")
+
+
+overrides = _read_config(CONFIG_PATH)
+
+config = Config.model_validate(overrides)
+
+del overrides
 
 
 # App settings
@@ -693,9 +750,9 @@ def format_value(val):
 
 
 def update_mdnx_config():
-    """Update MDNX config files based on current settings in config.json."""
+    """Update MDNX config files based on current settings in config.json/yaml."""
 
-    _log("Updating MDNX config files with new settings from config.json...")
+    _log("Updating MDNX config files with new settings from user config...")
 
     mdnx_config = config.mdnx.model_dump(by_alias=True)
 
@@ -717,7 +774,7 @@ def update_mdnx_config():
 
 def update_app_config(config_key: str, new_value) -> bool:
     """
-    Update one AppConfig option in config.json under the 'app' section.
+    Update one AppConfig option in config.json or config.yaml under the 'app' section.
 
     config_key can be either:
       - field name: "cr_force_reauth"
@@ -735,10 +792,9 @@ def update_app_config(config_key: str, new_value) -> bool:
         _log(f"Unknown app config key: {config_key}", level="error")
         return False
 
-    # read config.json from disk
+    # read config file from disk
     try:
-        with open(CONFIG_PATH, "r", encoding="utf-8") as config_file:
-            on_disk_config = json.load(config_file, object_pairs_hook=OrderedDict)
+        on_disk_config = _read_config(CONFIG_PATH)
     except Exception as read_error:
         _log(f"Failed to read config file: {read_error}", level="error")
         return False
@@ -758,11 +814,9 @@ def update_app_config(config_key: str, new_value) -> bool:
         _log(f"Invalid value for app.{alias_key_to_write}: {validation_error}", level="error")
         return False
 
-    # write back to disk config.json
+    # write back to disk config.json/yaml
     try:
-        with open(CONFIG_PATH, "w", encoding="utf-8") as config_file:
-            json.dump(on_disk_config, config_file, indent=4)
-            config_file.write("\n")
+        _write_config(CONFIG_PATH, on_disk_config)
     except Exception as write_error:
         _log(f"Failed to write config file: {write_error}", level="error")
         return False
