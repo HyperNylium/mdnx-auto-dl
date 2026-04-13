@@ -7,7 +7,8 @@ GROUP_ID=${GID:-1000}
 USERNAME=mdnx-auto-dl
 CONFIG_FILE="${CONFIG_FILE:-}"
 
-BENTO4_URL="${BENTO4_URL:-https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/Bento4-SDK.zip}"
+BENTO4_URL="${BENTO4_URL:-https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/bento4.zip}"
+SHAKA_URL="${SHAKA_URL:-https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/shaka_packager.zip}"
 MDNX_URL="${MDNX_URL:-https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/mdnx.zip}"
 
 if [[ -z "$CONFIG_FILE" ]]; then
@@ -76,6 +77,42 @@ print(value)
 PY
 }
 
+setup_dep() {
+  local package_label="$1"
+  local zip_name="$2"
+  local extracted_check_path="$3"
+  local download_url="$4"
+
+  local zip_path="$BIN_DIR/$zip_name"
+  local temp_zip_path="$BIN_DIR/.${zip_name}.tmp"
+
+  if [[ -f "$zip_path" ]]; then
+    echo "[entrypoint] Extracting $package_label from $zip_path..."
+    unzip -oq "$zip_path" -d "$BIN_DIR"
+    rm -f "$zip_path"
+    return
+  fi
+
+  if [[ -e "$BIN_DIR/$extracted_check_path" ]]; then
+    echo "[entrypoint] $zip_name missing, but extracted path found at $BIN_DIR/$extracted_check_path. Skipping unzip."
+    return
+  fi
+
+  echo "[entrypoint] $package_label not found locally. Downloading from '$download_url'..."
+  if curl -fL --retry 5 --retry-all-errors --connect-timeout 10 -o "$temp_zip_path" "$download_url"; then
+    mv "$temp_zip_path" "$zip_path"
+    echo "[entrypoint] Extracting downloaded $package_label..."
+    unzip -oq "$zip_path" -d "$BIN_DIR"
+    rm -f "$zip_path"
+    return
+  fi
+
+  echo "[entrypoint] ERROR: failed to download $package_label from $download_url" >&2
+  rm -f "$temp_zip_path" || true
+  echo "[entrypoint] Please run 'docker compose down && docker compose up -d' to fix this."
+  exit 1
+}
+
 # Extract BIN_DIR (falls back to /app/appdata/bin if the key is null/absent)
 BIN_DIR="$(read_config_app_value "BIN_DIR" "/app/appdata/bin")"
 
@@ -83,51 +120,14 @@ echo "[entrypoint] Using CONFIG_FILE=$CONFIG_FILE"
 echo "[entrypoint] Using BIN_DIR=$BIN_DIR"
 mkdir -p "$BIN_DIR"
 
-# Bento4 SDK
-if [[ -f "$BIN_DIR/Bento4-SDK.zip" ]]; then
-  echo "[entrypoint] Extracting Bento4-SDK from $BIN_DIR/Bento4-SDK.zip..."
-  unzip -oq "$BIN_DIR/Bento4-SDK.zip" -d "$BIN_DIR"
-  rm -f "$BIN_DIR/Bento4-SDK.zip"
-elif [[ -d "$BIN_DIR/Bento4-SDK" ]]; then
-  echo "[entrypoint] Bento4-SDK.zip missing, but extracted directory found. Skipping unzip."
-else
-  echo "[entrypoint] Bento4 SDK not found locally. Downloading from '$BENTO4_URL'..."
-  tmp_zip="$BIN_DIR/.Bento4-SDK.zip.tmp"
-  if curl -fL --retry 5 --retry-all-errors --connect-timeout 10 -o "$tmp_zip" "$BENTO4_URL"; then
-    mv "$tmp_zip" "$BIN_DIR/Bento4-SDK.zip"
-    echo "[entrypoint] Extracting downloaded Bento4 SDK..."
-    unzip -oq "$BIN_DIR/Bento4-SDK.zip" -d "$BIN_DIR"
-    rm -f "$BIN_DIR/Bento4-SDK.zip"
-  else
-    echo "[entrypoint] ERROR: failed to download Bento4 SDK from $BENTO4_URL" >&2
-    rm -f "$tmp_zip" || true
-    echo "[entrypoint] Please run 'docker compose down && docker compose up -d' to fix this."
-    exit 1
-  fi
-fi
+# Bento4-SDK / mp4decrypt
+setup_dep "Bento4" "bento4.zip" "bento4" "$BENTO4_URL"
 
-# MDNX CLI
-if [[ -f "$BIN_DIR/mdnx.zip" ]]; then
-  echo "[entrypoint] Extracting MDNX CLI from $BIN_DIR/mdnx.zip..."
-  unzip -oq "$BIN_DIR/mdnx.zip" -d "$BIN_DIR"
-  rm -f "$BIN_DIR/mdnx.zip"
-elif [[ -f "$BIN_DIR/mdnx/aniDL" ]]; then
-  echo "[entrypoint] mdnx.zip missing, but aniDL binary found. Assuming folder exists as well. Skipping unzip."
-else
-  echo "[entrypoint] MDNX CLI not found locally. Downloading from '$MDNX_URL'..."
-  tmp_zip="$BIN_DIR/.mdnx.zip.tmp"
-  if curl -fL --retry 5 --retry-all-errors --connect-timeout 10 -o "$tmp_zip" "$MDNX_URL"; then
-    mv "$tmp_zip" "$BIN_DIR/mdnx.zip"
-    echo "[entrypoint] Extracting downloaded MDNX CLI..."
-    unzip -oq "$BIN_DIR/mdnx.zip" -d "$BIN_DIR"
-    rm -f "$BIN_DIR/mdnx.zip"
-  else
-    echo "[entrypoint] ERROR: failed to download MDNX CLI from $MDNX_URL" >&2
-    rm -f "$tmp_zip" || true
-    echo "[entrypoint] Please run 'docker compose down && docker compose up -d' to fix this."
-    exit 1
-  fi
-fi
+# Shaka Packager / shaka
+setup_dep "Shaka Packager" "shaka_packager.zip" "shaka_packager" "$SHAKA_URL"
+
+# multi-downloader-nx / aniDL
+setup_dep "MDNX CLI" "mdnx.zip" "mdnx/aniDL" "$MDNX_URL"
 
 # Create non-root user and start app with said user
 if ! getent group "$GROUP_ID" >/dev/null; then
