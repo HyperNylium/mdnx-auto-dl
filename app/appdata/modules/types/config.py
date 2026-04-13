@@ -75,7 +75,7 @@ class MdnxBinPath(BaseModel):
     ffmpeg: str = "ffmpeg"
     ffprobe: str = "ffprobe"
     mkvmerge: str = "mkvmerge"
-    mp4decrypt: str = "/app/appdata/bin/Bento4-SDK/mp4decrypt"
+    mp4decrypt: str = "/app/appdata/bin/bento4/mp4decrypt"
 
 
 class MdnxCliDefaults(BaseModel):
