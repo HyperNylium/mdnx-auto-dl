@@ -134,8 +134,12 @@ if ! getent group "$GROUP_ID" >/dev/null; then
     groupadd -g "$GROUP_ID" "$USERNAME"
 fi
 
-if ! id -u "$USER_ID" >/dev/null 2>&1; then
-    useradd -m -u "$USER_ID" -g "$GROUP_ID" "$USERNAME"
+if ! getent passwd "$USERNAME" >/dev/null; then
+    if [[ -d "/home/$USERNAME" ]]; then
+        useradd -M -u "$USER_ID" -g "$GROUP_ID" -d "/home/$USERNAME" "$USERNAME"
+    else
+        useradd -m -u "$USER_ID" -g "$GROUP_ID" "$USERNAME"
+    fi
 fi
 
 chown -R "$USER_ID:$GROUP_ID" /app
