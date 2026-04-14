@@ -193,7 +193,18 @@ def app():
         else:
             log_manager.info("hd_new_token.yml exists. Assuming user is already authenticated with HiDive MDNX service.")
 
-    mainloop = MainLoop(cr_mdnx_api=cr_mdnx_api, hidive_mdnx_api=hidive_mdnx_api, notifier=notifier)
+    zlo_cr_api = None
+    if config.app.zlo_cr_enabled is True:
+        log_manager.info("Starting CR_ZLO_API...")
+        from appdata.modules.API.ZLO7.crunchy import CR_ZLO_API
+        zlo_cr_api = CR_ZLO_API()
+
+    mainloop = MainLoop(
+        cr_mdnx_api=cr_mdnx_api,
+        hidive_mdnx_api=hidive_mdnx_api,
+        zlo_cr_api=zlo_cr_api,
+        notifier=notifier
+    )
 
     def shutdown(signum, frame):
         """Signal handler to gracefully shutdown the application."""

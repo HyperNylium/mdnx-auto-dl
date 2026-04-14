@@ -15,7 +15,7 @@ from .Vars import (
 
 
 class MainLoop:
-    def __init__(self, cr_mdnx_api, hidive_mdnx_api, notifier) -> None:
+    def __init__(self, cr_mdnx_api, hidive_mdnx_api, zlo_cr_api, notifier) -> None:
 
         self.cr_enabled = config.app.cr_enabled
         self.cr_mdnx_api = cr_mdnx_api
@@ -28,6 +28,12 @@ class MainLoop:
         self.hidive_mdnx_api_configured = False
         if self.hidive_enabled and self.hidive_mdnx_api is not None:
             self.hidive_mdnx_api_configured = True
+
+        self.zlo_cr_enabled = config.app.zlo_cr_enabled
+        self.zlo_cr_api = zlo_cr_api
+        self.zlo_cr_api_configured = False
+        if self.zlo_cr_enabled and self.zlo_cr_api is not None:
+            self.zlo_cr_api_configured = True
 
         self.notifier = notifier
 
@@ -50,7 +56,7 @@ class MainLoop:
                 if self.skip_queue_refresh is True:
                     log_manager.info("SKIP_QUEUE_REFRESH is True. Skipping queue refresh step and using old queue data.")
                 else:
-                    cr_state, hd_state = self._refresh_queue()
+                    cr_state, hd_state, zlo_cr_state = self._refresh_queue()
 
                     # if *_state is an int:
                     #   - if that int is 1, the service wasnt enabled
@@ -68,6 +74,13 @@ class MainLoop:
                                 log_manager.info("HiDive queue refresh skipped because the service wasnt enabled.")
                             case 2:
                                 log_manager.info("Your 'hidive_monitor_series_id' list is empty. Skipped refreshing empty list.")
+
+                    if zlo_cr_state is not None:
+                        match zlo_cr_state:
+                            case 1:
+                                log_manager.info("ZLO Crunchyroll queue refresh skipped because the service wasnt enabled.")
+                            case 2:
+                                log_manager.info("Your 'zlo_cr_monitor_series_id' list is empty. Skipped refreshing empty list.")
 
                 if self.only_create_queue == True:
                     log_manager.info("ONLY_CREATE_QUEUE is True. Exiting after queue creation.\nIf docker-compose.yaml has 'restart: always/unless-stopped', please change it to 'restart: no' to prevent restart loop.")
@@ -93,6 +106,16 @@ class MainLoop:
                         self._refresh_dub_sub_for_service("hidive", "HiDive", self.hidive_mdnx_api)
                     else:
                         log_manager.info("CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification for HiDive.")
+
+                # download any missing / not yet downloaded episodes for ZLO Crunchyroll
+                if self.zlo_cr_enabled:
+                    self._download_for_service("zlo-crunchyroll", "ZLO Crunchyroll", self.zlo_cr_api)
+
+                    # check for missing dubs and subs in downloaded files for ZLO Crunchyroll series
+                    if self.check_missing_dub_sub == True:
+                        self._refresh_dub_sub_for_service("zlo-crunchyroll", "ZLO Crunchyroll", self.zlo_cr_api)
+                    else:
+                        log_manager.info("CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification for ZLO Crunchyroll.")
 
                 if self.dry_run:
                     log_manager.info("DRY_RUN is True. Exiting after one iteration of the main loop.\nIf docker-compose.yaml has 'restart: always/unless-stopped', please change it to 'restart: no' to prevent restart loop.")
@@ -125,8 +148,12 @@ class MainLoop:
         # cancel any active downloads
         if self.cr_mdnx_api_configured:
             self.cr_mdnx_api.cancel_active_download()
+
         if self.hidive_mdnx_api_configured:
             self.hidive_mdnx_api.cancel_active_download()
+
+        if self.zlo_cr_api_configured:
+            self.zlo_cr_api.cancel_active_download()
 
         log_manager.info("MainLoop stop requested.")
         return
@@ -254,16 +281,17 @@ class MainLoop:
         finally:
             self.notifications_buffer.clear()
 
-    def _refresh_queue(self) -> tuple[int | None, int | None]:
-        """Refresh the MDNX queue and start/stop monitors as needed."""
+    def _refresh_queue(self) -> tuple[int | None, int | None, int | None]:
+        """Refresh the queue and start/stop monitors as needed for each configured service."""
 
         log_manager.info("Getting the current queue IDs...")
 
         cr_monitor_ids = set(config.cr_monitor_series_id.keys())
         hd_monitor_ids = set(config.hidive_monitor_series_id.keys())
+        zlo_cr_monitor_ids = set(config.zlo_cr_monitor_series_id.keys())
 
         def process_service(service_key: str, service_label: str, service_configured: bool, api, monitor_ids: set) -> int | None:
-            """Process monitor start/stop for a given service."""
+            """Process monitor start/stop work for one service."""
 
             # if service not configured, dont refresh queue for said service.
             if not service_configured:
@@ -315,8 +343,16 @@ class MainLoop:
             monitor_ids=hd_monitor_ids,
         )
 
-        log_manager.info("MDNX queue refresh complete.")
-        return (mdnx_cr_refresh_state, mdnx_hd_refresh_state)
+        zlo_cr_refresh_state = process_service(
+            service_key="zlo-crunchyroll",
+            service_label="ZLO Crunchyroll",
+            service_configured=self.zlo_cr_api_configured,
+            api=self.zlo_cr_api,
+            monitor_ids=zlo_cr_monitor_ids,
+        )
+
+        log_manager.info("Queue refresh complete.")
+        return (mdnx_cr_refresh_state, mdnx_hd_refresh_state, zlo_cr_refresh_state)
 
     def _download_for_service(self, service: str, service_label: str, mdnx_api) -> None:
         """Download missing / not yet downloaded episodes for the specified service."""
