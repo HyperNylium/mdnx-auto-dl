@@ -35,7 +35,7 @@ services:
       # ZLO config dir (C:/Users/[user]/Documents/zlo7/*)
       # - ./appdata/zlo/config:/home/mdnx-auto-dl/Documents:rw
 
-      # ZLO static dir
+      # ZLO cdm dir
       # - ./appdata/zlo/cdm:/app/appdata/bin/zlo/static/cdm:rw
 
       # ZLO CLI binary
