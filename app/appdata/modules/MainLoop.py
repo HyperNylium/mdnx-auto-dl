@@ -8,7 +8,7 @@ from .Globals import file_manager, queue_manager, log_manager
 from .Vars import (
     config,
     TEMP_DIR, DATA_DIR, TZ,
-    MDNX_CR_ENABLED, MDNX_HIDIVE_ENABLED, PLEX_CONFIGURED, JELLY_CONFIGURED,
+    PLEX_CONFIGURED, JELLY_CONFIGURED,
     get_episode_file_path, probe_streams, select_dubs, select_subs, format_duration, iter_episodes,
     get_season_monitor_config, get_wanted_dubs_and_subs
 )
@@ -17,13 +17,13 @@ from .Vars import (
 class MainLoop:
     def __init__(self, cr_mdnx_api, hidive_mdnx_api, notifier) -> None:
 
-        self.cr_enabled = MDNX_CR_ENABLED
+        self.cr_enabled = config.app.cr_enabled
         self.cr_mdnx_api = cr_mdnx_api
         self.cr_mdnx_api_configured = False
         if self.cr_enabled and self.cr_mdnx_api is not None:
             self.cr_mdnx_api_configured = True
 
-        self.hidive_enabled = MDNX_HIDIVE_ENABLED
+        self.hidive_enabled = config.app.hidive_enabled
         self.hidive_mdnx_api = hidive_mdnx_api
         self.hidive_mdnx_api_configured = False
         if self.hidive_enabled and self.hidive_mdnx_api is not None:

@@ -165,12 +165,35 @@ MDNX_SERVICE_HIDIVE_TOKEN_PATH = os.path.join(BIN_DIR, "mdnx", "config", "hd_new
 MDNX_SERVICE_WIDEVINE_PATH = os.path.join(BIN_DIR, "mdnx", "widevine")
 MDNX_SERVICE_PLAYREADY_PATH = os.path.join(BIN_DIR, "mdnx", "playready")
 
+ZLO_SERVICE_BIN_PATH = os.path.join(BIN_DIR, "zlo", "zlo7")
+ZLO_SERVICE_CONFIG_PATH = os.path.join(os.path.expanduser("~"), "Documents", "zlo7")
+ZLO_SERVICE_CONFIG_SETTINGS_PATH = os.path.join(ZLO_SERVICE_CONFIG_PATH, "settings")
+ZLO_SERVICE_WIDEVINE_PATH = os.path.join(BIN_DIR, "zlo", "static", "cdm", "widevine")
+ZLO_SERVICE_PLAYREADY_PATH = os.path.join(BIN_DIR, "zlo", "static", "cdm", "playready")
+ZLO_SERVICE_WIDEVINE_L1_PATH = os.path.join(ZLO_SERVICE_WIDEVINE_PATH, "L1")
+ZLO_SERVICE_WIDEVINE_L3_PATH = os.path.join(ZLO_SERVICE_WIDEVINE_PATH, "L3")
+ZLO_SERVICE_PLAYREADY_SL2K_PATH = os.path.join(ZLO_SERVICE_PLAYREADY_PATH, "SL2K")
+ZLO_SERVICE_PLAYREADY_SL3K_PATH = os.path.join(ZLO_SERVICE_PLAYREADY_PATH, "SL3K")
+
 # Regular expression to match invalid characters in filenames
 INVALID_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1F]')
 
-# Streaming services enabled
-MDNX_CR_ENABLED: bool = config.app.cr_enabled
-MDNX_HIDIVE_ENABLED: bool = config.app.hidive_enabled
+# Supported streaming services
+MDNX_SERVICES = (
+    config.app.cr_enabled,
+    config.app.hidive_enabled
+)
+MDNX_ENABLED = any(MDNX_SERVICES)
+
+ZLO_SERVICES = (
+    config.app.zlo_cr_enabled,
+    config.app.zlo_hidive_enabled,
+    # config.app.zlo_adn_enabled,
+    # config.app.zlo_disneyplus_enabled,
+    # config.app.zlo_amazon_enabled,
+    # config.app.zlo_netflix_enabled
+)
+ZLO_ENABLED = any(ZLO_SERVICES)
 
 # Vars related to media server stuff
 PLEX_URL = config.app.plex_url
@@ -329,6 +352,142 @@ def format_duration(seconds: int) -> str:
         return f"{parts[0]} and {parts[1]}"
 
     return ", ".join(parts[:-1]) + f" and {parts[-1]}"
+
+
+def check_widevine(service_path: str) -> bool:
+    if not os.path.isdir(service_path):
+        return False
+
+    service_folder_contents = []
+    for name in os.listdir(service_path):
+        if name == ".gitkeep":
+            continue
+        service_folder_contents.append(name)
+
+    has_files = False
+    for name in service_folder_contents:
+        full = os.path.join(service_path, name)
+        if os.path.isfile(full):
+            has_files = True
+            break
+
+    if not has_files:
+        return False
+
+    found_wvd = False
+    found_bin = False
+    found_pem = False
+    found_device_client_id_blob = False
+    found_device_private_key = False
+
+    for name in service_folder_contents:
+        full = os.path.join(service_path, name)
+        if not os.path.isfile(full):
+            continue
+
+        lower = name.lower()
+
+        if lower.endswith(".wvd"):
+            found_wvd = True
+            break
+
+        if lower.endswith(".bin"):
+            found_bin = True
+
+        if lower.endswith(".pem"):
+            found_pem = True
+
+        if lower == "device_client_id_blob":
+            found_device_client_id_blob = True
+
+        if lower == "device_private_key":
+            found_device_private_key = True
+
+    if found_wvd:
+        return True
+
+    if found_bin and found_pem:
+        return True
+
+    if found_device_client_id_blob and found_device_private_key:
+        return True
+
+    return False
+
+
+def check_playready(service_path: str) -> bool:
+    if not os.path.isdir(service_path):
+        return False
+
+    service_folder_contents = []
+    for name in os.listdir(service_path):
+        if name == ".gitkeep":
+            continue
+        service_folder_contents.append(name)
+
+    has_files = False
+    for name in service_folder_contents:
+        full = os.path.join(service_path, name)
+        if os.path.isfile(full):
+            has_files = True
+            break
+
+    if not has_files:
+        return False
+
+    found_prd = False
+    bgroupcert_path = None
+    zgpriv_path = None
+
+    for name in service_folder_contents:
+        full = os.path.join(service_path, name)
+        if not os.path.isfile(full):
+            continue
+
+        lower = name.lower()
+
+        if lower.endswith(".prd"):
+            found_prd = True
+            break
+
+        if lower == "bgroupcert.dat":
+            bgroupcert_path = full
+
+        if lower == "zgpriv.dat":
+            zgpriv_path = full
+
+    if found_prd:
+        return True
+
+    if bgroupcert_path and zgpriv_path:
+        bgroupcert_size = os.path.getsize(bgroupcert_path)
+        zgpriv_size = os.path.getsize(zgpriv_path)
+
+        if bgroupcert_size >= 1024 and zgpriv_size == 32:
+            return True
+
+    return False
+
+
+def validate_cdm(service_path: str, service_name: str, required: bool = False) -> bool:
+    match service_name:
+        case "Widevine":
+            is_valid = check_widevine(service_path)
+        case "PlayReady":
+            is_valid = check_playready(service_path)
+        case _:
+            _log(f"Unknown CDM type: {service_name}", level="critical")
+            sys.exit(1)
+
+    if is_valid:
+        _log(f"{service_name} CDM is valid at path: {service_path}")
+        return True
+
+    if required:
+        _log(f"{service_name} CDM is required but was not found or is invalid at path: {service_path}", level="critical")
+        sys.exit(1)
+
+    return False
 
 
 def select_dubs(episode_info: dict, dub_overrides: list[str] | None = None):
