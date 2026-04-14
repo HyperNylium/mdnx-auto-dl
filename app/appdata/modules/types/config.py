@@ -111,7 +111,7 @@ class MdnxConfig(BaseModel):
     dir_path: MdnxDirPath = Field(default_factory=MdnxDirPath, alias="dir-path")
 
 
-class ZloCliDefaults(BaseModel):
+class ZloServiceConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     q: str = "1080p@avc"
@@ -124,7 +124,13 @@ class ZloCliDefaults(BaseModel):
 
 class ZloConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    cli_defaults: ZloCliDefaults = Field(default_factory=ZloCliDefaults, alias="cli-defaults")
+
+    crunchyroll: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
+    hidive: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
+    adn: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
+    disney: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
+    amazon: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
+    netflix: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
 
 
 class Config(BaseModel):

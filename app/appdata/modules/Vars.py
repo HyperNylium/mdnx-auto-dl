@@ -546,9 +546,13 @@ def select_dubs(service: str, episode_info: dict, dub_overrides: list[str] | Non
             default_dub_source = config.mdnx.cli_defaults.dubLang
 
         case "zlo-crunchyroll" | "zlo-hidive" | "zlo-adn" | "zlo-disney" | "zlo-amazon" | "zlo-netflix":
+            zlo_service_config = get_zlo_service_config(normalized_service)
+            if zlo_service_config is None:
+                return False
+
             output_code_map = MDNX_DUB_CODE_TO_ZLO_CODE
             use_explicit_cli_codes = True
-            default_dub_source = config.zlo.cli_defaults.dubLang
+            default_dub_source = zlo_service_config.dubLang
 
         case _:
             _log(f"Unknown service '{service}' when selecting dubs.", level="error")
@@ -687,9 +691,13 @@ def select_subs(service: str, episode_info: dict, sub_overrides: list[str] | Non
             default_sub_source = config.mdnx.cli_defaults.dlsubs
 
         case "zlo-crunchyroll" | "zlo-hidive" | "zlo-adn" | "zlo-disney" | "zlo-amazon" | "zlo-netflix":
+            zlo_service_config = get_zlo_service_config(normalized_service)
+            if zlo_service_config is None:
+                return None
+
             output_code_map = MDNX_SUB_CODE_TO_ZLO_CODE
             use_explicit_cli_codes = True
-            default_sub_source = config.zlo.cli_defaults.dlsubs
+            default_sub_source = zlo_service_config.dlsubs
 
         case _:
             _log(f"Unknown service '{service}' when selecting subtitles.", level="error")
@@ -876,6 +884,35 @@ def get_season_monitor_config(service: str, series_id: str, season_id: str | Non
     return series_config.get(season_id)
 
 
+def get_zlo_service_config(service: str):
+    """Get the ZLO config block for a specific service."""
+
+    normalized_service = str(service or "").strip().lower()
+
+    match normalized_service:
+        case "zlo-crunchyroll":
+            return config.zlo.crunchyroll
+
+        case "zlo-hidive":
+            return config.zlo.hidive
+
+        case "zlo-adn":
+            return config.zlo.adn
+
+        case "zlo-disney":
+            return config.zlo.disney
+
+        case "zlo-amazon":
+            return config.zlo.amazon
+
+        case "zlo-netflix":
+            return config.zlo.netflix
+
+        case _:
+            _log(f"Unknown service '{service}' when reading ZLO service config.", level="error")
+            return None
+
+
 def get_wanted_dubs_and_subs(service: str, series_id: str, season_id: str | None) -> tuple[set, set]:
     """Get the wanted dub and sub lists for a season, using overrides when they exist."""
 
@@ -889,8 +926,12 @@ def get_wanted_dubs_and_subs(service: str, series_id: str, season_id: str | None
             defaults_are_zlo_codes = False
 
         case "zlo-crunchyroll" | "zlo-hidive" | "zlo-adn" | "zlo-disney" | "zlo-amazon" | "zlo-netflix":
-            default_dub_source = config.zlo.cli_defaults.dubLang
-            default_sub_source = config.zlo.cli_defaults.dlsubs
+            zlo_service_config = get_zlo_service_config(normalized_service)
+            if zlo_service_config is None:
+                return set(), set()
+
+            default_dub_source = zlo_service_config.dubLang
+            default_sub_source = zlo_service_config.dlsubs
             defaults_are_zlo_codes = True
 
         case _:

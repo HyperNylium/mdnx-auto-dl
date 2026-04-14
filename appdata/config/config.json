@@ -42,7 +42,18 @@
         }
     },
     "zlo": {
-        "cli-defaults": {
+        "crunchyroll": {
+            "q": "1080p@avc",
+            "qf": true,
+            "dubLang": [
+                "JP",
+                "EN"
+            ],
+            "dlsubs": [
+                "EN"
+            ]
+        },
+        "hidive": {
             "q": "1080p@avc",
             "qf": true,
             "dubLang": [
