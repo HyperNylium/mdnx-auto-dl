@@ -17,6 +17,13 @@ class AppConfig(BaseModel):
     hidive_username: str = Field("", alias="HIDIVE_USERNAME")
     hidive_password: str = Field("", alias="HIDIVE_PASSWORD")
 
+    zlo_cr_enabled: bool = Field(False, alias="ZLO_CR_ENABLED")
+    zlo_hidive_enabled: bool = Field(False, alias="ZLO_HIDIVE_ENABLED")
+    # zlo_adn_enabled: bool = Field(False, alias="ZLO_ADN_ENABLED")
+    # zlo_disneyplus_enabled: bool = Field(False, alias="ZLO_DISNEYPLUS_ENABLED")
+    # zlo_amazon_enabled: bool = Field(False, alias="ZLO_AMAZON_ENABLED")
+    # zlo_netflix_enabled: bool = Field(False, alias="ZLO_NETFLIX_ENABLED")
+
     backup_dubs: list[str] = Field(["zho"], alias="BACKUP_DUBS")
     folder_structure: str = Field(
         "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
