@@ -17,7 +17,7 @@ class CR_MDNX_API:
     def __init__(self) -> None:
         self.mdnx_path = MDNX_SERVICE_BIN_PATH
         self.mdnx_service = "crunchy"
-        self.queue_service = "crunchy"
+        self.queue_service = "crunchyroll"
         self.username = str(config.app.cr_username)
         self.password = str(config.app.cr_password)
         self.download_thread = None
@@ -548,7 +548,7 @@ class CR_MDNX_API:
         _commit_staged()
 
         # apply per-series blacklist to mark episodes to skip
-        tmp_dict = apply_series_blacklist(tmp_dict, service="cr")
+        tmp_dict = apply_series_blacklist(tmp_dict, service="crunchyroll")
 
         # remove empty seasons and renumber contiguous S1..SX to keep structure compact
         for series_id, series_info in tmp_dict.items():
@@ -570,7 +570,7 @@ class CR_MDNX_API:
                     log_manager.debug(f"Renaming season {old_key} to {new_key} in series {series_id}")
 
                 stored_season_number = str(new_idx)
-                season_monitor = get_season_monitor_config("cr", series_id, season_info.get("season_id"))
+                season_monitor = get_season_monitor_config("crunchyroll", series_id, season_info.get("season_id"))
                 if season_monitor is not None and season_monitor.season_override is not None:
                     stored_season_number = str(season_monitor.season_override)
 

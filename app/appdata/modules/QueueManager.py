@@ -28,11 +28,11 @@ class QueueManager:
                 bucket[series_id] = series_info
 
                 # ensure episode flags exist for downstream logic
-                for s in series_info.get("seasons", {}).values():
-                    for ep in s.get("episodes", {}).values():
-                        ep.setdefault("episode_downloaded", False)
-                        ep.setdefault("episode_skip", False)
-                        ep.setdefault("has_all_dubs_subs", False)
+                for season_info in series_info.get("seasons", {}).values():
+                    for episode_info in season_info.get("episodes", {}).values():
+                        episode_info.setdefault("episode_downloaded", False)
+                        episode_info.setdefault("episode_skip", False)
+                        episode_info.setdefault("has_all_dubs_subs", False)
 
                 log_manager.debug(f"Added series '{series_id}' to '{bucket_name}'.")
                 continue
@@ -56,9 +56,9 @@ class QueueManager:
                     keep_key = seen[season_id]
                     keep = existing_seasons[keep_key]
 
-                    for ep_key, ep_val in old_season.get("episodes", {}).items():
-                        if ep_key not in keep.setdefault("episodes", {}):
-                            keep["episodes"][ep_key] = ep_val
+                    for episode_key, episode_value in old_season.get("episodes", {}).items():
+                        if episode_key not in keep.setdefault("episodes", {}):
+                            keep["episodes"][episode_key] = episode_value
 
                     del existing_seasons[old_key]
                 else:
@@ -78,9 +78,9 @@ class QueueManager:
                             dst = existing_seasons[canonical_key]
                             src = existing_seasons[prev_key]
 
-                            for ep_key, ep_val in src.get("episodes", {}).items():
-                                if ep_key not in dst.setdefault("episodes", {}):
-                                    dst["episodes"][ep_key] = ep_val
+                            for episode_key, episode_value in src.get("episodes", {}).items():
+                                if episode_key not in dst.setdefault("episodes", {}):
+                                    dst["episodes"][episode_key] = episode_value
 
                             del existing_seasons[prev_key]
                         else:
@@ -99,20 +99,20 @@ class QueueManager:
 
                     season[field_name] = field_value
 
-                for ep_key, new_ep in season_info.get("episodes", {}).items():
-                    old_ep = season["episodes"].get(ep_key)
+                for episode_key, new_episode in season_info.get("episodes", {}).items():
+                    old_episode = season["episodes"].get(episode_key)
 
-                    # preserve local flags when refreshing episode data
-                    if old_ep:
-                        new_ep["episode_downloaded"] = old_ep.get("episode_downloaded", False)
-                        new_ep["episode_skip"] = old_ep.get("episode_skip", False)
-                        new_ep["has_all_dubs_subs"] = old_ep.get("has_all_dubs_subs", False)
+                    # if episode already exists, preserve its flags. otherwise initialize them.
+                    if old_episode:
+                        new_episode["episode_downloaded"] = old_episode.get("episode_downloaded", False)
+                        new_episode["has_all_dubs_subs"] = old_episode.get("has_all_dubs_subs", False)
+                        new_episode.setdefault("episode_skip", old_episode.get("episode_skip", False))
                     else:
-                        new_ep.setdefault("episode_downloaded", False)
-                        new_ep.setdefault("episode_skip", False)
-                        new_ep.setdefault("has_all_dubs_subs", False)
+                        new_episode.setdefault("episode_downloaded", False)
+                        new_episode.setdefault("episode_skip", False)
+                        new_episode.setdefault("has_all_dubs_subs", False)
 
-                    season["episodes"][ep_key] = new_ep
+                    season["episodes"][episode_key] = new_episode
 
             log_manager.debug(f"Updated series '{series_id}' in '{bucket_name}'.")
 
@@ -216,26 +216,60 @@ class QueueManager:
     def _normalize_service(self, service: str) -> str | None:
         """Normalize service name to standard bucket names."""
 
-        key = str(service or "").strip().lower()
+        normalized_service = str(service or "").strip().lower()
 
-        if key in {"cr", "crunchy", "crunchyroll"}:
-            return "Crunchyroll"
+        match normalized_service:
+            case "crunchyroll":
+                return "Crunchyroll"
 
-        if key in {"hd", "hidive"}:
-            return "HiDive"
+            case "hidive":
+                return "HiDive"
 
-        log_manager.error(f"Unknown service '{service}'.")
-        return None
+            case "zlo-crunchyroll":
+                return "ZLO-Crunchyroll"
+
+            case "zlo-hidive":
+                return "ZLO-HiDive"
+
+            case "zlo-adn":
+                return "ZLO-ADN"
+
+            case "zlo-disney":
+                return "ZLO-DisneyPlus"
+
+            case "zlo-amazon":
+                return "ZLO-Amazon"
+
+            case "zlo-netflix":
+                return "ZLO-Netflix"
+
+            case _:
+                log_manager.error(f"Unknown service '{service}'.")
+                return None
 
     def _ensure_roots(self, data: dict) -> dict:
-        """Ensure both 'Crunchyroll' and 'HiDive' roots exist in the queue data."""
+        """Ensure all queue roots exist in the queue data."""
 
         if not isinstance(data, dict):
-            return {"Crunchyroll": {}, "HiDive": {}}
+            return {
+                "Crunchyroll": {},
+                "HiDive": {},
+                "ZLO-Crunchyroll": {},
+                "ZLO-HiDive": {},
+                "ZLO-ADN": {},
+                "ZLO-DisneyPlus": {},
+                "ZLO-Amazon": {},
+                "ZLO-Netflix": {}
+            }
 
-        # ensure both roots exist
         data.setdefault("Crunchyroll", {})
         data.setdefault("HiDive", {})
+        data.setdefault("ZLO-Crunchyroll", {})
+        data.setdefault("ZLO-HiDive", {})
+        data.setdefault("ZLO-ADN", {})
+        data.setdefault("ZLO-DisneyPlus", {})
+        data.setdefault("ZLO-Amazon", {})
+        data.setdefault("ZLO-Netflix", {})
         return data
 
     def _load_queue(self) -> dict:
@@ -262,7 +296,16 @@ class QueueManager:
             log_manager.debug(f"Queue file not found at {self.queue_path}. Starting with an empty queue.")
 
         # create a new empty queue file on disk
-        init = {"Crunchyroll": {}, "HiDive": {}}
+        init = {
+            "Crunchyroll": {},
+            "HiDive": {},
+            "ZLO-Crunchyroll": {},
+            "ZLO-HiDive": {},
+            "ZLO-ADN": {},
+            "ZLO-DisneyPlus": {},
+            "ZLO-Amazon": {},
+            "ZLO-Netflix": {}
+        }
 
         with open(self.queue_path, "w", encoding="utf-8") as f:
             json.dump(init, f, indent=4, ensure_ascii=False)

@@ -1,6 +1,12 @@
 {
     "cr_monitor_series_id": {},
     "hidive_monitor_series_id": {},
+    "zlo_cr_monitor_series_id": {},
+    "zlo_hidive_monitor_series_id": {},
+    "zlo_adn_monitor_series_id": {},
+    "zlo_disney_monitor_series_id": {},
+    "zlo_amazon_monitor_series_id": {},
+    "zlo_netflix_monitor_series_id": {},
     "app": {
         "CR_ENABLED": false,
         "CR_USERNAME": "",
@@ -33,6 +39,19 @@
             "vstream": "androidtv",
             "astream": "androidtv",
             "tsd": false
+        }
+    },
+    "zlo": {
+        "cli-defaults": {
+            "q": "1080p@avc",
+            "qf": true,
+            "dubLang": [
+                "JP",
+                "EN"
+            ],
+            "dlsubs": [
+                "EN"
+            ]
         }
     }
 }
