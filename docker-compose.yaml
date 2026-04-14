@@ -29,6 +29,18 @@ services:
       ## Playready
       #- ./appdata/mdnx/playready:/app/appdata/bin/mdnx/playready:rw
 
+
+      ### ZLO config (do not uncomment/use) ###
+
+      # ZLO config dir (C:/Users/[user]/Documents/zlo7/*)
+      - ./appdata/zlo/config:/home/mdnx-auto-dl/Documents:rw
+
+      # ZLO static dir
+      - ./appdata/zlo/static:/app/appdata/bin/zlo/static:rw
+
+      # ZLO CLI binary
+      - ./appdata/zlo/zlo7:/app/appdata/bin/zlo/zlo7:rw
+
     environment:
       - UID=1000
       - GID=1000
