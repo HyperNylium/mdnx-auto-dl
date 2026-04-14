@@ -69,8 +69,6 @@ class MainLoop:
                             case 2:
                                 log_manager.info("Your 'hidive_monitor_series_id' list is empty. Skipped refreshing empty list.")
 
-                current_queue = queue_manager.output()
-
                 if self.only_create_queue == True:
                     log_manager.info("ONLY_CREATE_QUEUE is True. Exiting after queue creation.\nIf docker-compose.yaml has 'restart: always/unless-stopped', please change it to 'restart: no' to prevent restart loop.")
                     self.stop()
@@ -78,21 +76,21 @@ class MainLoop:
 
                 # download any missing / not yet downloaded episodes for Crunchyroll
                 if self.cr_enabled:
-                    self._download_for_service("Crunchyroll", self.cr_mdnx_api, current_queue)
+                    self._download_for_service("crunchyroll", "Crunchyroll", self.cr_mdnx_api)
 
                     # check for missing dubs and subs in downloaded files for Crunchyroll series
                     if self.check_missing_dub_sub == True:
-                        self._refresh_dub_sub_for_service("Crunchyroll", self.cr_mdnx_api, current_queue)
+                        self._refresh_dub_sub_for_service("crunchyroll", "Crunchyroll", self.cr_mdnx_api)
                     else:
                         log_manager.info("CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification for Crunchyroll.")
 
                 # download any missing / not yet downloaded episodes for HiDive
                 if self.hidive_enabled:
-                    self._download_for_service("HiDive", self.hidive_mdnx_api, current_queue)
+                    self._download_for_service("hidive", "HiDive", self.hidive_mdnx_api)
 
                     # check for missing dubs and subs in downloaded files for HiDive series
                     if self.check_missing_dub_sub == True:
-                        self._refresh_dub_sub_for_service("HiDive", self.hidive_mdnx_api, current_queue)
+                        self._refresh_dub_sub_for_service("hidive", "HiDive", self.hidive_mdnx_api)
                     else:
                         log_manager.info("CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification for HiDive.")
 
@@ -264,52 +262,54 @@ class MainLoop:
         cr_monitor_ids = set(config.cr_monitor_series_id.keys())
         hd_monitor_ids = set(config.hidive_monitor_series_id.keys())
 
-        def process_service(service: str, service_configured: bool, api, monitor_ids: set) -> int | None:
+        def process_service(service_key: str, service_label: str, service_configured: bool, api, monitor_ids: set) -> int | None:
             """Process monitor start/stop for a given service."""
 
             # if service not configured, dont refresh queue for said service.
             if not service_configured:
-                log_manager.debug(f"{service} is disabled. Skipping monitor refresh for {service}.")
+                log_manager.debug(f"{service_label} is disabled. Skipping monitor refresh for {service_label}.")
                 return 1
 
             # only look at the correct bucket inside queue.json for this service
-            bucket = queue_manager.output(service) or {}
+            bucket = queue_manager.output(service_key) or {}
             queue_ids = set(bucket.keys())
 
             # if both lists are empty, nothing to do, exit early
             if not monitor_ids and not queue_ids:
-                log_manager.debug(f"No {service} series to monitor/stop. (both the monitor list and queue are empty)")
+                log_manager.debug(f"No {service_label} series to monitor/stop. (both the monitor list and queue are empty)")
                 return 2
 
             # start or update monitors
-            log_manager.info(f"Checking {service} monitors...")
+            log_manager.info(f"Checking {service_label} monitors...")
             for series_id in monitor_ids:
                 if series_id not in queue_ids:
-                    log_manager.info(f"[{service}] Starting monitor for {series_id}")
+                    log_manager.info(f"[{service_label}] Starting monitor for {series_id}")
                     api.start_monitor(series_id)
                 else:
-                    log_manager.info(f"[{service}] Updating monitor for {series_id}")
+                    log_manager.info(f"[{service_label}] Updating monitor for {series_id}")
                     api.update_monitor(series_id)
 
             # stop monitors for series removed from config so they are no longer monitored
-            log_manager.info(f"Checking {service} monitors to stop...")
+            log_manager.info(f"Checking {service_label} monitors to stop...")
             for series_id in queue_ids:
                 if series_id not in monitor_ids:
-                    log_manager.info(f"[{service}] Stopping monitor for {series_id}")
+                    log_manager.info(f"[{service_label}] Stopping monitor for {series_id}")
                     api.stop_monitor(series_id)
 
-            log_manager.info(f"{service} monitor refresh complete.")
+            log_manager.info(f"{service_label} monitor refresh complete.")
             return None
 
         mdnx_cr_refresh_state = process_service(
-            service="Crunchyroll",
+            service_key="crunchyroll",
+            service_label="Crunchyroll",
             service_configured=self.cr_mdnx_api_configured,
             api=self.cr_mdnx_api,
             monitor_ids=cr_monitor_ids,
         )
 
         mdnx_hd_refresh_state = process_service(
-            service="HiDive",
+            service_key="hidive",
+            service_label="HiDive",
             service_configured=self.hidive_mdnx_api_configured,
             api=self.hidive_mdnx_api,
             monitor_ids=hd_monitor_ids,
@@ -318,22 +318,22 @@ class MainLoop:
         log_manager.info("MDNX queue refresh complete.")
         return (mdnx_cr_refresh_state, mdnx_hd_refresh_state)
 
-    def _download_for_service(self, service: str, mdnx_api, current_queue: dict) -> None:
+    def _download_for_service(self, service: str, service_label: str, mdnx_api) -> None:
         """Download missing / not yet downloaded episodes for the specified service."""
 
         if self.stop_requested:
-            log_manager.info(f"Stop requested. Skipping download for {service}.")
+            log_manager.info(f"Stop requested. Skipping download for {service_label}.")
             return
 
-        log_manager.info(f"Checking for episodes to download from {service}...")
+        log_manager.info(f"Checking for episodes to download from {service_label}...")
 
         # only look at the correct bucket inside queue.json for this service
-        bucket = current_queue.get(service, {})
+        bucket = queue_manager.output(service) or {}
 
         for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(bucket):
 
             if self.stop_requested:
-                log_manager.info(f"Stop requested. Skipping download for {service}.")
+                log_manager.info(f"Stop requested. Skipping download for {service_label}.")
                 return
 
             file_path = get_episode_file_path(bucket, series_id, season_key, episode_key, DATA_DIR)
@@ -369,8 +369,8 @@ class MainLoop:
                     dub_overrides = season_monitor.dub_overrides
                     sub_overrides = season_monitor.sub_overrides
 
-                dub_override = select_dubs(episode_info, dub_overrides)
-                sub_override = select_subs(episode_info, sub_overrides)
+                dub_override = select_dubs(service, episode_info, dub_overrides)
+                sub_override = select_subs(service, episode_info, sub_overrides)
 
                 dl_start = time.perf_counter()
                 download_successful = mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override, sub_override)
@@ -398,22 +398,22 @@ class MainLoop:
                 if self._wait_or_interrupt(timeout=self.between_episode_timeout):
                     return
 
-    def _refresh_dub_sub_for_service(self, service: str, mdnx_api, current_queue: dict) -> None:
+    def _refresh_dub_sub_for_service(self, service: str, service_label: str, mdnx_api) -> None:
         """Check existing episodes for missing dubs/subs and re-download if needed."""
 
         if self.stop_requested:
-            log_manager.info(f"Stop requested. Skipping dub/sub verification for {service}.")
+            log_manager.info(f"Stop requested. Skipping dub/sub verification for {service_label}.")
             return
 
-        log_manager.info(f"Checking if already existing episodes have new dubs/subs from {service}...")
+        log_manager.info(f"Checking if already existing episodes have new dubs/subs from {service_label}...")
 
         # only look at the correct bucket inside queue.json for this service
-        bucket = current_queue.get(service, {})
+        bucket = queue_manager.output(service) or {}
 
         for series_id, season_key, episode_key, season_info, episode_info in iter_episodes(bucket):
 
             if self.stop_requested:
-                log_manager.info(f"Stop requested. Skipping dub/sub verification for {service}.")
+                log_manager.info(f"Stop requested. Skipping dub/sub verification for {service_label}.")
                 return
 
             season_monitor = get_season_monitor_config(service, series_id, season_info["season_id"])
@@ -499,7 +499,7 @@ class MainLoop:
                 continue
 
             if skip_download:
-                log_manager.info(f"Skipping re-download for {episode_basename}: requested tracks are missing locally but not offered by {service} yet.")
+                log_manager.info(f"Skipping re-download for {episode_basename}: requested tracks are missing locally but not offered by {service_label} yet.")
                 continue
 
             if effective_missing_dubs:
@@ -515,8 +515,8 @@ class MainLoop:
                 dub_overrides = season_monitor.dub_overrides
                 sub_overrides = season_monitor.sub_overrides
 
-            dub_override = select_dubs(episode_info, dub_overrides)
-            sub_override = select_subs(episode_info, sub_overrides)
+            dub_override = select_dubs(service, episode_info, dub_overrides)
+            sub_override = select_subs(service, episode_info, sub_overrides)
 
             dl_start = time.perf_counter()
             download_successful = mdnx_api.download_episode(series_id, season_info["season_id"], episode_info["episode_number_download"], dub_override, sub_override)

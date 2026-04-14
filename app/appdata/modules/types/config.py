@@ -19,10 +19,10 @@ class AppConfig(BaseModel):
 
     zlo_cr_enabled: bool = Field(False, alias="ZLO_CR_ENABLED")
     zlo_hidive_enabled: bool = Field(False, alias="ZLO_HIDIVE_ENABLED")
-    # zlo_adn_enabled: bool = Field(False, alias="ZLO_ADN_ENABLED")
-    # zlo_disneyplus_enabled: bool = Field(False, alias="ZLO_DISNEYPLUS_ENABLED")
-    # zlo_amazon_enabled: bool = Field(False, alias="ZLO_AMAZON_ENABLED")
-    # zlo_netflix_enabled: bool = Field(False, alias="ZLO_NETFLIX_ENABLED")
+    zlo_adn_enabled: bool = Field(False, alias="ZLO_ADN_ENABLED")
+    zlo_disneyplus_enabled: bool = Field(False, alias="ZLO_DISNEYPLUS_ENABLED")
+    zlo_amazon_enabled: bool = Field(False, alias="ZLO_AMAZON_ENABLED")
+    zlo_netflix_enabled: bool = Field(False, alias="ZLO_NETFLIX_ENABLED")
 
     backup_dubs: list[str] = Field(["zho"], alias="BACKUP_DUBS")
     folder_structure: str = Field(
@@ -111,11 +111,35 @@ class MdnxConfig(BaseModel):
     dir_path: MdnxDirPath = Field(default_factory=MdnxDirPath, alias="dir-path")
 
 
+class ZloCliDefaults(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    q: str = "1080p@avc"
+    qf: bool = True
+    dubLang: list[str] = ["JP", "EN"]
+    dlsubs: list[str] = ["EN"]
+    dlpath: str = "/app/appdata/temp"
+    tempPath: str = "/tmp"
+
+
+class ZloConfig(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    cli_defaults: ZloCliDefaults = Field(default_factory=ZloCliDefaults, alias="cli-defaults")
+
+
 class Config(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
     hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
 
+    zlo_cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    zlo_hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    zlo_adn_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    zlo_disneyplus_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    zlo_amazon_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    zlo_netflix_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+
     app: AppConfig = Field(default_factory=AppConfig)
     mdnx: MdnxConfig = Field(default_factory=MdnxConfig)
+    zlo: ZloConfig = Field(default_factory=ZloConfig)
