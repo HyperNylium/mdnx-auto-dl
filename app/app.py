@@ -199,10 +199,17 @@ def app():
         from appdata.modules.API.ZLO7.crunchy import CR_ZLO_API
         zlo_cr_api = CR_ZLO_API()
 
+    zlo_hidive_api = None
+    if config.app.zlo_hidive_enabled is True:
+        log_manager.info("Starting HIDIVE_ZLO_API...")
+        from appdata.modules.API.ZLO7.hidive import HIDIVE_ZLO_API
+        zlo_hidive_api = HIDIVE_ZLO_API()
+
     mainloop = MainLoop(
         cr_mdnx_api=cr_mdnx_api,
         hidive_mdnx_api=hidive_mdnx_api,
         zlo_cr_api=zlo_cr_api,
+        zlo_hidive_api=zlo_hidive_api,
         notifier=notifier
     )
 
