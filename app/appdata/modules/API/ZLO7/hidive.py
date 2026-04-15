@@ -144,6 +144,7 @@ class HIDIVE_ZLO_API:
             tmp_cmd += ["--dlsubs", joined_subs]
             log_manager.info(f"Using dlsubs override: {joined_subs}")
 
+        tmp_cmd += ["--fileName", "output"]
         tmp_cmd += ["--dlpath", config.zlo.hidive.dlpath]
         tmp_cmd += ["--tempPath", config.zlo.hidive.tempPath]
         tmp_cmd += ["--full"]
@@ -158,7 +159,6 @@ class HIDIVE_ZLO_API:
                 log_manager.error("A download is already in progress. refusing to start a second one.")
                 return False
 
-        existing_download_files = self._get_download_candidates()
         result = {"returncode": None}
 
         worker = threading.Thread(
@@ -182,8 +182,8 @@ class HIDIVE_ZLO_API:
             log_manager.error(f"Download failed with exit code {returncode}")
             return False
 
-        if not self._stage_download_output(existing_download_files):
-            log_manager.error("Download finished, but no new media file was found in the ZLO download directory.")
+        if not os.path.isfile(self.download_filename):
+            log_manager.error(f"Download finished, but expected output file was not found: {self.download_filename}")
             return False
 
         log_manager.info("Download finished successfully.")
@@ -442,68 +442,3 @@ class HIDIVE_ZLO_API:
             normalized_qualities.append(quality_name)
 
         return dedupe_casefold(normalized_qualities)
-
-    def _get_download_candidates(self) -> set[str]:
-        """List finished media files in the ZLO download folder."""
-
-        found_files = set()
-
-        if not os.path.isdir(self.service_config.dlpath):
-            return found_files
-
-        for name in os.listdir(self.service_config.dlpath):
-            full_path = os.path.join(self.service_config.dlpath, name)
-
-            if not os.path.isfile(full_path):
-                continue
-
-            lower_name = name.lower()
-
-            if lower_name == "output.mkv":
-                continue
-
-            if lower_name.endswith(".mkv"):
-                found_files.add(full_path)
-
-        return found_files
-
-    def _stage_download_output(self, previous_files: set[str]) -> bool:
-        """Rename the newest downloaded file to output.mkv."""
-
-        current_files = self._get_download_candidates()
-
-        new_files = []
-        for current_file in current_files:
-            if current_file not in previous_files:
-                new_files.append(current_file)
-
-        candidate_files = []
-        if new_files:
-            candidate_files = new_files
-        else:
-            for current_file in current_files:
-                candidate_files.append(current_file)
-
-        if candidate_files == []:
-            return False
-
-        newest_file = candidate_files[0]
-        newest_mtime = os.path.getmtime(newest_file)
-
-        for candidate_file in candidate_files[1:]:
-            candidate_mtime = os.path.getmtime(candidate_file)
-            if candidate_mtime > newest_mtime:
-                newest_file = candidate_file
-                newest_mtime = candidate_mtime
-
-        try:
-            if os.path.exists(self.download_filename):
-                os.remove(self.download_filename)
-
-            os.replace(newest_file, self.download_filename)
-            log_manager.info(f"Prepared ZLO output file for transfer: {self.download_filename}")
-            return True
-
-        except Exception as e:
-            log_manager.error(f"Failed to prepare ZLO output file '{newest_file}': {e}")
-            return False
