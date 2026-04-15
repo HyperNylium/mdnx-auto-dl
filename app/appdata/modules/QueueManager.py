@@ -233,11 +233,6 @@ class QueueManager:
         if not isinstance(data, dict):
             return {"Crunchyroll": {}, "HiDive": {}}
 
-        # migrate legacy format
-        if "Crunchyroll" not in data and "HiDive" not in data:
-            log_manager.info("Migrating legacy queue format to namespaced layout under 'Crunchyroll'.")
-            data = {"Crunchyroll": data, "HiDive": {}}
-
         # ensure both roots exist
         data.setdefault("Crunchyroll", {})
         data.setdefault("HiDive", {})
