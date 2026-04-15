@@ -220,7 +220,8 @@ MDNX_API_OK_LOGS = [
     "[mkvmerge] Mkvmerge finished"
 ]
 
-# Language mapping for MDNX
+# Language mapping
+# format is: "Language Name": ["mdnx_dub_code", "mdnx_sub_locale", "zlo_code"]
 LANG_MAP = {
     "English": ["eng", "en", "EN"],
     "English (India)": ["eng", "en-IN", "EN"],
@@ -269,11 +270,6 @@ for language_values in LANG_MAP.values():
     subtitle_locale = language_values[1].lower()
     CODE_TO_LOCALE[dub_code] = subtitle_locale
 
-# This will look like: {"English": "EN", "Spanish": "LA-ES", ...}
-ZLO_NAME_TO_CODE = {}
-for language_name, language_values in LANG_MAP.items():
-    ZLO_NAME_TO_CODE[language_name] = language_values[2]
-
 # This will look like: {"eng": "EN", "spa": "LA-ES", ...}
 MDNX_DUB_CODE_TO_ZLO_CODE = {}
 for language_values in LANG_MAP.values():
@@ -302,6 +298,11 @@ for language_values in LANG_MAP.values():
     zlo_code = language_values[2].upper()
     ZLO_CODE_TO_MDNX_SUB_CODE[zlo_code] = subtitle_locale
 
+# normalize service-specific ZLO subtitle locales back to normal subtitle locales.
+ZLO_SUBTITLE_LOCALE_ALIAS_TO_LOCALE = {
+    "en-us": "en",  # used by HiDive for English subtitles in the US
+    "es-mx": "es-419",  # used by HiDive for Spanish subtitles in Latin America
+}
 
 # This will look like: {"TEMP_DIR": "temp_dir", "CR_ENABLED": "cr_enabled", ...}
 APP_ALIAS_KEY_TO_FIELD_NAME = {}
