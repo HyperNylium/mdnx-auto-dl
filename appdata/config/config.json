@@ -63,6 +63,12 @@
             "dlsubs": [
                 "EN"
             ]
+        },
+        "adn": {
+            "q": "1080p@avc",
+            "qf": true,
+            "dubLang": ["JP", "EN"],
+            "dlsubs": ["EN"]
         }
     }
 }
