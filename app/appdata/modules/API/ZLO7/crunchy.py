@@ -145,8 +145,8 @@ class CR_ZLO_API:
             log_manager.info(f"Using dlsubs override: {joined_subs}")
 
         tmp_cmd += ["--fileName", "output"]
-        tmp_cmd += ["--dlpath", config.zlo.crunchyroll.dlpath]
-        tmp_cmd += ["--tempPath", config.zlo.crunchyroll.tempPath]
+        tmp_cmd += ["--dlpath", self.service_config.dlpath]
+        tmp_cmd += ["--tempPath", self.service_config.tempPath]
 
         if self.stdbuf_exists:
             cmd = ["stdbuf", "-oL", "-eL", *tmp_cmd]
