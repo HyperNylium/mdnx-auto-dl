@@ -145,8 +145,8 @@ class HIDIVE_ZLO_API:
             log_manager.info(f"Using dlsubs override: {joined_subs}")
 
         tmp_cmd += ["--fileName", "output"]
-        tmp_cmd += ["--dlpath", config.zlo.hidive.dlpath]
-        tmp_cmd += ["--tempPath", config.zlo.hidive.tempPath]
+        tmp_cmd += ["--dlpath", self.service_config.dlpath]
+        tmp_cmd += ["--tempPath", self.service_config.tempPath]
         tmp_cmd += ["--full"]
 
         if self.stdbuf_exists:
