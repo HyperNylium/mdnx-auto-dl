@@ -205,11 +205,18 @@ def app():
         from appdata.modules.API.ZLO7.hidive import HIDIVE_ZLO_API
         zlo_hidive_api = HIDIVE_ZLO_API()
 
+    zlo_adn_api = None
+    if config.app.zlo_adn_enabled is True:
+        log_manager.info("Starting ADN_ZLO_API...")
+        from appdata.modules.API.ZLO7.adn import ADN_ZLO_API
+        zlo_adn_api = ADN_ZLO_API()
+
     mainloop = MainLoop(
         cr_mdnx_api=cr_mdnx_api,
         hidive_mdnx_api=hidive_mdnx_api,
         zlo_cr_api=zlo_cr_api,
         zlo_hidive_api=zlo_hidive_api,
+        zlo_adn_api=zlo_adn_api,
         notifier=notifier
     )
 
