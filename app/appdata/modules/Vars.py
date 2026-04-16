@@ -300,8 +300,13 @@ for language_values in LANG_MAP.values():
 
 # normalize service-specific ZLO subtitle locales back to normal subtitle locales.
 ZLO_SUBTITLE_LOCALE_ALIAS_TO_LOCALE = {
-    "en-us": "en",  # used by HiDive for English subtitles in the US
-    "es-mx": "es-419",  # used by HiDive for Spanish subtitles in Latin America
+    "en-us": "en",        # used by HiDive and Amazon for English subtitles
+    "es-mx": "es-419",    # used by HiDive and Amazon for Latin America Spanish subtitles
+    "zh-hans": "zh-CN",   # used by Disney and Amazon for Simplified Chinese subtitles
+    "zh-hant": "zh-TW",   # used by Disney and Amazon for Traditional Chinese subtitles
+    "cmn-cn": "zh-CN",    # used by Amazon for Mandarin Chinese subtitles
+    "id": "id-ID",        # Disney can return plain "id" for Indonesian subtitles
+    "ms": "ms-MY",        # Disney can return plain "ms" for Malay subtitles
 }
 
 # This will look like: {"TEMP_DIR": "temp_dir", "CR_ENABLED": "cr_enabled", ...}
