@@ -7,8 +7,8 @@ import threading
 from appdata.modules.Globals import queue_manager, log_manager
 from appdata.modules.Vars import (
     config,
-    VALID_LOCALES, ZLO_SERVICE_BIN_PATH, ZLO_CODE_TO_MDNX_DUB_CODE, ZLO_SUBTITLE_LOCALE_ALIAS_TO_LOCALE,
-    dedupe_casefold, sanitize, apply_series_blacklist, get_season_monitor_config
+    ZLO_SERVICE_BIN_PATH, normalize_zlo_dubs, normalize_zlo_subtitles, normalize_zlo_qualities,
+    sanitize, apply_series_blacklist, get_season_monitor_config
 )
 
 
@@ -294,9 +294,9 @@ class ADN_ZLO_API:
                 kept_episode_count += 1
                 episode_key = f"E{kept_episode_count}"
 
-                available_dubs = self._normalize_dubs(episode_data.get("dubs") or [])
-                available_subs = self._normalize_subtitles(episode_data.get("subtitles") or [])
-                available_qualities = self._normalize_qualities(episode_data.get("qualities") or [])
+                available_dubs = normalize_zlo_dubs(episode_data.get("dubs") or [])
+                available_subs = normalize_zlo_subtitles(episode_data.get("subtitles") or [])
+                available_qualities = normalize_zlo_qualities(episode_data.get("qualities") or [])
 
                 episodes_dict[episode_key] = {
                     "episode_number": str(kept_episode_count),
@@ -366,79 +366,3 @@ class ADN_ZLO_API:
                 break
 
         return parsed_payload
-
-    def _normalize_dubs(self, raw_dubs: list) -> list[str]:
-        """Map ZLO dub codes like EN or JP to the queue format used by the rest of the app."""
-
-        available_dubs = []
-
-        for raw_dub in raw_dubs:
-            zlo_dub_code = str(raw_dub).strip().upper()
-            if zlo_dub_code == "":
-                continue
-
-            mapped_dub_code = ZLO_CODE_TO_MDNX_DUB_CODE.get(zlo_dub_code)
-            if mapped_dub_code is None:
-                continue
-
-            available_dubs.append(mapped_dub_code)
-
-        return dedupe_casefold(available_dubs)
-
-    def _normalize_subtitles(self, raw_subtitles: list) -> list[str]:
-        """Map ZLO subtitle locale strings to the queue format used by the rest of the app."""
-
-        available_subtitles = []
-
-        for raw_subtitle in raw_subtitles:
-            subtitle_locale = str(raw_subtitle).strip()
-            if subtitle_locale == "":
-                continue
-
-            lowered_locale = subtitle_locale.lower()
-            matched_locale = None
-
-            for valid_locale in VALID_LOCALES:
-                if valid_locale.lower() == lowered_locale:
-                    matched_locale = valid_locale
-                    break
-
-            # hidive returns some ZLO subtitle locales like en-US and es-MX.
-            # we map those back to the normal subtitle locale values.
-            if matched_locale is None:
-                alias_locale = ZLO_SUBTITLE_LOCALE_ALIAS_TO_LOCALE.get(lowered_locale)
-                if alias_locale is not None:
-                    for valid_locale in VALID_LOCALES:
-                        if valid_locale.lower() == alias_locale:
-                            matched_locale = valid_locale
-                            break
-
-                    if matched_locale is None:
-                        matched_locale = alias_locale
-
-            if matched_locale is None and "-" in lowered_locale:
-                base_locale = lowered_locale.split("-", 1)[0]
-
-                for valid_locale in VALID_LOCALES:
-                    if valid_locale.lower() == base_locale:
-                        matched_locale = valid_locale
-                        break
-
-            if matched_locale is not None:
-                available_subtitles.append(matched_locale)
-
-        return dedupe_casefold(available_subtitles)
-
-    def _normalize_qualities(self, raw_qualities: list) -> list[str]:
-        """Keep the available quality list in the order ZLO returned it."""
-
-        normalized_qualities = []
-
-        for raw_quality in raw_qualities:
-            quality_name = str(raw_quality).strip()
-            if quality_name == "":
-                continue
-
-            normalized_qualities.append(quality_name)
-
-        return dedupe_casefold(normalized_qualities)
