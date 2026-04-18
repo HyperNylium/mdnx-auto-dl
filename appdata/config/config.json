@@ -67,8 +67,33 @@
         "adn": {
             "q": "1080p@avc",
             "qf": true,
-            "dubLang": ["JP", "EN"],
-            "dlsubs": ["EN"]
+            "dubLang": [
+                "JP",
+                "EN"
+            ],
+            "dlsubs": [
+                "EN"
+            ]
+        },
+        "disney": {
+            "q": "1080p@avc",
+            "qf": true,
+            "dubLang": [
+                "EN"
+            ],
+            "dlsubs": [
+                "EN"
+            ]
+        },
+        "amazon": {
+            "q": "1080p@avc",
+            "qf": true,
+            "dubLang": [
+                "EN"
+            ],
+            "dlsubs": [
+                "EN"
+            ]
         }
     }
 }

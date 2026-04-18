@@ -38,11 +38,45 @@ mdnx:
         tsd: false
 
 zlo:
-    cli-defaults:
+    crunchyroll:
         q: "1080p@avc"
         qf: true
         dubLang:
             - "JP"
+            - "EN"
+        dlsubs:
+            - "EN"
+
+    hidive:
+        q: "1080p@avc"
+        qf: true
+        dubLang:
+            - "JP"
+            - "EN"
+        dlsubs:
+            - "EN"
+
+    adn:
+        q: "1080p@avc"
+        qf: true
+        dubLang:
+            - "JP"
+            - "EN"
+        dlsubs:
+            - "EN"
+
+    disney:
+        q: "1080p@avc"
+        qf: true
+        dubLang:
+            - "EN"
+        dlsubs:
+            - "EN"
+
+    amazon:
+        q: "1080p@avc"
+        qf: true
+        dubLang:
             - "EN"
         dlsubs:
             - "EN"
