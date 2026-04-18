@@ -222,25 +222,39 @@ MDNX_API_OK_LOGS = [
 
 # Language mapping
 # format is: "Language Name": ["mdnx_dub_code", "mdnx_sub_locale", "zlo_code"]
-LANG_MAP = {
+LANG_MAP: dict[str, list[str | None]] = {
     "English": ["eng", "en", "EN"],
     "English (India)": ["eng", "en-IN", "EN"],
+    "English (UK)": ["eng", "en", "EN-GB"],
+
     "Spanish": ["spa", "es-419", "LA-ES"],
+    "Spanish (Mexico)": ["spa-419", "es-419", "MX-ES"],
     "Castilian": ["spa-ES", "es-ES", "ES"],
+
     "Portuguese": ["por", "pt-BR", "PT"],
     "Portuguese (Portugal)": ["por", "pt-PT", "PT-PT"],
+
     "French": ["fra", "fr", "FR"],
+    "French (Canada)": ["fra", "fr", "FR-CA"],
+
     "German": ["deu", "de", "DE"],
-    "Arabic": ["ara-ME", "ar", "AR-001"],
+
+    "Arabic": ["ara-ME", "ar", "AR"],
     "Arabic (Saudi Arabia)": ["ara", "ar", "AR"],
+    "Arabic (Modern Standard)": ["ara-ME", "ar", "AR-001"],
+
     "Italian": ["ita", "it", "IT"],
     "Russian": ["rus", "ru", "RU"],
     "Turkish": ["tur", "tr", "TR"],
     "Hindi": ["hin", "hi", "HI"],
+
     "Chinese (Mandarin, PRC)": ["cmn", "zh", "CN"],
     "Chinese (Mainland China)": ["zho", "zh-CN", "CN"],
     "Chinese (Taiwan)": ["chi", "zh-TW", "TW"],
     "Chinese (Hong-Kong)": ["zh-HK", "zh-HK", "HK"],
+    "Chinese (Simplified)": ["zho", "zh-CN", "CN"],
+    "Chinese (Traditional)": ["chi", "zh-TW", "TW"],
+
     "Korean": ["kor", "ko", "KO"],
     "Catalan": ["cat", "ca-ES", "CA"],
     "Polish": ["pol", "pl-PL", "PL"],
@@ -251,63 +265,119 @@ LANG_MAP = {
     "Indonesian": ["ind", "id-ID", "ID"],
     "Telugu (India)": ["tel", "te-IN", "TE"],
     "Japanese": ["jpn", "ja", "JP"],
+
+    "Norwegian Bokmal": [None, None, "NB"],
+
+    # ZLO only languages (no MDNX dub or sub code)
+    "Dutch": [None, None, "NL"],
+    "Swedish": [None, None, "SV"],
+    "Finnish": [None, None, "FI"],
+    "Norwegian": [None, None, "NO"],
+    "Greek": [None, None, "EL"],
+    "Hebrew": [None, None, "HE"],
+    "Ukrainian": [None, None, "UK"],
+    "Persian": [None, None, "FA"],
+    "Bengali": [None, None, "BN"],
+    "Czech": [None, None, "CS"],
+    "Romanian": [None, None, "RO"],
+    "Hungarian": [None, None, "HU"],
+    "Tagalog": [None, None, "TL"],
+    "Khmer": [None, None, "KM"],
+    "Burmese": [None, None, "MY"],
+    "Mongolian": [None, None, "MN"],
+    "Icelandic": [None, None, "IS"],
+    "Slovak": [None, None, "SK"],
+    "Kannada": [None, None, "KN"],
+    "Malayalam": [None, None, "ML"],
+    "Basque": [None, None, "EU"],
+    "Galician": [None, None, "GL"],
+    "Serbian": [None, None, "SR"],
+    "Macedonian": [None, None, "MK"],
+    "Croatian": [None, None, "HR"],
+    "Slovenian": [None, None, "SL"],
+    "Bulgarian": [None, None, "BG"],
 }
 
 # This will look like: {"English": "eng", "Spanish": "spa", ...}
 NAME_TO_CODE = {}
 for language_name, language_values in LANG_MAP.items():
-    NAME_TO_CODE[language_name] = language_values[0]
+    dub_code = language_values[0]
+    if dub_code is None:
+        continue
+
+    NAME_TO_CODE[language_name] = dub_code
 
 # This will look like: {"en", "es-419", ...}
 VALID_LOCALES = set()
 for language_values in LANG_MAP.values():
-    VALID_LOCALES.add(language_values[1])
+    subtitle_locale = language_values[1]
+    if subtitle_locale is None:
+        continue
+
+    VALID_LOCALES.add(subtitle_locale)
 
 # This will look like: {"eng": "en", "spa": "es-419", ...}
 CODE_TO_LOCALE = {}
 for language_values in LANG_MAP.values():
-    dub_code = language_values[0].lower()
-    subtitle_locale = language_values[1].lower()
-    CODE_TO_LOCALE[dub_code] = subtitle_locale
+    dub_code = language_values[0]
+    subtitle_locale = language_values[1]
+
+    if dub_code is None or subtitle_locale is None:
+        continue
+
+    lowered_dub_code = dub_code.lower()
+    lowered_subtitle_locale = subtitle_locale.lower()
+
+    if lowered_dub_code not in CODE_TO_LOCALE:
+        CODE_TO_LOCALE[lowered_dub_code] = lowered_subtitle_locale
 
 # This will look like: {"eng": "EN", "spa": "LA-ES", ...}
 MDNX_DUB_CODE_TO_ZLO_CODE = {}
 for language_values in LANG_MAP.values():
-    dub_code = language_values[0].lower()
+    dub_code = language_values[0]
     zlo_code = language_values[2]
-    MDNX_DUB_CODE_TO_ZLO_CODE[dub_code] = zlo_code
+
+    if dub_code is None:
+        continue
+
+    lowered_dub_code = dub_code.lower()
+    if lowered_dub_code not in MDNX_DUB_CODE_TO_ZLO_CODE:
+        MDNX_DUB_CODE_TO_ZLO_CODE[lowered_dub_code] = zlo_code
 
 # This will look like: {"en": "EN", "es-419": "LA-ES", ...}
 MDNX_SUB_CODE_TO_ZLO_CODE = {}
 for language_values in LANG_MAP.values():
-    subtitle_locale = language_values[1].lower()
+    subtitle_locale = language_values[1]
     zlo_code = language_values[2]
-    MDNX_SUB_CODE_TO_ZLO_CODE[subtitle_locale] = zlo_code
+
+    if subtitle_locale is None:
+        continue
+
+    lowered_subtitle_locale = subtitle_locale.lower()
+    if lowered_subtitle_locale not in MDNX_SUB_CODE_TO_ZLO_CODE:
+        MDNX_SUB_CODE_TO_ZLO_CODE[lowered_subtitle_locale] = zlo_code
 
 # This will look like: {"JP": "jpn", "EN": "eng", ...}
 ZLO_CODE_TO_MDNX_DUB_CODE = {}
 for language_values in LANG_MAP.values():
-    dub_code = language_values[0].lower()
+    dub_code = language_values[0]
     zlo_code = language_values[2].upper()
-    ZLO_CODE_TO_MDNX_DUB_CODE[zlo_code] = dub_code
+
+    if dub_code is None:
+        continue
+
+    ZLO_CODE_TO_MDNX_DUB_CODE[zlo_code] = dub_code.lower()
 
 # This will look like: {"JP": "ja", "EN": "en", ...}
 ZLO_CODE_TO_MDNX_SUB_CODE = {}
 for language_values in LANG_MAP.values():
-    subtitle_locale = language_values[1].lower()
+    subtitle_locale = language_values[1]
     zlo_code = language_values[2].upper()
-    ZLO_CODE_TO_MDNX_SUB_CODE[zlo_code] = subtitle_locale
 
-# normalize service-specific ZLO subtitle locales back to normal subtitle locales.
-ZLO_SUBTITLE_LOCALE_ALIAS_TO_LOCALE = {
-    "en-us": "en",        # used by HiDive and Amazon for English subtitles
-    "es-mx": "es-419",    # used by HiDive and Amazon for Latin America Spanish subtitles
-    "zh-hans": "zh-CN",   # used by Disney and Amazon for Simplified Chinese subtitles
-    "zh-hant": "zh-TW",   # used by Disney and Amazon for Traditional Chinese subtitles
-    "cmn-cn": "zh-CN",    # used by Amazon for Mandarin Chinese subtitles
-    "id": "id-ID",        # Disney can return plain "id" for Indonesian subtitles
-    "ms": "ms-MY",        # Disney can return plain "ms" for Malay subtitles
-}
+    if subtitle_locale is None:
+        continue
+
+    ZLO_CODE_TO_MDNX_SUB_CODE[zlo_code] = subtitle_locale.lower()
 
 # This will look like: {"TEMP_DIR": "temp_dir", "CR_ENABLED": "cr_enabled", ...}
 APP_ALIAS_KEY_TO_FIELD_NAME = {}
@@ -904,6 +974,61 @@ def select_subs(service: str, episode_info: dict, sub_overrides: list[str] | Non
             return None
 
 
+def normalize_zlo_dubs(raw_dubs: list) -> list[str]:
+    """Map supported ZLO dub codes like EN or JP to the queue format used by the rest of the app."""
+
+    available_dubs = []
+
+    for raw_dub in raw_dubs:
+        dub_code = str(raw_dub).strip()
+        if dub_code == "":
+            continue
+
+        mapped_dub_code = ZLO_CODE_TO_MDNX_DUB_CODE.get(dub_code)
+        if mapped_dub_code is None:
+            _log(f"Dropping unsupported ZLO dub code: {raw_dub}", level="debug")
+            continue
+
+        available_dubs.append(mapped_dub_code)
+
+    return dedupe_casefold(available_dubs)
+
+
+def normalize_zlo_subtitles(raw_subtitles: list) -> list[str]:
+    """Map supported ZLO subtitle codes like EN or LA-ES to the queue format used by the rest of the app."""
+
+    available_subtitles = []
+
+    for raw_subtitle in raw_subtitles:
+        subtitle_code = str(raw_subtitle).strip()
+        if subtitle_code == "":
+            continue
+
+        mapped_subtitle_code = ZLO_CODE_TO_MDNX_SUB_CODE.get(subtitle_code)
+        if mapped_subtitle_code is None:
+            _log(f"Dropping unsupported ZLO subtitle code: {raw_subtitle}", level="debug")
+            continue
+
+        available_subtitles.append(mapped_subtitle_code)
+
+    return dedupe_casefold(available_subtitles)
+
+
+def normalize_zlo_qualities(raw_qualities: list) -> list[str]:
+    """Keep the available quality list in the order ZLO returned it."""
+
+    normalized_qualities = []
+
+    for raw_quality in raw_qualities:
+        quality_name = str(raw_quality).strip()
+        if quality_name == "":
+            continue
+
+        normalized_qualities.append(quality_name)
+
+    return dedupe_casefold(normalized_qualities)
+
+
 def probe_streams(file_path: str) -> tuple[set, set]:
     """Use ffprobe to get audio and subtitle languages from the given media file."""
 
@@ -943,9 +1068,14 @@ def probe_streams(file_path: str) -> tuple[set, set]:
 
         # if the title matches one of the LANG_MAP keys, get its dub and sub codes
         if title in LANG_MAP:
-            # LANG_MAP[title] == ["dub_code", "sub_code"]
-            mapped_audio = LANG_MAP[title][0].lower()
-            mapped_sub = LANG_MAP[title][1].lower()
+            # LANG_MAP[title] == ["dub_code", "sub_code", "zlo_code"]
+            language_values = LANG_MAP[title]
+
+            if language_values[0] is not None:
+                mapped_audio = language_values[0].lower()
+
+            if language_values[1] is not None:
+                mapped_sub = language_values[1].lower()
 
         if stream.get("codec_type") == "audio":
             if mapped_audio is not None:
