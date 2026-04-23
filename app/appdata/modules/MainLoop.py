@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 from .MediaServerManager import mediaserver_scan_library
 from .Globals import file_manager, queue_manager, log_manager
 from .Vars import (
-    config,
+    config, SERVICES,
     TEMP_DIR, DATA_DIR, TZ,
     PLEX_CONFIGURED, JELLY_CONFIGURED,
     get_episode_file_path, probe_streams, select_dubs, select_subs, format_duration, iter_episodes,
@@ -15,55 +15,13 @@ from .Vars import (
 
 
 class MainLoop:
-    def __init__(self, cr_mdnx_api, hidive_mdnx_api, zlo_cr_api, zlo_hidive_api, zlo_adn_api, zlo_disney_api, zlo_amazon_api, notifier) -> None:
-
-        self.cr_enabled = config.app.cr_enabled
-        self.cr_mdnx_api = cr_mdnx_api
-        self.cr_mdnx_api_configured = False
-        if self.cr_enabled and self.cr_mdnx_api is not None:
-            self.cr_mdnx_api_configured = True
-
-        self.hidive_enabled = config.app.hidive_enabled
-        self.hidive_mdnx_api = hidive_mdnx_api
-        self.hidive_mdnx_api_configured = False
-        if self.hidive_enabled and self.hidive_mdnx_api is not None:
-            self.hidive_mdnx_api_configured = True
-
-        self.zlo_cr_enabled = config.app.zlo_cr_enabled
-        self.zlo_cr_api = zlo_cr_api
-        self.zlo_cr_api_configured = False
-        if self.zlo_cr_enabled and self.zlo_cr_api is not None:
-            self.zlo_cr_api_configured = True
-
-        self.zlo_hidive_enabled = config.app.zlo_hidive_enabled
-        self.zlo_hidive_api = zlo_hidive_api
-        self.zlo_hidive_api_configured = False
-        if self.zlo_hidive_enabled and self.zlo_hidive_api is not None:
-            self.zlo_hidive_api_configured = True
-
-        self.zlo_adn_enabled = config.app.zlo_adn_enabled
-        self.zlo_adn_api = zlo_adn_api
-        self.zlo_adn_api_configured = False
-        if self.zlo_adn_enabled and self.zlo_adn_api is not None:
-            self.zlo_adn_api_configured = True
-
-        self.zlo_disney_enabled = config.app.zlo_disneyplus_enabled
-        self.zlo_disney_api = zlo_disney_api
-        self.zlo_disney_api_configured = False
-        if self.zlo_disney_enabled and self.zlo_disney_api is not None:
-            self.zlo_disney_api_configured = True
-
-        self.zlo_amazon_enabled = config.app.zlo_amazon_enabled
-        self.zlo_amazon_api = zlo_amazon_api
-        self.zlo_amazon_api_configured = False
-        if self.zlo_amazon_enabled and self.zlo_amazon_api is not None:
-            self.zlo_amazon_api_configured = True
+    def __init__(self, notifier) -> None:
 
         self.notifier = notifier
 
         self.check_missing_dub_sub = config.app.check_missing_dub_sub
-        self.loop_timeout = int(config.app.check_for_updates_interval)
-        self.between_episode_timeout = int(config.app.episode_dl_delay)
+        self.loop_timeout = config.app.check_for_updates_interval
+        self.between_episode_timeout = config.app.episode_dl_delay
         self.only_create_queue = config.app.only_create_queue
         self.skip_queue_refresh = config.app.skip_queue_refresh
         self.dry_run = config.app.dry_run
@@ -80,134 +38,25 @@ class MainLoop:
                 if self.skip_queue_refresh is True:
                     log_manager.info("SKIP_QUEUE_REFRESH is True. Skipping queue refresh step and using old queue data.")
                 else:
-                    cr_state, hd_state, zlo_cr_state, zlo_hd_state, zlo_adn_state, zlo_disney_state, zlo_amazon_state = self._refresh_queue()
-
-                    # if *_state is an int:
-                    #   - if that int is 1, the service wasnt enabled
-                    #   - if that int is 2, monitor lists were empty, so nothing to do/refresh for said service
-                    if cr_state is not None:
-                        match cr_state:
-                            case 1:
-                                log_manager.info("Crunchyroll queue refresh skipped because the service wasnt enabled.")
-                            case 2:
-                                log_manager.info("Your 'cr_monitor_series_id' list is empty. Skipped refreshing empty list.")
-
-                    if hd_state is not None:
-                        match hd_state:
-                            case 1:
-                                log_manager.info("HiDive queue refresh skipped because the service wasnt enabled.")
-                            case 2:
-                                log_manager.info("Your 'hidive_monitor_series_id' list is empty. Skipped refreshing empty list.")
-
-                    if zlo_cr_state is not None:
-                        match zlo_cr_state:
-                            case 1:
-                                log_manager.info("ZLO Crunchyroll queue refresh skipped because the service wasnt enabled.")
-                            case 2:
-                                log_manager.info("Your 'zlo_cr_monitor_series_id' list is empty. Skipped refreshing empty list.")
-
-                    if zlo_hd_state is not None:
-                        match zlo_hd_state:
-                            case 1:
-                                log_manager.info("ZLO HiDive queue refresh skipped because the service wasnt enabled.")
-                            case 2:
-                                log_manager.info("Your 'zlo_hidive_monitor_series_id' list is empty. Skipped refreshing empty list.")
-
-                    if zlo_adn_state is not None:
-                        match zlo_adn_state:
-                            case 1:
-                                log_manager.info("ZLO ADN queue refresh skipped because the service wasnt enabled.")
-                            case 2:
-                                log_manager.info("Your 'zlo_adn_monitor_series_id' list is empty. Skipped refreshing empty list.")
-
-                    if zlo_disney_state is not None:
-                        match zlo_disney_state:
-                            case 1:
-                                log_manager.info("ZLO Disney+ queue refresh skipped because the service wasnt enabled.")
-                            case 2:
-                                log_manager.info("Your 'zlo_disneyplus_monitor_series_id' list is empty. Skipped refreshing empty list.")
-
-                    if zlo_amazon_state is not None:
-                        match zlo_amazon_state:
-                            case 1:
-                                log_manager.info("ZLO Amazon queue refresh skipped because the service wasnt enabled.")
-                            case 2:
-                                log_manager.info("Your 'zlo_amazon_monitor_series_id' list is empty. Skipped refreshing empty list.")
+                    self._refresh_queue()
 
                 if self.only_create_queue == True:
                     log_manager.info("ONLY_CREATE_QUEUE is True. Exiting after queue creation.\nIf docker-compose.yaml has 'restart: always/unless-stopped', please change it to 'restart: no' to prevent restart loop.")
                     self.stop()
                     return
 
-                # download any missing / not yet downloaded episodes for Crunchyroll
-                if self.cr_enabled:
-                    self._download_for_service("crunchyroll", "Crunchyroll", self.cr_mdnx_api)
+                # Download any missing / not yet downloaded episodes for every enabled service.
+                # then (if configured) check for missing dubs/subs on already-downloaded episodes.
+                for service in SERVICES.all():
+                    if not service.configured:
+                        continue
 
-                    # check for missing dubs and subs in downloaded files for Crunchyroll series
+                    self._download_for_service(service.service_name, service.display_name, service.api)
+
                     if self.check_missing_dub_sub == True:
-                        self._refresh_dub_sub_for_service("crunchyroll", "Crunchyroll", self.cr_mdnx_api)
+                        self._refresh_dub_sub_for_service(service.service_name, service.display_name, service.api)
                     else:
-                        log_manager.info("CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification for Crunchyroll.")
-
-                # download any missing / not yet downloaded episodes for HiDive
-                if self.hidive_enabled:
-                    self._download_for_service("hidive", "HiDive", self.hidive_mdnx_api)
-
-                    # check for missing dubs and subs in downloaded files for HiDive series
-                    if self.check_missing_dub_sub == True:
-                        self._refresh_dub_sub_for_service("hidive", "HiDive", self.hidive_mdnx_api)
-                    else:
-                        log_manager.info("CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification for HiDive.")
-
-                # download any missing / not yet downloaded episodes for ZLO Crunchyroll
-                if self.zlo_cr_enabled:
-                    self._download_for_service("zlo-crunchyroll", "ZLO Crunchyroll", self.zlo_cr_api)
-
-                    # check for missing dubs and subs in downloaded files for ZLO Crunchyroll series
-                    if self.check_missing_dub_sub == True:
-                        self._refresh_dub_sub_for_service("zlo-crunchyroll", "ZLO Crunchyroll", self.zlo_cr_api)
-                    else:
-                        log_manager.info("CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification for ZLO Crunchyroll.")
-
-                # download any missing / not yet downloaded episodes for ZLO HiDive
-                if self.zlo_hidive_enabled:
-                    self._download_for_service("zlo-hidive", "ZLO HiDive", self.zlo_hidive_api)
-
-                    # check for missing dubs and subs in downloaded files for ZLO HiDive series
-                    if self.check_missing_dub_sub == True:
-                        self._refresh_dub_sub_for_service("zlo-hidive", "ZLO HiDive", self.zlo_hidive_api)
-                    else:
-                        log_manager.info("CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification for ZLO HiDive.")
-
-                # download any missing / not yet downloaded episodes for ZLO ADN
-                if self.zlo_adn_enabled:
-                    self._download_for_service("zlo-adn", "ZLO ADN", self.zlo_adn_api)
-
-                    # check for missing dubs and subs in downloaded files for ZLO ADN series
-                    if self.check_missing_dub_sub == True:
-                        self._refresh_dub_sub_for_service("zlo-adn", "ZLO ADN", self.zlo_adn_api)
-                    else:
-                        log_manager.info("CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification for ZLO ADN.")
-
-                # download any missing / not yet downloaded episodes for ZLO Disney+
-                if self.zlo_disney_enabled:
-                    self._download_for_service("zlo-disney", "ZLO Disney+", self.zlo_disney_api)
-
-                    # check for missing dubs and subs in downloaded files for ZLO Disney+ series
-                    if self.check_missing_dub_sub == True:
-                        self._refresh_dub_sub_for_service("zlo-disney", "ZLO Disney+", self.zlo_disney_api)
-                    else:
-                        log_manager.info("CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification for ZLO Disney+.")
-
-                # download any missing / not yet downloaded episodes for ZLO Amazon
-                if self.zlo_amazon_enabled:
-                    self._download_for_service("zlo-amazon", "ZLO Amazon", self.zlo_amazon_api)
-
-                    # check for missing dubs and subs in downloaded files for ZLO Amazon series
-                    if self.check_missing_dub_sub == True:
-                        self._refresh_dub_sub_for_service("zlo-amazon", "ZLO Amazon", self.zlo_amazon_api)
-                    else:
-                        log_manager.info("CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification for ZLO Amazon.")
+                        log_manager.info(f"CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification for {service.display_name}.")
 
                 if self.dry_run:
                     log_manager.info("DRY_RUN is True. Exiting after one iteration of the main loop.\nIf docker-compose.yaml has 'restart: always/unless-stopped', please change it to 'restart: no' to prevent restart loop.")
@@ -237,27 +86,10 @@ class MainLoop:
         log_manager.info("Stopping MainLoop...")
         self.stop_requested = True
 
-        # cancel any active downloads
-        if self.cr_mdnx_api_configured:
-            self.cr_mdnx_api.cancel_active_download()
-
-        if self.hidive_mdnx_api_configured:
-            self.hidive_mdnx_api.cancel_active_download()
-
-        if self.zlo_cr_api_configured:
-            self.zlo_cr_api.cancel_active_download()
-
-        if self.zlo_hidive_api_configured:
-            self.zlo_hidive_api.cancel_active_download()
-
-        if self.zlo_adn_api_configured:
-            self.zlo_adn_api.cancel_active_download()
-
-        if self.zlo_disney_api_configured:
-            self.zlo_disney_api.cancel_active_download()
-
-        if self.zlo_amazon_api_configured:
-            self.zlo_amazon_api.cancel_active_download()
+        # cancel any active downloads on every configured service
+        for service in SERVICES.all():
+            if service.configured:
+                service.api.cancel_active_download()
 
         log_manager.info("MainLoop stop requested.")
         return
@@ -385,122 +217,48 @@ class MainLoop:
         finally:
             self.notifications_buffer.clear()
 
-    def _refresh_queue(self) -> tuple[int | None, int | None, int | None, int | None, int | None, int | None, int | None]:
+    def _refresh_queue(self) -> None:
         """Refresh the queue and start/stop monitors as needed for each configured service."""
 
         log_manager.info("Getting the current queue IDs...")
 
-        cr_monitor_ids = set(config.cr_monitor_series_id.keys())
-        hd_monitor_ids = set(config.hidive_monitor_series_id.keys())
-        zlo_cr_monitor_ids = set(config.zlo_cr_monitor_series_id.keys())
-        zlo_hd_monitor_ids = set(config.zlo_hidive_monitor_series_id.keys())
-        zlo_adn_monitor_ids = set(config.zlo_adn_monitor_series_id.keys())
-        zlo_disney_monitor_ids = set(config.zlo_disneyplus_monitor_series_id.keys())
-        zlo_amazon_monitor_ids = set(config.zlo_amazon_monitor_series_id.keys())
-
-        def process_service(service_key: str, service_label: str, service_configured: bool, api, monitor_ids: set) -> int | None:
-            """Process monitor start/stop work for one service."""
-
+        for service in SERVICES.all():
             # if service not configured, dont refresh queue for said service.
-            if not service_configured:
-                log_manager.debug(f"{service_label} is disabled. Skipping monitor refresh for {service_label}.")
-                return 1
+            if not service.configured:
+                log_manager.info(f"{service.display_name} queue refresh skipped because the service wasnt enabled.")
+                continue
+
+            monitor_ids = set(service.monitor_series_id.keys())
 
             # only look at the correct bucket inside queue.json for this service
-            bucket = queue_manager.output(service_key) or {}
+            bucket = queue_manager.output(service.service_name) or {}
             queue_ids = set(bucket.keys())
 
             # if both lists are empty, nothing to do, exit early
             if not monitor_ids and not queue_ids:
-                log_manager.debug(f"No {service_label} series to monitor/stop. (both the monitor list and queue are empty)")
-                return 2
+                log_manager.info(f"Your '{service.monitor_config_key}' list is empty. Skipped refreshing empty list.")
+                continue
 
             # start or update monitors
-            log_manager.info(f"Checking {service_label} monitors...")
+            log_manager.info(f"Checking {service.display_name} monitors...")
             for series_id in monitor_ids:
                 if series_id not in queue_ids:
-                    log_manager.info(f"[{service_label}] Starting monitor for {series_id}")
-                    api.start_monitor(series_id)
+                    log_manager.info(f"[{service.display_name}] Starting monitor for {series_id}")
+                    service.api.start_monitor(series_id)
                 else:
-                    log_manager.info(f"[{service_label}] Updating monitor for {series_id}")
-                    api.update_monitor(series_id)
+                    log_manager.info(f"[{service.display_name}] Updating monitor for {series_id}")
+                    service.api.update_monitor(series_id)
 
             # stop monitors for series removed from config so they are no longer monitored
-            log_manager.info(f"Checking {service_label} monitors to stop...")
+            log_manager.info(f"Checking {service.display_name} monitors to stop...")
             for series_id in queue_ids:
                 if series_id not in monitor_ids:
-                    log_manager.info(f"[{service_label}] Stopping monitor for {series_id}")
-                    api.stop_monitor(series_id)
+                    log_manager.info(f"[{service.display_name}] Stopping monitor for {series_id}")
+                    service.api.stop_monitor(series_id)
 
-            log_manager.info(f"{service_label} monitor refresh complete.")
-            return None
-
-        mdnx_cr_refresh_state = process_service(
-            service_key="crunchyroll",
-            service_label="Crunchyroll",
-            service_configured=self.cr_mdnx_api_configured,
-            api=self.cr_mdnx_api,
-            monitor_ids=cr_monitor_ids,
-        )
-
-        mdnx_hd_refresh_state = process_service(
-            service_key="hidive",
-            service_label="HiDive",
-            service_configured=self.hidive_mdnx_api_configured,
-            api=self.hidive_mdnx_api,
-            monitor_ids=hd_monitor_ids,
-        )
-
-        zlo_cr_refresh_state = process_service(
-            service_key="zlo-crunchyroll",
-            service_label="ZLO Crunchyroll",
-            service_configured=self.zlo_cr_api_configured,
-            api=self.zlo_cr_api,
-            monitor_ids=zlo_cr_monitor_ids,
-        )
-
-        zlo_hd_refresh_state = process_service(
-            service_key="zlo-hidive",
-            service_label="ZLO HiDive",
-            service_configured=self.zlo_hidive_api_configured,
-            api=self.zlo_hidive_api,
-            monitor_ids=zlo_hd_monitor_ids,
-        )
-
-        zlo_adn_refresh_state = process_service(
-            service_key="zlo-adn",
-            service_label="ZLO ADN",
-            service_configured=self.zlo_adn_api_configured,
-            api=self.zlo_adn_api,
-            monitor_ids=zlo_adn_monitor_ids,
-        )
-
-        zlo_disney_refresh_state = process_service(
-            service_key="zlo-disney",
-            service_label="ZLO Disney+",
-            service_configured=self.zlo_disney_api_configured,
-            api=self.zlo_disney_api,
-            monitor_ids=zlo_disney_monitor_ids,
-        )
-
-        zlo_amazon_refresh_state = process_service(
-            service_key="zlo-amazon",
-            service_label="ZLO Amazon",
-            service_configured=self.zlo_amazon_api_configured,
-            api=self.zlo_amazon_api,
-            monitor_ids=zlo_amazon_monitor_ids,
-        )
+            log_manager.info(f"{service.display_name} monitor refresh complete.")
 
         log_manager.info("Queue refresh complete.")
-        return (
-            mdnx_cr_refresh_state,
-            mdnx_hd_refresh_state,
-            zlo_cr_refresh_state,
-            zlo_hd_refresh_state,
-            zlo_adn_refresh_state,
-            zlo_disney_refresh_state,
-            zlo_amazon_refresh_state
-        )
 
     def _download_for_service(self, service: str, service_label: str, mdnx_api) -> None:
         """Download missing / not yet downloaded episodes for the specified service."""

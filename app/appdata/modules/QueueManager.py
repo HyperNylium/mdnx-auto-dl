@@ -2,7 +2,7 @@ import os
 import json
 
 from .Globals import log_manager
-from .Vars import QUEUE_PATH
+from .Vars import QUEUE_PATH, SERVICES
 
 
 class QueueManager:
@@ -216,61 +216,32 @@ class QueueManager:
     def _normalize_service(self, service: str) -> str | None:
         """Normalize service name to standard bucket names."""
 
-        normalized_service = str(service or "").strip().lower()
+        normalized_service = service.strip().lower()
 
-        match normalized_service:
-            case "crunchyroll":
-                return "Crunchyroll"
+        service_obj = SERVICES.get(normalized_service)
+        if service_obj is None:
+            log_manager.error(f"Unknown service '{service}'.")
+            return None
 
-            case "hidive":
-                return "HiDive"
-
-            case "zlo-crunchyroll":
-                return "ZLO-Crunchyroll"
-
-            case "zlo-hidive":
-                return "ZLO-HiDive"
-
-            case "zlo-adn":
-                return "ZLO-ADN"
-
-            case "zlo-disney":
-                return "ZLO-DisneyPlus"
-
-            case "zlo-amazon":
-                return "ZLO-Amazon"
-
-            case "zlo-netflix":
-                return "ZLO-Netflix"
-
-            case _:
-                log_manager.error(f"Unknown service '{service}'.")
-                return None
+        return service_obj.queue_bucket
 
     def _ensure_roots(self, data: dict) -> dict:
         """Ensure all queue roots exist in the queue data."""
 
         if not isinstance(data, dict):
-            return {
-                "Crunchyroll": {},
-                "HiDive": {},
-                "ZLO-Crunchyroll": {},
-                "ZLO-HiDive": {},
-                "ZLO-ADN": {},
-                "ZLO-DisneyPlus": {},
-                "ZLO-Amazon": {},
-                "ZLO-Netflix": {}
-            }
+            return self._empty_buckets()
 
-        data.setdefault("Crunchyroll", {})
-        data.setdefault("HiDive", {})
-        data.setdefault("ZLO-Crunchyroll", {})
-        data.setdefault("ZLO-HiDive", {})
-        data.setdefault("ZLO-ADN", {})
-        data.setdefault("ZLO-DisneyPlus", {})
-        data.setdefault("ZLO-Amazon", {})
-        data.setdefault("ZLO-Netflix", {})
+        for service in SERVICES.all():
+            data.setdefault(service.queue_bucket, {})
         return data
+
+    def _empty_buckets(self) -> dict:
+        """Return an empty queue dict with one bucket per service."""
+
+        buckets = {}
+        for service in SERVICES.all():
+            buckets[service.queue_bucket] = {}
+        return buckets
 
     def _load_queue(self) -> dict:
         """Load the queue from disk, or initialize a new one if not present or malformed."""
@@ -296,16 +267,7 @@ class QueueManager:
             log_manager.debug(f"Queue file not found at {self.queue_path}. Starting with an empty queue.")
 
         # create a new empty queue file on disk
-        init = {
-            "Crunchyroll": {},
-            "HiDive": {},
-            "ZLO-Crunchyroll": {},
-            "ZLO-HiDive": {},
-            "ZLO-ADN": {},
-            "ZLO-DisneyPlus": {},
-            "ZLO-Amazon": {},
-            "ZLO-Netflix": {}
-        }
+        init = self._empty_buckets()
 
         with open(self.queue_path, "w", encoding="utf-8") as f:
             json.dump(init, f, indent=4, ensure_ascii=False)
