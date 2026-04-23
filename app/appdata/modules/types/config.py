@@ -17,12 +17,6 @@ class AppConfig(BaseModel):
     hidive_username: str = Field("", alias="HIDIVE_USERNAME")
     hidive_password: str = Field("", alias="HIDIVE_PASSWORD")
 
-    zlo_cr_enabled: bool = Field(False, alias="ZLO_CR_ENABLED")
-    zlo_hidive_enabled: bool = Field(False, alias="ZLO_HIDIVE_ENABLED")
-    zlo_adn_enabled: bool = Field(False, alias="ZLO_ADN_ENABLED")
-    zlo_disneyplus_enabled: bool = Field(False, alias="ZLO_DISNEYPLUS_ENABLED")
-    zlo_amazon_enabled: bool = Field(False, alias="ZLO_AMAZON_ENABLED")
-
     backup_dubs: list[str] = Field(["zho"], alias="BACKUP_DUBS")
     folder_structure: str = Field(
         "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
@@ -81,7 +75,7 @@ class MdnxBinPath(BaseModel):
     ffmpeg: str = "ffmpeg"
     ffprobe: str = "ffprobe"
     mkvmerge: str = "mkvmerge"
-    mp4decrypt: str = "/app/appdata/bin/bento4/mp4decrypt"
+    mp4decrypt: str = "/app/appdata/bin/Bento4-SDK/mp4decrypt"
 
 
 class MdnxCliDefaults(BaseModel):
@@ -110,39 +104,11 @@ class MdnxConfig(BaseModel):
     dir_path: MdnxDirPath = Field(default_factory=MdnxDirPath, alias="dir-path")
 
 
-class ZloServiceConfig(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
-    q: str = "1080p@avc"
-    qf: bool = True
-    dubLang: list[str] = ["JP", "EN"]
-    dlsubs: list[str] = ["EN"]
-    dlpath: str = "/app/appdata/temp"
-    tempPath: str = "/tmp"
-
-
-class ZloConfig(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
-    crunchyroll: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
-    hidive: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
-    adn: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
-    disneyplus: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
-    amazon: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
-
-
 class Config(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
     hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
 
-    zlo_cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    zlo_hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    zlo_adn_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    zlo_disneyplus_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    zlo_amazon_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-
     app: AppConfig = Field(default_factory=AppConfig)
     mdnx: MdnxConfig = Field(default_factory=MdnxConfig)
-    zlo: ZloConfig = Field(default_factory=ZloConfig)

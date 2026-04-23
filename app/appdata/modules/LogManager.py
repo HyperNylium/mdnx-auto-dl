@@ -29,7 +29,7 @@ class LogManager:
 
         # normalize log level from config (defaults to INFO)
         self.min_level = LEVEL_VALUES.get(
-            config.app.log_level.upper(),
+            str(config.app.log_level).upper(),
             LEVEL_VALUES["INFO"]
         )
 
