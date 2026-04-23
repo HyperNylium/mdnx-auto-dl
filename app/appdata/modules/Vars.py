@@ -12,6 +12,7 @@ from collections import OrderedDict
 from pydantic import ValidationError
 
 from .types.config import Config, AppConfig
+from .types.service import Service, MdnxServices, ZloServices, Services
 
 
 def _log(message: str, level: str = "info", exc_info=None) -> None:
@@ -101,7 +102,17 @@ def output_effective_config(config: Config, max_chunk: int = 8000):
     config_dict = config.model_dump(by_alias=True)
     defaults_dict = Config().model_dump(by_alias=True)
 
-    SKIP_ORDERING_KEYS = {"cr_monitor_series_id", "hidive_monitor_series_id", "mdnx"}
+    SKIP_ORDERING_KEYS = {
+        "cr_monitor_series_id",
+        "hidive_monitor_series_id",
+        "zlo_cr_monitor_series_id",
+        "zlo_hidive_monitor_series_id",
+        "zlo_adn_monitor_series_id",
+        "zlo_disneyplus_monitor_series_id",
+        "zlo_amazon_monitor_series_id",
+        "mdnx",
+        "zlo"
+    }
 
     def _order_like_defaults(config_node, defaults_node):
         if not isinstance(config_node, dict) or not isinstance(defaults_node, dict):
@@ -151,6 +162,83 @@ config = Config.model_validate(overrides)
 
 del overrides
 
+SERVICES = Services(
+    mdnx=MdnxServices(
+        crunchyroll=Service(
+            service_name="crunchyroll",
+            queue_bucket="Crunchyroll",
+            display_name="Crunchyroll",
+            tool="mdnx",
+            config=config.mdnx,
+            monitor_series_id=config.cr_monitor_series_id,
+            monitor_config_key="cr_monitor_series_id",
+            enabled=config.app.cr_enabled,
+        ),
+        hidive=Service(
+            service_name="hidive",
+            queue_bucket="HiDive",
+            display_name="HiDive",
+            tool="mdnx",
+            config=config.mdnx,
+            monitor_series_id=config.hidive_monitor_series_id,
+            monitor_config_key="hidive_monitor_series_id",
+            enabled=config.app.hidive_enabled,
+        ),
+    ),
+    zlo=ZloServices(
+        crunchyroll=Service(
+            service_name="zlo-crunchyroll",
+            queue_bucket="ZLO-Crunchyroll",
+            display_name="ZLO Crunchyroll",
+            tool="zlo",
+            config=config.zlo.crunchyroll,
+            monitor_series_id=config.zlo_cr_monitor_series_id,
+            monitor_config_key="zlo_cr_monitor_series_id",
+            enabled=config.app.zlo_cr_enabled,
+        ),
+        hidive=Service(
+            service_name="zlo-hidive",
+            queue_bucket="ZLO-HiDive",
+            display_name="ZLO HiDive",
+            tool="zlo",
+            config=config.zlo.hidive,
+            monitor_series_id=config.zlo_hidive_monitor_series_id,
+            monitor_config_key="zlo_hidive_monitor_series_id",
+            enabled=config.app.zlo_hidive_enabled,
+        ),
+        adn=Service(
+            service_name="zlo-adn",
+            queue_bucket="ZLO-ADN",
+            display_name="ZLO ADN",
+            tool="zlo",
+            config=config.zlo.adn,
+            monitor_series_id=config.zlo_adn_monitor_series_id,
+            monitor_config_key="zlo_adn_monitor_series_id",
+            enabled=config.app.zlo_adn_enabled,
+        ),
+        disney=Service(
+            service_name="zlo-disney",
+            queue_bucket="ZLO-DisneyPlus",
+            display_name="ZLO DisneyPlus",
+            tool="zlo",
+            config=config.zlo.disneyplus,
+            monitor_series_id=config.zlo_disneyplus_monitor_series_id,
+            monitor_config_key="zlo_disneyplus_monitor_series_id",
+            enabled=config.app.zlo_disneyplus_enabled,
+        ),
+        amazon=Service(
+            service_name="zlo-amazon",
+            queue_bucket="ZLO-Amazon",
+            display_name="ZLO Amazon",
+            tool="zlo",
+            config=config.zlo.amazon,
+            monitor_series_id=config.zlo_amazon_monitor_series_id,
+            monitor_config_key="zlo_amazon_monitor_series_id",
+            enabled=config.app.zlo_amazon_enabled,
+        ),
+    ),
+)
+
 
 # App settings
 TEMP_DIR = config.app.temp_dir
@@ -165,12 +253,31 @@ MDNX_SERVICE_HIDIVE_TOKEN_PATH = os.path.join(BIN_DIR, "mdnx", "config", "hd_new
 MDNX_SERVICE_WIDEVINE_PATH = os.path.join(BIN_DIR, "mdnx", "widevine")
 MDNX_SERVICE_PLAYREADY_PATH = os.path.join(BIN_DIR, "mdnx", "playready")
 
+ZLO_SERVICE_BIN_PATH = os.path.join(BIN_DIR, "zlo", "zlo7")
+ZLO_SERVICE_CONFIG_PATH = os.path.join(os.path.expanduser("~"), "Documents", "zlo7")
+ZLO_SERVICE_CONFIG_SETTINGS_PATH = os.path.join(ZLO_SERVICE_CONFIG_PATH, "settings")
+ZLO_SERVICE_WIDEVINE_PATH = os.path.join(BIN_DIR, "zlo", "static", "cdm", "widevine")
+ZLO_SERVICE_PLAYREADY_PATH = os.path.join(BIN_DIR, "zlo", "static", "cdm", "playready")
+ZLO_SERVICE_WIDEVINE_L1_PATH = os.path.join(ZLO_SERVICE_WIDEVINE_PATH, "L1")
+ZLO_SERVICE_WIDEVINE_L3_PATH = os.path.join(ZLO_SERVICE_WIDEVINE_PATH, "L3")
+ZLO_SERVICE_PLAYREADY_SL2K_PATH = os.path.join(ZLO_SERVICE_PLAYREADY_PATH, "SL2K")
+ZLO_SERVICE_PLAYREADY_SL3K_PATH = os.path.join(ZLO_SERVICE_PLAYREADY_PATH, "SL3K")
+
 # Regular expression to match invalid characters in filenames
 INVALID_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1F]')
 
-# Streaming services enabled
-MDNX_CR_ENABLED: bool = config.app.cr_enabled
-MDNX_HIDIVE_ENABLED: bool = config.app.hidive_enabled
+# Supported download tools
+MDNX_ENABLED = False
+for mdnx_service in SERVICES.mdnx.all():
+    if mdnx_service.enabled:
+        MDNX_ENABLED = True
+        break
+
+ZLO_ENABLED = False
+for zlo_service in SERVICES.zlo.all():
+    if zlo_service.enabled:
+        ZLO_ENABLED = True
+        break
 
 # Vars related to media server stuff
 PLEX_URL = config.app.plex_url
@@ -186,54 +293,164 @@ MDNX_API_OK_LOGS = [
     "[mkvmerge] Mkvmerge finished"
 ]
 
-# Language mapping for MDNX
-LANG_MAP = {
-    "English": ["eng", "en"],
-    "English (India)": ["eng", "en-IN"],
-    "Spanish": ["spa", "es-419"],
-    "Castilian": ["spa-ES", "es-ES"],
-    "Portuguese": ["por", "pt-BR"],
-    "Portuguese (Portugal)": ["por", "pt-PT"],
-    "French": ["fra", "fr"],
-    "German": ["deu", "de"],
-    "Arabic": ["ara-ME", "ar"],
-    "Arabic (Saudi Arabia)": ["ara", "ar"],
-    "Italian": ["ita", "it"],
-    "Russian": ["rus", "ru"],
-    "Turkish": ["tur", "tr"],
-    "Hindi": ["hin", "hi"],
-    "Chinese (Mandarin, PRC)": ["cmn", "zh"],
-    "Chinese (Mainland China)": ["zho", "zh-CN"],
-    "Chinese (Taiwan)": ["chi", "zh-TW"],
-    "Chinese (Hong-Kong)": ["zh-HK", "zh-HK"],
-    "Korean": ["kor", "ko"],
-    "Catalan": ["cat", "ca-ES"],
-    "Polish": ["pol", "pl-PL"],
-    "Thai": ["tha", "th-TH"],
-    "Tamil (India)": ["tam", "ta-IN"],
-    "Malay (Malaysia)": ["may", "ms-MY"],
-    "Vietnamese": ["vie", "vi-VN"],
-    "Indonesian": ["ind", "id-ID"],
-    "Telugu (India)": ["tel", "te-IN"],
-    "Japanese": ["jpn", "ja"],
+# Language mapping
+# format is: "Language Name": ["mdnx_dub_code", "mdnx_sub_locale", "zlo_code"]
+LANG_MAP: dict[str, list[str | None]] = {
+    "English": ["eng", "en", "EN"],
+    "English (India)": ["eng", "en-IN", "EN"],
+    "English (UK)": ["eng", "en", "EN-GB"],
+
+    "Spanish": ["spa", "es-419", "LA-ES"],
+    "Spanish (Mexico)": ["spa-419", "es-419", "MX-ES"],
+    "Castilian": ["spa-ES", "es-ES", "ES"],
+
+    "Portuguese": ["por", "pt-BR", "PT"],
+    "Portuguese (Portugal)": ["por", "pt-PT", "PT-PT"],
+
+    "French": ["fra", "fr", "FR"],
+    "French (Canada)": ["fra", "fr", "FR-CA"],
+
+    "German": ["deu", "de", "DE"],
+
+    "Arabic": ["ara-ME", "ar", "AR"],
+    "Arabic (Saudi Arabia)": ["ara", "ar", "AR"],
+    "Arabic (Modern Standard)": ["ara-ME", "ar", "AR-001"],
+
+    "Italian": ["ita", "it", "IT"],
+    "Russian": ["rus", "ru", "RU"],
+    "Turkish": ["tur", "tr", "TR"],
+    "Hindi": ["hin", "hi", "HI"],
+
+    "Chinese (Mandarin, PRC)": ["cmn", "zh", "CN"],
+    "Chinese (Mainland China)": ["zho", "zh-CN", "CN"],
+    "Chinese (Taiwan)": ["chi", "zh-TW", "TW"],
+    "Chinese (Hong-Kong)": ["zh-HK", "zh-HK", "HK"],
+    "Chinese (Simplified)": ["zho", "zh-CN", "CN"],
+    "Chinese (Traditional)": ["chi", "zh-TW", "TW"],
+
+    "Korean": ["kor", "ko", "KO"],
+    "Catalan": ["cat", "ca-ES", "CA"],
+    "Polish": ["pol", "pl-PL", "PL"],
+    "Thai": ["tha", "th-TH", "TH"],
+    "Tamil (India)": ["tam", "ta-IN", "TA"],
+    "Malay (Malaysia)": ["may", "ms-MY", "MS"],
+    "Vietnamese": ["vie", "vi-VN", "VI"],
+    "Indonesian": ["ind", "id-ID", "ID"],
+    "Telugu (India)": ["tel", "te-IN", "TE"],
+    "Japanese": ["jpn", "ja", "JP"],
+
+    "Norwegian Bokmal": [None, None, "NB"],
+
+    # ZLO only languages (no MDNX dub or sub code)
+    "Dutch": [None, None, "NL"],
+    "Swedish": [None, None, "SV"],
+    "Finnish": [None, None, "FI"],
+    "Norwegian": [None, None, "NO"],
+    "Greek": [None, None, "EL"],
+    "Hebrew": [None, None, "HE"],
+    "Ukrainian": [None, None, "UK"],
+    "Persian": [None, None, "FA"],
+    "Bengali": [None, None, "BN"],
+    "Czech": [None, None, "CS"],
+    "Romanian": [None, None, "RO"],
+    "Hungarian": [None, None, "HU"],
+    "Tagalog": [None, None, "TL"],
+    "Khmer": [None, None, "KM"],
+    "Burmese": [None, None, "MY"],
+    "Mongolian": [None, None, "MN"],
+    "Icelandic": [None, None, "IS"],
+    "Slovak": [None, None, "SK"],
+    "Kannada": [None, None, "KN"],
+    "Malayalam": [None, None, "ML"],
+    "Basque": [None, None, "EU"],
+    "Galician": [None, None, "GL"],
+    "Serbian": [None, None, "SR"],
+    "Macedonian": [None, None, "MK"],
+    "Croatian": [None, None, "HR"],
+    "Slovenian": [None, None, "SL"],
+    "Bulgarian": [None, None, "BG"],
 }
 
-# This will look like: {"English": "en", "Spanish": "es-419", ...}
+# This will look like: {"English": "eng", "Spanish": "spa", ...}
 NAME_TO_CODE = {}
-for name, vals in LANG_MAP.items():
-    NAME_TO_CODE[name] = vals[0]  # vals[0] is the code
+for language_name, language_values in LANG_MAP.items():
+    dub_code = language_values[0]
+    if dub_code is None:
+        continue
+
+    NAME_TO_CODE[language_name] = dub_code
 
 # This will look like: {"en", "es-419", ...}
 VALID_LOCALES = set()
-for vals in LANG_MAP.values():
-    VALID_LOCALES.add(vals[1])  # vals[1] is the locale
+for language_values in LANG_MAP.values():
+    subtitle_locale = language_values[1]
+    if subtitle_locale is None:
+        continue
+
+    VALID_LOCALES.add(subtitle_locale)
 
 # This will look like: {"eng": "en", "spa": "es-419", ...}
 CODE_TO_LOCALE = {}
-for _name, vals in LANG_MAP.items():
-    code = vals[0].lower()
-    loc = vals[1].lower()
-    CODE_TO_LOCALE[code] = loc
+for language_values in LANG_MAP.values():
+    dub_code = language_values[0]
+    subtitle_locale = language_values[1]
+
+    if dub_code is None or subtitle_locale is None:
+        continue
+
+    lowered_dub_code = dub_code.lower()
+    lowered_subtitle_locale = subtitle_locale.lower()
+
+    if lowered_dub_code not in CODE_TO_LOCALE:
+        CODE_TO_LOCALE[lowered_dub_code] = lowered_subtitle_locale
+
+# This will look like: {"eng": "EN", "spa": "LA-ES", ...}
+MDNX_DUB_CODE_TO_ZLO_CODE = {}
+for language_values in LANG_MAP.values():
+    dub_code = language_values[0]
+    zlo_code = language_values[2]
+
+    if dub_code is None:
+        continue
+
+    lowered_dub_code = dub_code.lower()
+    if lowered_dub_code not in MDNX_DUB_CODE_TO_ZLO_CODE:
+        MDNX_DUB_CODE_TO_ZLO_CODE[lowered_dub_code] = zlo_code
+
+# This will look like: {"en": "EN", "es-419": "LA-ES", ...}
+MDNX_SUB_CODE_TO_ZLO_CODE = {}
+for language_values in LANG_MAP.values():
+    subtitle_locale = language_values[1]
+    zlo_code = language_values[2]
+
+    if subtitle_locale is None:
+        continue
+
+    lowered_subtitle_locale = subtitle_locale.lower()
+    if lowered_subtitle_locale not in MDNX_SUB_CODE_TO_ZLO_CODE:
+        MDNX_SUB_CODE_TO_ZLO_CODE[lowered_subtitle_locale] = zlo_code
+
+# This will look like: {"JP": "jpn", "EN": "eng", ...}
+ZLO_CODE_TO_MDNX_DUB_CODE = {}
+for language_values in LANG_MAP.values():
+    dub_code = language_values[0]
+    zlo_code = language_values[2].upper()
+
+    if dub_code is None:
+        continue
+
+    ZLO_CODE_TO_MDNX_DUB_CODE[zlo_code] = dub_code.lower()
+
+# This will look like: {"JP": "ja", "EN": "en", ...}
+ZLO_CODE_TO_MDNX_SUB_CODE = {}
+for language_values in LANG_MAP.values():
+    subtitle_locale = language_values[1]
+    zlo_code = language_values[2].upper()
+
+    if subtitle_locale is None:
+        continue
+
+    ZLO_CODE_TO_MDNX_SUB_CODE[zlo_code] = subtitle_locale.lower()
 
 # This will look like: {"TEMP_DIR": "temp_dir", "CR_ENABLED": "cr_enabled", ...}
 APP_ALIAS_KEY_TO_FIELD_NAME = {}
@@ -246,7 +463,6 @@ APP_FIELD_NAME_TO_ALIAS_KEY = {}
 for field_name, field_info in AppConfig.model_fields.items():
     alias_key = field_info.alias or field_name
     APP_FIELD_NAME_TO_ALIAS_KEY[field_name] = alias_key
-
 
 # This will look like: ["TEMP_DIR", "BIN_DIR", "LOG_DIR", ...]
 APP_DEFAULT_KEY_ORDER = []
@@ -299,7 +515,7 @@ def dedupe_preserve_order(items, key=None):
 def dedupe_casefold(items):
     """Deduplicate a list of strings in a case-insensitive manner while preserving order."""
 
-    return dedupe_preserve_order(items, key=lambda s: (s or "").casefold())
+    return dedupe_preserve_order(items, key=lambda s: s.casefold())
 
 
 def format_duration(seconds: int) -> str:
@@ -331,99 +547,515 @@ def format_duration(seconds: int) -> str:
     return ", ".join(parts[:-1]) + f" and {parts[-1]}"
 
 
-def select_dubs(episode_info: dict, dub_overrides: list[str] | None = None):
-    """Determine which dubs to download based on desired, backup, and available dubs."""
-
-    available_dubs = set()
-    for dub_code in episode_info["available_dubs"]:
-        available_dubs.add(str(dub_code).lower())
-
-    _log(f"Available dubs: {available_dubs}", level="debug")
-
-    # if there are dub overrides for this season, use those instead of the global defaults.
-    if dub_overrides is not None:
-        desired_override_dubs = []
-        for lang_code in dub_overrides:
-            desired_override_dubs.append(str(lang_code).lower())
-
-        _log(f"Season dub overrides: {desired_override_dubs}", level="debug")
-
-        selected_override_dubs = []
-        for lang_code in desired_override_dubs:
-            if lang_code in available_dubs:
-                selected_override_dubs.append(lang_code)
-
-        if selected_override_dubs:
-            _log(f"Using season dub overrides: {selected_override_dubs}", level="debug")
-            return selected_override_dubs
-
-        _log("No season dub overrides are available for this episode. Skipping it.", level="debug")
+def check_widevine(service_path: str) -> bool:
+    if not os.path.isdir(service_path):
         return False
 
-    desired_dubs = set()
-    for lang_code in config.mdnx.cli_defaults.dubLang:
-        desired_dubs.add(str(lang_code).lower())
+    service_folder_contents = []
+    for name in os.listdir(service_path):
+        if name == ".gitkeep":
+            continue
+        service_folder_contents.append(name)
 
-    backup_dubs = set()
-    for lang_code in config.app.backup_dubs:
-        backup_dubs.add(str(lang_code).lower())
+    has_files = False
+    for name in service_folder_contents:
+        full = os.path.join(service_path, name)
+        if os.path.isfile(full):
+            has_files = True
+            break
 
-    _log(f"Desired dubs: {desired_dubs}", level="debug")
-    _log(f"Backup dubs: {backup_dubs}", level="debug")
+    if not has_files:
+        return False
 
-    # if desired dub is available, use the default already present.
-    if desired_dubs & available_dubs:
-        _log(f"Desired dubs available: {desired_dubs & available_dubs}", level="debug")
-        return None
+    found_wvd = False
+    found_bin = False
+    found_pem = False
+    found_device_client_id_blob = False
+    found_device_private_key = False
 
-    # if backups are available but not the desired dubs, override with that intersection.
-    if backup_dubs & available_dubs:
-        _log(f"Desired dubs not available, but backup dubs are: {backup_dubs & available_dubs}", level="debug")
-        return list(backup_dubs & available_dubs)
+    for name in service_folder_contents:
+        full = os.path.join(service_path, name)
+        if not os.path.isfile(full):
+            continue
 
-    # otherwise fall back to the alphabetically first available dub.
-    if available_dubs and config.app.fallback_to_any_dub:
-        _log("Neither desired nor backup dubs are available. Falling back to first available dub.", level="debug")
-        first_dub = next(iter(sorted(available_dubs)))
-        return [first_dub]
+        lower = name.lower()
 
-    # no dubs at all, which is unexpected tbh.
-    # but, you never know with Crunchyroll...
-    # will skip the episode in this case.
-    _log("No dubs available at all for this episode. Skipping it.", level="debug")
+        if lower.endswith(".wvd"):
+            found_wvd = True
+            break
+
+        if lower.endswith(".bin"):
+            found_bin = True
+
+        if lower.endswith(".pem"):
+            found_pem = True
+
+        if lower == "device_client_id_blob":
+            found_device_client_id_blob = True
+
+        if lower == "device_private_key":
+            found_device_private_key = True
+
+    if found_wvd:
+        return True
+
+    if found_bin and found_pem:
+        return True
+
+    if found_device_client_id_blob and found_device_private_key:
+        return True
+
     return False
 
 
-def select_subs(episode_info: dict, sub_overrides: list[str] | None = None):
-    """Determine which subtitles to download when a season subtitle override is set."""
+def check_playready(service_path: str) -> bool:
+    if not os.path.isdir(service_path):
+        return False
 
-    if sub_overrides is None:
-        _log("No season sub overrides set. Not passing subtitle CLI override.", level="debug")
+    service_folder_contents = []
+    for name in os.listdir(service_path):
+        if name == ".gitkeep":
+            continue
+        service_folder_contents.append(name)
+
+    has_files = False
+    for name in service_folder_contents:
+        full = os.path.join(service_path, name)
+        if os.path.isfile(full):
+            has_files = True
+            break
+
+    if not has_files:
+        return False
+
+    found_prd = False
+    bgroupcert_path = None
+    zgpriv_path = None
+
+    for name in service_folder_contents:
+        full = os.path.join(service_path, name)
+        if not os.path.isfile(full):
+            continue
+
+        lower = name.lower()
+
+        if lower.endswith(".prd"):
+            found_prd = True
+            break
+
+        if lower == "bgroupcert.dat":
+            bgroupcert_path = full
+
+        if lower == "zgpriv.dat":
+            zgpriv_path = full
+
+    if found_prd:
+        return True
+
+    if bgroupcert_path and zgpriv_path:
+        bgroupcert_size = os.path.getsize(bgroupcert_path)
+        zgpriv_size = os.path.getsize(zgpriv_path)
+
+        if bgroupcert_size >= 1024 and zgpriv_size == 32:
+            return True
+
+    return False
+
+
+def validate_cdm(service_path: str, service_name: str, required: bool = False) -> bool:
+    match service_name:
+        case "Widevine":
+            is_valid = check_widevine(service_path)
+        case "PlayReady":
+            is_valid = check_playready(service_path)
+        case _:
+            _log(f"Unknown CDM type: {service_name}", level="critical")
+            sys.exit(1)
+
+    if is_valid:
+        _log(f"{service_name} CDM is valid at path: {service_path}")
+        return True
+
+    if required:
+        _log(f"{service_name} CDM is required but was not found or is invalid at path: {service_path}", level="critical")
+        sys.exit(1)
+
+    return False
+
+
+def select_dubs(service: str, episode_info: dict, dub_overrides: list[str] | None = None):
+    """Determine which dub codes to pass to the CLI for the given service."""
+
+    normalized_service = service.strip().lower()
+
+    service_obj = SERVICES.get(normalized_service)
+    if service_obj is None:
+        _log(f"Unknown service '{service}' when selecting dubs.", level="error")
+        return False
+
+    match service_obj.tool:
+        case "mdnx":
+            available_dubs = set()
+            for dub_code in episode_info["available_dubs"]:
+                available_dubs.add(dub_code.lower())
+
+            _log(f"Available dubs: {available_dubs}", level="debug")
+
+            # if there are dub overrides for this season, use those instead of the global defaults.
+            if dub_overrides is not None:
+                desired_override_dubs = []
+                for language_code in dub_overrides:
+                    desired_override_dubs.append(language_code.lower())
+
+                _log(f"Season dub overrides: {desired_override_dubs}", level="debug")
+
+                selected_override_dubs = []
+                for language_code in desired_override_dubs:
+                    if language_code not in available_dubs:
+                        continue
+
+                    selected_override_dubs.append(language_code)
+
+                selected_override_dubs = dedupe_casefold(selected_override_dubs)
+
+                if selected_override_dubs:
+                    _log(f"Using season dub overrides: {selected_override_dubs}", level="debug")
+                    return selected_override_dubs
+
+                _log("No season dub overrides are available for this episode. Skipping it.", level="debug")
+                return False
+
+            desired_dubs = []
+            for language_code in config.mdnx.cli_defaults.dubLang:
+                normalized_dub_code = language_code.strip().lower()
+                if normalized_dub_code == "":
+                    continue
+
+                desired_dubs.append(normalized_dub_code)
+
+            backup_dubs = []
+            for language_code in config.app.backup_dubs:
+                backup_dubs.append(language_code.lower())
+
+            _log(f"Desired dubs: {desired_dubs}", level="debug")
+            _log(f"Backup dubs: {backup_dubs}", level="debug")
+
+            desired_dubs_available = False
+            for language_code in desired_dubs:
+                if language_code in available_dubs:
+                    desired_dubs_available = True
+                    break
+
+            # if desired dub is available, use the default already present for MDNX.
+            if desired_dubs_available:
+                _log("Desired dubs are available. Using service defaults.", level="debug")
+                return None
+
+            # if backups are available but not the desired dubs, override with that list.
+            selected_backup_dubs = []
+            for language_code in backup_dubs:
+                if language_code not in available_dubs:
+                    continue
+
+                selected_backup_dubs.append(language_code)
+
+            selected_backup_dubs = dedupe_casefold(selected_backup_dubs)
+
+            if selected_backup_dubs:
+                _log(f"Desired dubs not available, but backup dubs are: {selected_backup_dubs}", level="debug")
+                return selected_backup_dubs
+
+            # otherwise fall back to the alphabetically first available dub.
+            if available_dubs and config.app.fallback_to_any_dub:
+                _log("Neither desired nor backup dubs are available. Falling back to first available dub.", level="debug")
+
+                first_dub = next(iter(sorted(available_dubs)))
+                return [first_dub]
+
+            _log("No dubs available at all for this episode. Skipping it.", level="debug")
+            return False
+
+        case "zlo":
+            zlo_service_config = service_obj.config
+
+            # The queue stores MDNX-style dub codes (normalize_zlo_dubs writes MDNX form).
+            # Translate each one to its ZLO equivalent here so the rest of this branch compares ZLO-uppercase to ZLO-uppercase.
+            # Unknown MDNX dub codes are logged and skipped.
+            available_zlo_dubs = set()
+            for dub_code in episode_info["available_dubs"]:
+                normalized_dub_code = dub_code.strip().lower()
+                if normalized_dub_code == "":
+                    continue
+
+                mapped_zlo_code = MDNX_DUB_CODE_TO_ZLO_CODE.get(normalized_dub_code)
+                if mapped_zlo_code is not None:
+                    available_zlo_dubs.add(mapped_zlo_code)
+                else:
+                    _log(
+                        f"For service {service_obj.display_name} the code '{dub_code}' is not in the map, therefore it is skipped. "
+                        "If you believe this is a mistake, please open an issue with details about the dub language and service it was found in so it can be added to the mapping.",
+                        level="warning"
+                    )
+
+            _log(f"Available ZLO dubs: {available_zlo_dubs}", level="debug")
+
+            # if there are dub overrides for this season, use those instead of the global defaults.
+            if dub_overrides is not None:
+                desired_override_dubs = []
+                for language_code in dub_overrides:
+                    normalized_dub_code = language_code.strip().upper()
+                    if normalized_dub_code == "":
+                        continue
+
+                    if normalized_dub_code in ZLO_CODE_TO_MDNX_DUB_CODE:
+                        desired_override_dubs.append(normalized_dub_code)
+
+                desired_override_dubs = dedupe_casefold(desired_override_dubs)
+
+                _log(f"Season ZLO dub overrides: {desired_override_dubs}", level="debug")
+
+                selected_override_dubs = []
+                for language_code in desired_override_dubs:
+                    if language_code not in available_zlo_dubs:
+                        continue
+
+                    selected_override_dubs.append(language_code)
+
+                selected_override_dubs = dedupe_casefold(selected_override_dubs)
+
+                if selected_override_dubs:
+                    _log(f"Using season ZLO dub overrides: {selected_override_dubs}", level="debug")
+                    return selected_override_dubs
+
+                _log("No season ZLO dub overrides are available for this episode. Skipping it.", level="debug")
+                return False
+
+            desired_zlo_dubs = []
+            for language_code in zlo_service_config.dubLang:
+                normalized_dub_code = language_code.strip().upper()
+                if normalized_dub_code == "":
+                    continue
+
+                if normalized_dub_code in ZLO_CODE_TO_MDNX_DUB_CODE:
+                    desired_zlo_dubs.append(normalized_dub_code)
+
+            desired_zlo_dubs = dedupe_casefold(desired_zlo_dubs)
+
+            backup_zlo_dubs = []
+            for language_code in config.app.backup_dubs:
+                mapped_zlo_code = MDNX_DUB_CODE_TO_ZLO_CODE.get(language_code.lower())
+                if mapped_zlo_code is not None:
+                    backup_zlo_dubs.append(mapped_zlo_code)
+
+            backup_zlo_dubs = dedupe_casefold(backup_zlo_dubs)
+
+            _log(f"Desired ZLO dubs: {desired_zlo_dubs}", level="debug")
+            _log(f"Backup ZLO dubs: {backup_zlo_dubs}", level="debug")
+
+            selected_desired_dubs = []
+            for language_code in desired_zlo_dubs:
+                if language_code not in available_zlo_dubs:
+                    continue
+
+                selected_desired_dubs.append(language_code)
+
+            selected_desired_dubs = dedupe_casefold(selected_desired_dubs)
+
+            if selected_desired_dubs:
+                _log(f"Desired ZLO dubs available: {selected_desired_dubs}", level="debug")
+                return selected_desired_dubs
+
+            selected_backup_dubs = []
+            for language_code in backup_zlo_dubs:
+                if language_code not in available_zlo_dubs:
+                    continue
+
+                selected_backup_dubs.append(language_code)
+
+            selected_backup_dubs = dedupe_casefold(selected_backup_dubs)
+
+            if selected_backup_dubs:
+                _log(f"Desired ZLO dubs not available, but backup dubs are: {selected_backup_dubs}", level="debug")
+                return selected_backup_dubs
+
+            if available_zlo_dubs and config.app.fallback_to_any_dub:
+                _log("Neither desired nor backup ZLO dubs are available. Falling back to first available dub.", level="debug")
+
+                first_dub = next(iter(sorted(available_zlo_dubs)))
+                return [first_dub]
+
+            _log("No ZLO dubs available at all for this episode. Skipping it.", level="debug")
+            return False
+
+
+def select_subs(service: str, episode_info: dict, sub_overrides: list[str] | None = None):
+    """Determine which subtitle codes to pass to the CLI for the given service."""
+
+    normalized_service = service.strip().lower()
+
+    service_obj = SERVICES.get(normalized_service)
+    if service_obj is None:
+        _log(f"Unknown service '{service}' when selecting subtitles.", level="error")
         return None
 
-    available_subs = set()
-    for locale_code in episode_info["available_subs"]:
-        available_subs.add(str(locale_code).lower())
+    match service_obj.tool:
+        case "mdnx":
+            available_subs = set()
+            for locale_code in episode_info["available_subs"]:
+                available_subs.add(locale_code.lower())
 
-    _log(f"Available subs: {available_subs}", level="debug")
+            _log(f"Available subs: {available_subs}", level="debug")
 
-    desired_override_subs = []
-    for locale_code in sub_overrides:
-        desired_override_subs.append(str(locale_code).lower())
+            if sub_overrides is None:
+                _log("No season sub overrides set. Not passing subtitle CLI override.", level="debug")
+                return None
 
-    _log(f"Season sub overrides: {desired_override_subs}", level="debug")
+            desired_override_subs = []
+            for locale_code in sub_overrides:
+                desired_override_subs.append(locale_code.lower())
 
-    selected_override_subs = []
-    for locale_code in desired_override_subs:
-        if locale_code in available_subs:
-            selected_override_subs.append(locale_code)
+            _log(f"Season sub overrides: {desired_override_subs}", level="debug")
 
-    if selected_override_subs:
-        _log(f"Using season sub overrides: {selected_override_subs}", level="debug")
-        return selected_override_subs
+            selected_override_subs = []
+            for locale_code in desired_override_subs:
+                if locale_code not in available_subs:
+                    continue
 
-    _log("No season sub overrides are available for this episode. Skipping subtitle override.", level="debug")
-    return None
+                selected_override_subs.append(locale_code)
+
+            selected_override_subs = dedupe_casefold(selected_override_subs)
+
+            if selected_override_subs:
+                _log(f"Using season sub overrides: {selected_override_subs}", level="debug")
+                return selected_override_subs
+
+            _log("No season sub overrides are available for this episode. Skipping subtitle override.", level="debug")
+            return None
+
+        case "zlo":
+            zlo_service_config = service_obj.config
+
+            # The queue stores MDNX-style subtitle locales (normalize_zlo_subtitles writes MDNX form).
+            # Translate each one to its ZLO equivalent here so the rest of this branch compares ZLO-uppercase to ZLO-uppercase.
+            # Unknown MDNX locales are logged and skipped.
+            available_zlo_subs = set()
+            for locale_code in episode_info["available_subs"]:
+                normalized_sub_code = locale_code.strip().lower()
+                if normalized_sub_code == "":
+                    continue
+
+                mapped_zlo_code = MDNX_SUB_CODE_TO_ZLO_CODE.get(normalized_sub_code)
+                if mapped_zlo_code is not None:
+                    available_zlo_subs.add(mapped_zlo_code)
+                else:
+                    _log(
+                        f"For service {service_obj.display_name} the code '{locale_code}' is not in the map, therefore it is skipped. "
+                        "If you believe this is a mistake, please open an issue with details about the dub language and service it was found in so it can be added to the mapping.",
+                        level="warning"
+                    )
+
+            _log(f"Available ZLO subs: {available_zlo_subs}", level="debug")
+
+            desired_sub_source = []
+            if sub_overrides is None:
+                for locale_code in zlo_service_config.dlsubs:
+                    desired_sub_source.append(locale_code)
+
+                _log(f"Using ZLO default subs from config: {desired_sub_source}", level="debug")
+            else:
+                for locale_code in sub_overrides:
+                    desired_sub_source.append(locale_code)
+
+                _log(f"Using ZLO season sub overrides: {desired_sub_source}", level="debug")
+
+            requested_cli_subs = []
+            matched_subs = []
+
+            for locale_code in desired_sub_source:
+                normalized_sub_code = locale_code.strip().upper()
+                if normalized_sub_code == "":
+                    continue
+
+                if normalized_sub_code not in ZLO_CODE_TO_MDNX_SUB_CODE:
+                    continue
+
+                requested_cli_subs.append(normalized_sub_code)
+
+                if normalized_sub_code in available_zlo_subs:
+                    matched_subs.append(normalized_sub_code)
+
+            matched_subs = dedupe_casefold(matched_subs)
+
+            if matched_subs:
+                _log(f"Using ZLO subs matched from available metadata: {matched_subs}", level="debug")
+                return matched_subs
+
+            requested_cli_subs = dedupe_casefold(requested_cli_subs)
+
+            if requested_cli_subs:
+                _log(
+                    f"Could not match requested ZLO subs against parsed subtitle metadata. Passing requested subs to CLI anyway: {requested_cli_subs}",
+                    level="debug"
+                )
+                return requested_cli_subs
+
+            _log("No ZLO subs are available for this episode. Skipping subtitle override.", level="debug")
+            return None
+
+
+def normalize_zlo_dubs(raw_dubs: list) -> list[str]:
+    """Map supported ZLO dub codes like EN or JP to the queue format used by the rest of the app."""
+
+    available_dubs = []
+
+    for raw_dub in raw_dubs:
+        dub_code = str(raw_dub).strip()
+        if dub_code == "":
+            continue
+
+        mapped_dub_code = ZLO_CODE_TO_MDNX_DUB_CODE.get(dub_code)
+        if mapped_dub_code is None:
+            _log(f"Dropping unsupported ZLO dub code: {raw_dub}", level="debug")
+            continue
+
+        available_dubs.append(mapped_dub_code)
+
+    return dedupe_casefold(available_dubs)
+
+
+def normalize_zlo_subtitles(raw_subtitles: list) -> list[str]:
+    """Map supported ZLO subtitle codes like EN or LA-ES to the queue format used by the rest of the app."""
+
+    available_subtitles = []
+
+    for raw_subtitle in raw_subtitles:
+        subtitle_code = str(raw_subtitle).strip()
+        if subtitle_code == "":
+            continue
+
+        mapped_subtitle_code = ZLO_CODE_TO_MDNX_SUB_CODE.get(subtitle_code)
+        if mapped_subtitle_code is None:
+            _log(f"Dropping unsupported ZLO subtitle code: {raw_subtitle}", level="debug")
+            continue
+
+        available_subtitles.append(mapped_subtitle_code)
+
+    return dedupe_casefold(available_subtitles)
+
+
+def normalize_zlo_qualities(raw_qualities: list) -> list[str]:
+    """Keep the available quality list in the order ZLO returned it."""
+
+    normalized_qualities = []
+
+    for raw_quality in raw_qualities:
+        quality_name = str(raw_quality).strip()
+        if quality_name == "":
+            continue
+
+        normalized_qualities.append(quality_name)
+
+    return dedupe_casefold(normalized_qualities)
 
 
 def probe_streams(file_path: str) -> tuple[set, set]:
@@ -465,9 +1097,14 @@ def probe_streams(file_path: str) -> tuple[set, set]:
 
         # if the title matches one of the LANG_MAP keys, get its dub and sub codes
         if title in LANG_MAP:
-            # LANG_MAP[title] == ["dub_code", "sub_code"]
-            mapped_audio = LANG_MAP[title][0].lower()
-            mapped_sub = LANG_MAP[title][1].lower()
+            # LANG_MAP[title] == ["dub_code", "sub_code", "zlo_code"]
+            language_values = LANG_MAP[title]
+
+            if language_values[0] is not None:
+                mapped_audio = language_values[0].lower()
+
+            if language_values[1] is not None:
+                mapped_sub = language_values[1].lower()
 
         if stream.get("codec_type") == "audio":
             if mapped_audio is not None:
@@ -500,14 +1137,14 @@ def get_season_monitor_config(service: str, series_id: str, season_id: str | Non
     if not season_id:
         return None
 
-    match str(service or "").strip().lower():
-        case "cr" | "crunchy" | "crunchyroll":
-            service_monitor_config = config.cr_monitor_series_id
-        case "hd" | "hidive":
-            service_monitor_config = config.hidive_monitor_series_id
-        case _:
-            _log(f"Unknown service '{service}' when reading season monitor config.", level="error")
-            return None
+    normalized_service = service.strip().lower()
+
+    service_obj = SERVICES.get(normalized_service)
+    if service_obj is None:
+        _log(f"Unknown service '{service}' when reading season monitor config.", level="error")
+        return None
+
+    service_monitor_config = service_obj.monitor_series_id
 
     series_config = service_monitor_config.get(series_id)
     if not series_config:
@@ -520,26 +1157,63 @@ def get_wanted_dubs_and_subs(service: str, series_id: str, season_id: str | None
     """Get the wanted dub and sub lists for a season, using overrides when they exist."""
 
     season_monitor = get_season_monitor_config(service, series_id, season_id)
+    normalized_service = service.strip().lower()
+
+    service_obj = SERVICES.get(normalized_service)
+    if service_obj is None:
+        _log(f"Unknown service '{service}' when getting wanted dubs and subs.", level="error")
+        return set(), set()
+
+    match service_obj.tool:
+        case "mdnx":
+            default_dub_source = config.mdnx.cli_defaults.dubLang
+            default_sub_source = config.mdnx.cli_defaults.dlsubs
+            defaults_are_zlo_codes = False
+
+        case "zlo":
+            zlo_service_config = service_obj.config
+            default_dub_source = zlo_service_config.dubLang
+            default_sub_source = zlo_service_config.dlsubs
+            defaults_are_zlo_codes = True
 
     # if there are dub/sub overrides for this season, use those.
-    # Otherwise, use the global defaults from config.
+    # Otherwise, use the service defaults from config.
+    dub_source_is_zlo_codes = defaults_are_zlo_codes
+    sub_source_is_zlo_codes = defaults_are_zlo_codes
+
     if season_monitor is not None and season_monitor.dub_overrides is not None:
         wanted_dub_source = season_monitor.dub_overrides
     else:
-        wanted_dub_source = config.mdnx.cli_defaults.dubLang
+        wanted_dub_source = default_dub_source
 
     if season_monitor is not None and season_monitor.sub_overrides is not None:
         wanted_sub_source = season_monitor.sub_overrides
     else:
-        wanted_sub_source = config.mdnx.cli_defaults.dlsubs
+        wanted_sub_source = default_sub_source
 
     wanted_dubs = set()
     for language_code in wanted_dub_source:
-        wanted_dubs.add(str(language_code).lower())
+        normalized_dub_code = language_code.strip()
+
+        if dub_source_is_zlo_codes:
+            normalized_dub_code = ZLO_CODE_TO_MDNX_DUB_CODE.get(normalized_dub_code.upper(), "").lower()
+        else:
+            normalized_dub_code = normalized_dub_code.lower()
+
+        if normalized_dub_code:
+            wanted_dubs.add(normalized_dub_code)
 
     wanted_subs = set()
     for locale_code in wanted_sub_source:
-        wanted_subs.add(str(locale_code).lower())
+        normalized_sub_code = locale_code.strip()
+
+        if sub_source_is_zlo_codes:
+            normalized_sub_code = ZLO_CODE_TO_MDNX_SUB_CODE.get(normalized_sub_code.upper(), "").lower()
+        else:
+            normalized_sub_code = normalized_sub_code.lower()
+
+        if normalized_sub_code:
+            wanted_subs.add(normalized_sub_code)
 
     _log(f"Effective wanted tracks for {service} {series_id}/{season_id}: dubs={wanted_dubs}, subs={wanted_subs}", level="debug")
 
@@ -573,7 +1247,7 @@ def apply_series_blacklist(tmp_dict: dict, service: str) -> dict:
 
             for episode_key, episode_info in (season_info.get("episodes") or {}).items():
                 try:
-                    local_episode_number = int(str(episode_key).lstrip("E"))
+                    local_episode_number = int(episode_key.lstrip("E"))
                 except Exception:
                     continue
 
@@ -583,7 +1257,7 @@ def apply_series_blacklist(tmp_dict: dict, service: str) -> dict:
                     if raw_rule is None:
                         continue
 
-                    rule_text = str(raw_rule).strip()
+                    rule_text = raw_rule.strip()
                     if not rule_text:
                         continue
 
@@ -834,7 +1508,7 @@ def update_app_config(config_key: str, new_value) -> bool:
 def build_folder_structure(base_dir: str, series_title: str, season: str, episode: str, episode_name: str, extension: str = ".mkv") -> str:
     """Build the folder structure and file name based on the template in config."""
 
-    template_str = str(config.app.folder_structure)
+    template_str = config.app.folder_structure
 
     substitutes = {
         "seriesTitle": series_title,
