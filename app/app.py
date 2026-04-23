@@ -6,7 +6,7 @@ from appdata.modules.MainLoop import MainLoop
 from appdata.modules.Globals import file_manager, log_manager
 from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
 from appdata.modules.Vars import (
-    config,
+    config, SERVICES,
     MDNX_SERVICE_CR_TOKEN_PATH, MDNX_SERVICE_HIDIVE_TOKEN_PATH, MDNX_SERVICE_WIDEVINE_PATH, MDNX_SERVICE_PLAYREADY_PATH,
     ZLO_SERVICE_BIN_PATH, ZLO_SERVICE_CONFIG_SETTINGS_PATH, ZLO_SERVICE_WIDEVINE_L1_PATH, ZLO_SERVICE_WIDEVINE_L3_PATH, ZLO_SERVICE_PLAYREADY_SL2K_PATH, ZLO_SERVICE_PLAYREADY_SL3K_PATH,
     MDNX_ENABLED, ZLO_ENABLED, PLEX_CONFIGURED, JELLY_CONFIGURED,
@@ -157,17 +157,16 @@ def app():
             sys.exit(1)
 
     # service checks/auth
-    cr_mdnx_api = None
-    if config.app.cr_enabled == True:
+    if SERVICES.mdnx.crunchyroll.enabled:
         log_manager.info("Starting CR_MDNX_API...")
         from appdata.modules.API.MDNX.crunchy import CR_MDNX_API
-        cr_mdnx_api = CR_MDNX_API()
+        SERVICES.mdnx.crunchyroll.api = CR_MDNX_API()
 
         # authenticate with MDNX crunchyroll service if needed or force auth if user wants to
         log_manager.info("Checking to see if user is authenticated with MDNX service (cr_token.yml exists?)...")
         if not os.path.exists(MDNX_SERVICE_CR_TOKEN_PATH) or config.app.cr_force_reauth == True:
             log_manager.info("cr_token.yml not found or re-authentication forced. Starting authentication process...")
-            cr_mdnx_api.auth()
+            SERVICES.mdnx.crunchyroll.api.auth()
 
             # Update the "CR_FORCE_REAUTH" config to False if needed
             if config.app.cr_force_reauth == True:
@@ -175,17 +174,16 @@ def app():
         else:
             log_manager.info("cr_token.yml exists. Assuming user is already authenticated with CR MDNX service.")
 
-    hidive_mdnx_api = None
-    if config.app.hidive_enabled == True:
+    if SERVICES.mdnx.hidive.enabled:
         log_manager.info("Starting HIDIVE_MDNX_API...")
         from appdata.modules.API.MDNX.hidive import HIDIVE_MDNX_API
-        hidive_mdnx_api = HIDIVE_MDNX_API()
+        SERVICES.mdnx.hidive.api = HIDIVE_MDNX_API()
 
         # authenticate with MDNX hidive service if needed or force auth if user wants to
         log_manager.info("Checking to see if user is authenticated with MDNX service (hd_new_token.yml exists?)...")
         if not os.path.exists(MDNX_SERVICE_HIDIVE_TOKEN_PATH) or config.app.hidive_force_reauth == True:
             log_manager.info("hd_new_token.yml not found or re-authentication forced. Starting authentication process...")
-            hidive_mdnx_api.auth()
+            SERVICES.mdnx.hidive.api.auth()
 
             # Update the "HIDIVE_FORCE_REAUTH" config to False if needed
             if config.app.hidive_force_reauth == True:
@@ -193,46 +191,37 @@ def app():
         else:
             log_manager.info("hd_new_token.yml exists. Assuming user is already authenticated with HiDive MDNX service.")
 
-    zlo_cr_api = None
-    if config.app.zlo_cr_enabled is True:
-        log_manager.info("Starting CR_ZLO_API...")
-        from appdata.modules.API.ZLO7.crunchy import CR_ZLO_API
-        zlo_cr_api = CR_ZLO_API()
+    for zlo_service in SERVICES.zlo.all():
+        if not zlo_service.enabled:
+            continue
 
-    zlo_hidive_api = None
-    if config.app.zlo_hidive_enabled is True:
-        log_manager.info("Starting HIDIVE_ZLO_API...")
-        from appdata.modules.API.ZLO7.hidive import HIDIVE_ZLO_API
-        zlo_hidive_api = HIDIVE_ZLO_API()
+        match zlo_service.service_name:
+            case "zlo-crunchyroll":
+                log_manager.info("Starting CR_ZLO_API...")
+                from appdata.modules.API.ZLO7.crunchy import CR_ZLO_API
+                zlo_service.api = CR_ZLO_API()
 
-    zlo_adn_api = None
-    if config.app.zlo_adn_enabled is True:
-        log_manager.info("Starting ADN_ZLO_API...")
-        from appdata.modules.API.ZLO7.adn import ADN_ZLO_API
-        zlo_adn_api = ADN_ZLO_API()
+            case "zlo-hidive":
+                log_manager.info("Starting HIDIVE_ZLO_API...")
+                from appdata.modules.API.ZLO7.hidive import HIDIVE_ZLO_API
+                zlo_service.api = HIDIVE_ZLO_API()
 
-    zlo_disney_api = None
-    if config.app.zlo_disneyplus_enabled is True:
-        log_manager.info("Starting DISNEY_ZLO_API...")
-        from appdata.modules.API.ZLO7.disney import DISNEY_ZLO_API
-        zlo_disney_api = DISNEY_ZLO_API()
+            case "zlo-adn":
+                log_manager.info("Starting ADN_ZLO_API...")
+                from appdata.modules.API.ZLO7.adn import ADN_ZLO_API
+                zlo_service.api = ADN_ZLO_API()
 
-    zlo_amazon_api = None
-    if config.app.zlo_amazon_enabled is True:
-        log_manager.info("Starting AMAZON_ZLO_API...")
-        from appdata.modules.API.ZLO7.amazon import AMAZON_ZLO_API
-        zlo_amazon_api = AMAZON_ZLO_API()
+            case "zlo-disney":
+                log_manager.info("Starting DISNEY_ZLO_API...")
+                from appdata.modules.API.ZLO7.disney import DISNEY_ZLO_API
+                zlo_service.api = DISNEY_ZLO_API()
 
-    mainloop = MainLoop(
-        cr_mdnx_api=cr_mdnx_api,
-        hidive_mdnx_api=hidive_mdnx_api,
-        zlo_cr_api=zlo_cr_api,
-        zlo_hidive_api=zlo_hidive_api,
-        zlo_adn_api=zlo_adn_api,
-        zlo_disney_api=zlo_disney_api,
-        zlo_amazon_api=zlo_amazon_api,
-        notifier=notifier
-    )
+            case "zlo-amazon":
+                log_manager.info("Starting AMAZON_ZLO_API...")
+                from appdata.modules.API.ZLO7.amazon import AMAZON_ZLO_API
+                zlo_service.api = AMAZON_ZLO_API()
+
+    mainloop = MainLoop(notifier=notifier)
 
     def shutdown(signum, frame):
         """Signal handler to gracefully shutdown the application."""
