@@ -257,10 +257,10 @@ class ADN_ZLO_API:
             }
         }
 
-        kept_season_count = 0
         total_episode_count = 0
+        candidate_seasons = []
 
-        for season_data in seasons_list:
+        for json_index, season_data in enumerate(seasons_list):
             season_id = str(season_data.get("id") or "").strip()
             if season_id == "":
                 continue
@@ -270,10 +270,8 @@ class ADN_ZLO_API:
                 continue
 
             raw_season_number = season_data.get("season")
-            if raw_season_number is None or str(raw_season_number).strip() == "":
-                raw_season_number = kept_season_count + 1
-
-            season_title = str(season_data.get("title") or f"Season {raw_season_number}")
+            fallback_title_number = raw_season_number if raw_season_number not in (None, "") else json_index + 1
+            season_title = str(season_data.get("title") or f"Season {fallback_title_number}")
             season_title = sanitize(season_title)
 
             episodes_dict = {}
@@ -281,7 +279,14 @@ class ADN_ZLO_API:
 
             for episode_data in raw_episode_list:
                 raw_episode_number = episode_data.get("episode")
-                if raw_episode_number is None or str(raw_episode_number).strip() == "":
+
+                # ZLO marks special episodes with a null episode number (as far as i've seen)
+                # so skip those to avoid confusion and maintain contiguous numbering of regular episodes.
+                if raw_episode_number is None:
+                    log_manager.debug(f"Skipping special episode with null episode number (title='{episode_data.get('title')}', season_id={season_id})")
+                    continue
+
+                if str(raw_episode_number).strip() == "":
                     raw_episode_number = kept_episode_count + 1
 
                 episode_title = str(episode_data.get("title") or f"Episode {kept_episode_count + 1}")
@@ -315,20 +320,41 @@ class ADN_ZLO_API:
             if episodes_dict == {}:
                 continue
 
-            kept_season_count += 1
-            season_key = f"S{kept_season_count}"
+            candidate_seasons.append({
+                "season_id": season_id,
+                "season_title": season_title,
+                "raw_season_number": raw_season_number,
+                "json_index": json_index,
+                "episodes_dict": episodes_dict,
+            })
 
-            stored_season_number = str(raw_season_number)
-            season_monitor = get_season_monitor_config(self.queue_service, series_id, season_id)
+        def _sort_key(candidate):
+            try:
+                return (0, int(candidate["raw_season_number"]), candidate["json_index"])
+            except (ValueError, TypeError):
+                return (1, 0, candidate["json_index"])
+
+        candidate_seasons.sort(key=_sort_key)
+
+        for new_idx, candidate in enumerate(candidate_seasons, start=1):
+            season_key = f"S{new_idx}"
+            stored_season_number = str(new_idx)
+            season_monitor = get_season_monitor_config(self.queue_service, series_id, candidate["season_id"])
+
             if season_monitor is not None and season_monitor.season_override is not None:
                 stored_season_number = str(season_monitor.season_override)
 
+            log_manager.debug(
+                f"Mapped season raw='{candidate['raw_season_number']}' to S{new_idx} "
+                f"(season_id={candidate['season_id']}, title='{candidate['season_title']}')"
+            )
+
             tmp_dict[series_id]["seasons"][season_key] = {
-                "season_id": season_id,
-                "season_name": season_title,
+                "season_id": candidate["season_id"],
+                "season_name": candidate["season_title"],
                 "season_number": stored_season_number,
-                "episodes": episodes_dict,
-                "eps_count": str(len(episodes_dict))
+                "episodes": candidate["episodes_dict"],
+                "eps_count": str(len(candidate["episodes_dict"])),
             }
 
         tmp_dict[series_id]["series"]["seasons_count"] = str(len(tmp_dict[series_id]["seasons"]))
