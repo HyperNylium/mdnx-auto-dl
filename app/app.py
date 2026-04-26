@@ -8,7 +8,7 @@ from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_sca
 from appdata.modules.Vars import (
     config, SERVICES,
     MDNX_SERVICE_CR_TOKEN_PATH, MDNX_SERVICE_HIDIVE_TOKEN_PATH, MDNX_SERVICE_WIDEVINE_PATH, MDNX_SERVICE_PLAYREADY_PATH,
-    ZLO_SERVICE_BIN_PATH, ZLO_SERVICE_CONFIG_SETTINGS_PATH, ZLO_SERVICE_WIDEVINE_L1_PATH, ZLO_SERVICE_WIDEVINE_L3_PATH, ZLO_SERVICE_PLAYREADY_SL2K_PATH, ZLO_SERVICE_PLAYREADY_SL3K_PATH,
+    ZLO_SERVICE_BIN_PATH, ZLO_SERVICE_CONFIG_SETTINGS_PATH,
     MDNX_ENABLED, ZLO_ENABLED, PLEX_CONFIGURED, JELLY_CONFIGURED,
     validate_cdm, update_mdnx_config, update_app_config, handle_exception, get_running_user, output_effective_config
 )
@@ -17,6 +17,10 @@ __VERSION__ = "3.0.0"
 
 
 def app():
+
+    if not MDNX_ENABLED and not ZLO_ENABLED:
+        log_manager.warning("No services are enabled. Please enable at least one MDNX or ZLO service in your config to use this application.")
+        sys.exit(0)
 
     # can we reliably read/write to the destination directory?
     if file_manager.test() == False:
@@ -41,52 +45,20 @@ def app():
                 log_manager.critical("No valid CDMs found for multi-downloader-nx. Downloading will not work without resolving this issue.\nPlease ensure you have either a Widevine or PlayReady CDM mounted to the correct path.")
                 sys.exit(1)
 
-        # ZLO checks
-        if ZLO_ENABLED:
-            if not os.path.isfile(ZLO_SERVICE_BIN_PATH):
-                log_manager.critical(f"ZLO is enabled, but the ZLO binary was not found at: {ZLO_SERVICE_BIN_PATH}")
-                sys.exit(1)
-
-            if not os.path.isdir(ZLO_SERVICE_CONFIG_SETTINGS_PATH):
-                log_manager.critical(f"ZLO is enabled, but the settings folder was not found at: {ZLO_SERVICE_CONFIG_SETTINGS_PATH}\nPlease mount the correct ZLO settings folder.")
-                sys.exit(1)
-
-            zlo_widevine_l1_valid = validate_cdm(ZLO_SERVICE_WIDEVINE_L1_PATH, "Widevine", required=True)
-            if zlo_widevine_l1_valid:
-                log_manager.info("Widevine L1 CDM is properly configured for ZLO.")
-
-            zlo_widevine_l3_valid = validate_cdm(ZLO_SERVICE_WIDEVINE_L3_PATH, "Widevine", required=True)
-            if zlo_widevine_l3_valid:
-                log_manager.info("Widevine L3 CDM is properly configured for ZLO.")
-
-            zlo_playready_sl2k_valid = validate_cdm(ZLO_SERVICE_PLAYREADY_SL2K_PATH, "PlayReady", required=True)
-            if zlo_playready_sl2k_valid:
-                log_manager.info("PlayReady SL2K CDM is properly configured for ZLO.")
-
-            sl3k_device_paths = []
-            if os.path.isdir(ZLO_SERVICE_PLAYREADY_SL3K_PATH):
-                for name in os.listdir(ZLO_SERVICE_PLAYREADY_SL3K_PATH):
-                    full_path = os.path.join(ZLO_SERVICE_PLAYREADY_SL3K_PATH, name)
-                    if os.path.isdir(full_path):
-                        sl3k_device_paths.append((name, full_path))
-
-            if not sl3k_device_paths:
-                log_manager.critical(f"ZLO is enabled, but no PlayReady SL3K device folders were found at: {ZLO_SERVICE_PLAYREADY_SL3K_PATH}")
-                sys.exit(1)
-
-            for device_name, device_path in sl3k_device_paths:
-                sl3k_valid = validate_cdm(device_path, "PlayReady", required=True)
-                if sl3k_valid:
-                    log_manager.info(f"PlayReady SL3K CDM is properly configured for ZLO device folder: {device_name}")
-
-            log_manager.info("ZLO CDM checks completed. ZLO will utilize either mp4decrypt or shaka packager with the appropriate CDMs for decryption.")
-
-        if not MDNX_ENABLED and not ZLO_ENABLED:
-            log_manager.warning("CDM checks are enabled but no services that require CDMs are enabled. Exiting...")
-            sys.exit(0)
-
     else:
         log_manager.warning("Skipping CDM checks because SKIP_CDM_CHECK is set to True. Make sure you have a valid Widevine or Playready CDM mounted to the correct path if you want downloading to work!")
+
+    # ZLO checks
+    if ZLO_ENABLED:
+        if not os.path.isfile(ZLO_SERVICE_BIN_PATH):
+            log_manager.critical(f"ZLO is enabled, but the ZLO binary was not found at: {ZLO_SERVICE_BIN_PATH}")
+            sys.exit(1)
+
+        if not os.path.isdir(ZLO_SERVICE_CONFIG_SETTINGS_PATH):
+            log_manager.critical(f"ZLO is enabled and the binary was found, but the settings folder was not found at: {ZLO_SERVICE_CONFIG_SETTINGS_PATH}\nPlease mount the correct ZLO settings folder.")
+            sys.exit(1)
+
+        log_manager.info("ZLO checks completed. All good!")
 
     # authenticate with media server(s) if configured
     if PLEX_CONFIGURED is True or JELLY_CONFIGURED is True:
@@ -156,43 +128,51 @@ def app():
             log_manager.error(f"Unsupported notification preference: {config.app.notification_preference}. Supported options are 'ntfy', 'smtp' or 'none'.")
             sys.exit(1)
 
-    # service checks/auth
-    if SERVICES.mdnx.crunchyroll.enabled:
-        log_manager.info("Starting CR_MDNX_API...")
-        from appdata.modules.API.MDNX.crunchy import CR_MDNX_API
-        SERVICES.mdnx.crunchyroll.api = CR_MDNX_API()
+    # MDNX service init
+    for mdnx_service in SERVICES.mdnx.all():
+        if not mdnx_service.enabled:
+            log_manager.info(f"MDNX service '{mdnx_service.service_name}' is not enabled. Skipping...")
+            continue
 
-        # authenticate with MDNX crunchyroll service if needed or force auth if user wants to
-        log_manager.info("Checking to see if user is authenticated with MDNX service (cr_token.yml exists?)...")
-        if not os.path.exists(MDNX_SERVICE_CR_TOKEN_PATH) or config.app.cr_force_reauth == True:
-            log_manager.info("cr_token.yml not found or re-authentication forced. Starting authentication process...")
-            SERVICES.mdnx.crunchyroll.api.auth()
+        match mdnx_service.service_name:
+            case "crunchyroll":
+                log_manager.info("Starting CR_MDNX_API...")
+                from appdata.modules.API.MDNX.crunchy import CR_MDNX_API
+                mdnx_service.api = CR_MDNX_API()
 
-            # Update the "CR_FORCE_REAUTH" config to False if needed
-            if config.app.cr_force_reauth == True:
-                update_app_config("CR_FORCE_REAUTH", False)
-        else:
-            log_manager.info("cr_token.yml exists. Assuming user is already authenticated with CR MDNX service.")
+                # authenticate with MDNX crunchyroll service if needed or force auth if user wants to
+                log_manager.info("Checking to see if user is authenticated with MDNX service (cr_token.yml exists?)...")
+                if not os.path.exists(MDNX_SERVICE_CR_TOKEN_PATH) or config.app.cr_force_reauth == True:
+                    log_manager.info("cr_token.yml not found or re-authentication forced. Starting authentication process...")
+                    mdnx_service.api.auth()
 
-    if SERVICES.mdnx.hidive.enabled:
-        log_manager.info("Starting HIDIVE_MDNX_API...")
-        from appdata.modules.API.MDNX.hidive import HIDIVE_MDNX_API
-        SERVICES.mdnx.hidive.api = HIDIVE_MDNX_API()
+                    # Update the "CR_FORCE_REAUTH" config to False if needed
+                    if config.app.cr_force_reauth == True:
+                        update_app_config("CR_FORCE_REAUTH", False)
+                else:
+                    log_manager.info("cr_token.yml exists. Assuming user is already authenticated with CR MDNX service.")
 
-        # authenticate with MDNX hidive service if needed or force auth if user wants to
-        log_manager.info("Checking to see if user is authenticated with MDNX service (hd_new_token.yml exists?)...")
-        if not os.path.exists(MDNX_SERVICE_HIDIVE_TOKEN_PATH) or config.app.hidive_force_reauth == True:
-            log_manager.info("hd_new_token.yml not found or re-authentication forced. Starting authentication process...")
-            SERVICES.mdnx.hidive.api.auth()
+            case "hidive":
+                log_manager.info("Starting HIDIVE_MDNX_API...")
+                from appdata.modules.API.MDNX.hidive import HIDIVE_MDNX_API
+                mdnx_service.api = HIDIVE_MDNX_API()
 
-            # Update the "HIDIVE_FORCE_REAUTH" config to False if needed
-            if config.app.hidive_force_reauth == True:
-                update_app_config("HIDIVE_FORCE_REAUTH", False)
-        else:
-            log_manager.info("hd_new_token.yml exists. Assuming user is already authenticated with HiDive MDNX service.")
+                # authenticate with MDNX hidive service if needed or force auth if user wants to
+                log_manager.info("Checking to see if user is authenticated with MDNX service (hd_new_token.yml exists?)...")
+                if not os.path.exists(MDNX_SERVICE_HIDIVE_TOKEN_PATH) or config.app.hidive_force_reauth == True:
+                    log_manager.info("hd_new_token.yml not found or re-authentication forced. Starting authentication process...")
+                    mdnx_service.api.auth()
 
+                    # Update the "HIDIVE_FORCE_REAUTH" config to False if needed
+                    if config.app.hidive_force_reauth == True:
+                        update_app_config("HIDIVE_FORCE_REAUTH", False)
+                else:
+                    log_manager.info("hd_new_token.yml exists. Assuming user is already authenticated with HiDive MDNX service.")
+
+    # ZLO service init
     for zlo_service in SERVICES.zlo.all():
         if not zlo_service.enabled:
+            log_manager.info(f"ZLO service '{zlo_service.service_name}' is not enabled. Skipping...")
             continue
 
         match zlo_service.service_name:

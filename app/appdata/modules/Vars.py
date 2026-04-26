@@ -256,12 +256,6 @@ MDNX_SERVICE_PLAYREADY_PATH = os.path.join(BIN_DIR, "mdnx", "playready")
 ZLO_SERVICE_BIN_PATH = os.path.join(BIN_DIR, "zlo", "zlo7")
 ZLO_SERVICE_CONFIG_PATH = os.path.join(os.path.expanduser("~"), "Documents", "zlo7")
 ZLO_SERVICE_CONFIG_SETTINGS_PATH = os.path.join(ZLO_SERVICE_CONFIG_PATH, "settings")
-ZLO_SERVICE_WIDEVINE_PATH = os.path.join(BIN_DIR, "zlo", "static", "cdm", "widevine")
-ZLO_SERVICE_PLAYREADY_PATH = os.path.join(BIN_DIR, "zlo", "static", "cdm", "playready")
-ZLO_SERVICE_WIDEVINE_L1_PATH = os.path.join(ZLO_SERVICE_WIDEVINE_PATH, "L1")
-ZLO_SERVICE_WIDEVINE_L3_PATH = os.path.join(ZLO_SERVICE_WIDEVINE_PATH, "L3")
-ZLO_SERVICE_PLAYREADY_SL2K_PATH = os.path.join(ZLO_SERVICE_PLAYREADY_PATH, "SL2K")
-ZLO_SERVICE_PLAYREADY_SL3K_PATH = os.path.join(ZLO_SERVICE_PLAYREADY_PATH, "SL3K")
 
 # Regular expression to match invalid characters in filenames
 INVALID_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1F]')
