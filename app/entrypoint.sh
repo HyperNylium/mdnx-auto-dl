@@ -149,7 +149,7 @@ chmod -R 775 /app
 # Make required symlinks for ZLO7 support
 ln -sfn "/app/appdata/bin/bento4/mp4decrypt" "/app/appdata/bin/zlo/static/bento4/mp4decrypt"
 ln -sfn "/app/appdata/bin/shaka_packager/shaka" "/app/appdata/bin/zlo/static/shaka_packager/shaka"
-ln -sfn "/usr/bin/ffmpeg" "/app/appdata/bin/zlo/static/ffmpeg/ffmpeg"
+ln -sfn "/usr/local/bin/ffmpeg" "/app/appdata/bin/zlo/static/ffmpeg/ffmpeg"
 ln -sfn "/usr/bin/mkvmerge" "/app/appdata/bin/zlo/static/mkvmerge/mkvmerge"
 ln -sfn "/usr/bin/mkvpropedit" "/app/appdata/bin/zlo/static/mkvmerge/mkvpropedit"
 
