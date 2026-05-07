@@ -206,3 +206,8 @@ appdata/zlo/zlo7
 
 notes.txt
 /__personal_helpers
+
+# mdnx-auto-dl runtime SQLite queue
+appdata/config/queue.db
+appdata/config/queue.db-wal
+appdata/config/queue.db-shm
