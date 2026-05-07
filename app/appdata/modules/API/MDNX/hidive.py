@@ -6,11 +6,14 @@ import subprocess
 import threading
 
 from appdata.modules.Globals import queue_manager, log_manager
+from appdata.modules.API.MDNX._shared import (
+    CODE_TO_LOCALE, LANG_MAP, MDNX_API_OK_LOGS, MDNX_SERVICE_BIN_PATH, VALID_LOCALES,
+)
 from appdata.modules.Vars import (
     config,
-    VALID_LOCALES, CODE_TO_LOCALE, LANG_MAP, MDNX_SERVICE_BIN_PATH, MDNX_API_OK_LOGS,
-    sanitize, dedupe_casefold, apply_series_blacklist, get_season_monitor_config
+    apply_series_blacklist, dedupe_casefold, get_season_monitor_config, sanitize,
 )
+from appdata.modules.types.queue import Episode, Season, Series, SeriesInfo
 
 
 class HIDIVE_MDNX_API:
@@ -83,15 +86,20 @@ class HIDIVE_MDNX_API:
             log_manager.warning(f"MDNX API test result (stderr):\n{result.stderr}")
 
         dict_result = self._process_console_output(result.stdout, add2queue=False)
-        log_manager.info(f"Processed console output:\n{json.dumps(dict_result)}")
+
+        json_result = {}
+        for series_id, series in dict_result.items():
+            json_result[series_id] = series.model_dump()
+
+        log_manager.info(f"Processed console output:\n{json.dumps(json_result)}")
 
         # check if returned dict available_dubs and available_subs lists are populated for every episode
         # (usually empty if issue occurred in parsing, which would happen if user isnt authed)
         for series_info in dict_result.values():
-            for season_info in series_info.get("seasons", {}).values():
-                for episode_info in season_info.get("episodes", {}).values():
-                    dubs = episode_info.get("available_dubs", [])
-                    subs = episode_info.get("available_subs", [])
+            for season_info in series_info.seasons.values():
+                for episode_info in season_info.episodes.values():
+                    dubs = episode_info.available_dubs or []
+                    subs = episode_info.available_subs or []
                     if not dubs or not subs:
                         log_manager.error("Authentication error detected in JSON output (no dubs or subs for series). Forcing re-authentication...")
                         self.auth()
@@ -302,7 +310,7 @@ class HIDIVE_MDNX_API:
             return abs(count_group - count_declared) <= 2
 
         log_manager.debug("Processing console output...")
-        tmp_dict = {}
+        tmp_dict: dict[str, Series] = {}
         current_series_id = None
         current_season_key = None
 
@@ -329,14 +337,14 @@ class HIDIVE_MDNX_API:
                 # start a new series and reset per-series state
                 gd = series_match.groupdict()
                 current_series_id = gd["series_id"]
-                tmp_dict[current_series_id] = {
-                    "series": {
-                        "series_id": gd["series_id"],
-                        "series_name": sanitize(gd["series_name"]),
-                        "seasons_count": str(gd["seasons_count"]),
-                    },
-                    "seasons": {}
-                }
+                tmp_dict[current_series_id] = Series(
+                    series=SeriesInfo(
+                        series_name=sanitize(gd["series_name"]),
+                        series_id=gd["series_id"],
+                        seasons_count=str(gd["seasons_count"]),
+                    ),
+                    seasons={},
+                )
                 seasons_meta.clear()
                 episodes_by_season.clear()
                 flat_groups.clear()
@@ -509,7 +517,7 @@ class HIDIVE_MDNX_API:
                 filtered_episode_rows.append((local_tree_index, episode_id, title, download_num))
 
             # build the final episodes dict and probe stream languages for each kept episode
-            episodes_dict = {}
+            episodes_dict: dict[str, Episode] = {}
             for local_index, (_, _episode_id, title, download_num) in enumerate(filtered_episode_rows, start=1):
                 dubs_list, subs_list = self._probe_episode_streams(series_id=current_series_id, season_id=season_id, episode_index=download_num)
 
@@ -518,16 +526,14 @@ class HIDIVE_MDNX_API:
                 subs_list = dedupe_casefold(subs_list)
 
                 episode_key = f"E{local_index}"
-                episodes_dict[episode_key] = {
-                    "episode_number": str(local_index),
-                    "episode_number_download": str(download_num),
-                    "episode_name": sanitize(title) if title else f"Episode {local_index}",
-                    "available_dubs": dubs_list,
-                    "available_subs": subs_list,
-                    "episode_downloaded": False,
-                    "episode_skip": False,
-                    "has_all_dubs_subs": False,
-                }
+                episode_name = sanitize(title) if title else f"Episode {local_index}"
+                episodes_dict[episode_key] = Episode(
+                    episode_number=str(local_index),
+                    episode_number_download=str(download_num),
+                    episode_name=episode_name,
+                    available_dubs=dubs_list,
+                    available_subs=subs_list,
+                )
                 total_episodes += 1
 
             stored_season_number = meta["season_number"]
@@ -536,19 +542,18 @@ class HIDIVE_MDNX_API:
                 stored_season_number = str(season_monitor.season_override)
 
             # attach the season to the output
-            tmp_dict[current_series_id]["seasons"][season_key] = {
-                "season_id": season_id,
-                "season_name": sanitize(meta["season_name"]),
-                "season_number": stored_season_number,
-                "episodes": episodes_dict,
-                "eps_count": str(len(episodes_dict))
-            }
+            tmp_dict[current_series_id].seasons[season_key] = Season(
+                season_id=season_id,
+                season_name=sanitize(meta["season_name"]),
+                season_number=stored_season_number,
+                episodes=episodes_dict,
+            )
 
         # apply per-series blacklist to mark episodes to skip
         tmp_dict = apply_series_blacklist(tmp_dict, service="hidive")
 
         # fill in total ep count on series metadata
-        tmp_dict[current_series_id]["series"]["eps_count"] = str(total_episodes)
+        tmp_dict[current_series_id].series.eps_count = str(total_episodes)
 
         log_manager.debug("Console output processed.")
         if add2queue:
