@@ -55,11 +55,11 @@ def app():
     # ZLO checks
     if ZLO_ENABLED:
         if not os.path.isfile(ZLO_SERVICE_BIN_PATH):
-            log_manager.critical(f"ZLO is enabled, but the ZLO binary was not found at: {ZLO_SERVICE_BIN_PATH}")
+            log_manager.critical(f"ZLO is enabled, but the ZLO binary was not found at: {ZLO_SERVICE_BIN_PATH}\nPlease mount the correct ZLO binary and restart the application.")
             sys.exit(1)
 
         if not os.path.isdir(ZLO_SERVICE_CONFIG_SETTINGS_PATH):
-            log_manager.critical(f"ZLO is enabled and the binary was found, but the settings folder was not found at: {ZLO_SERVICE_CONFIG_SETTINGS_PATH}\nPlease mount the correct ZLO settings folder.")
+            log_manager.critical(f"ZLO is enabled and the binary was found, but the settings folder was not found at: {ZLO_SERVICE_CONFIG_SETTINGS_PATH}\nPlease mount the correct ZLO settings folder and restart the application.")
             sys.exit(1)
 
         log_manager.info("ZLO checks completed. All good!")
