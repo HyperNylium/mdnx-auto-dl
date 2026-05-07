@@ -154,7 +154,7 @@ ln -sfn "/usr/bin/mkvmerge" "/app/appdata/bin/zlo/static/mkvmerge/mkvmerge"
 ln -sfn "/usr/bin/mkvpropedit" "/app/appdata/bin/zlo/static/mkvmerge/mkvpropedit"
 
 echo "[entrypoint] Running database migrations via Alembic..."
-gosu "$USER_ID:$GROUP_ID" bash -c "alembic upgrade head"
+gosu "$USER_ID:$GROUP_ID" bash -c "alembic -c appdata/modules/db/alembic/alembic.ini upgrade head"
 
 NTFY_SCRIPT_PATH="$(read_config_app_value "NTFY_SCRIPT_PATH" "")"
 
