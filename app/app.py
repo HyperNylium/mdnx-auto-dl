@@ -5,17 +5,26 @@ import signal
 from appdata.modules.MainLoop import MainLoop
 from appdata.modules.Globals import file_manager, log_manager
 from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
+from appdata.modules.API.MDNX._shared import (
+    MDNX_SERVICE_CR_TOKEN_PATH, MDNX_SERVICE_HIDIVE_TOKEN_PATH,
+    MDNX_SERVICE_PLAYREADY_PATH, MDNX_SERVICE_WIDEVINE_PATH,
+    update_mdnx_config
+)
+from appdata.modules.API.ZLO7._shared import (
+    ZLO_SERVICE_BIN_PATH, ZLO_SERVICE_CONFIG_SETTINGS_PATH,
+)
 from appdata.modules.Vars import (
     config,
-    MDNX_SERVICE_CR_TOKEN_PATH, MDNX_SERVICE_HIDIVE_TOKEN_PATH, MDNX_SERVICE_WIDEVINE_PATH, MDNX_SERVICE_PLAYREADY_PATH,
-    MDNX_CR_ENABLED, MDNX_HIDIVE_ENABLED, PLEX_CONFIGURED, JELLY_CONFIGURED,
-    update_mdnx_config, update_app_config, handle_exception, get_running_user, output_effective_config
+    APP_VERSION, JELLY_CONFIGURED, MDNX_ENABLED, PLEX_CONFIGURED, SERVICES, ZLO_ENABLED,
+    get_running_user, handle_exception, output_effective_config, update_app_config, validate_cdm
 )
-
-__VERSION__ = "2.4.1"
 
 
 def app():
+
+    if not MDNX_ENABLED and not ZLO_ENABLED:
+        log_manager.warning("No services are enabled. Please enable at least one MDNX or ZLO service in your config to use this application.")
+        sys.exit(0)
 
     # can we reliably read/write to the destination directory?
     if file_manager.test() == False:
@@ -24,153 +33,36 @@ def app():
 
     # check if user has a widevine or playready CDM, and do checks to see if they are valid.
     if config.app.skip_cdm_check is False:
-        widevine_cdm_found = False
-        playready_cdm_found = False
-        services = [
-            (MDNX_SERVICE_WIDEVINE_PATH, "Widevine"),
-            (MDNX_SERVICE_PLAYREADY_PATH, "PlayReady")
-        ]
 
-        for service_path, service_name in services:
-            service_folder_contents = os.listdir(service_path)
+        # MDNX checks
+        if MDNX_ENABLED:
+            mdnx_widevine_valid = validate_cdm(MDNX_SERVICE_WIDEVINE_PATH, "Widevine", required=False)
+            mdnx_playready_valid = validate_cdm(MDNX_SERVICE_PLAYREADY_PATH, "PlayReady", required=False)
 
-            log_manager.debug(f"Checking {service_name} CDM path at: {service_path}.\nContents: {service_folder_contents}")
+            if mdnx_widevine_valid:
+                log_manager.info("Widevine CDM is properly configured. multi-downloader-nx will utilize mp4decrypt with a widevine CDM for decryption.")
 
-            # folder exists, but may have no files (user not using this CDM)
-            # if no files, skip checks
-            has_files = False
-            for name in service_folder_contents:
-                if name == ".gitkeep":
-                    continue
+            if mdnx_playready_valid:
+                log_manager.info("PlayReady CDM is properly configured. multi-downloader-nx will utilize mp4decrypt with a playready CDM for decryption.")
 
-                full = os.path.join(service_path, name)
-                if os.path.isfile(full):
-                    has_files = True
-                    break
+            if not mdnx_widevine_valid and not mdnx_playready_valid:
+                log_manager.critical("No valid CDMs found for multi-downloader-nx. Downloading will not work without resolving this issue.\nPlease ensure you have either a Widevine or PlayReady CDM mounted to the correct path.")
+                sys.exit(1)
 
-            if not has_files:
-                log_manager.debug(f"{service_name} CDM path is empty (no files). Skipping {service_name} checks.")
-                continue
-
-            match service_name:
-                case "Widevine":
-                    log_manager.info(f"Checking Widevine CDM at {service_path}...")
-
-                    found_file = False
-                    found_blobs = {
-                        ".bin": False,
-                        ".pem": False
-                    }
-
-                    for name in service_folder_contents:
-                        full = os.path.join(service_path, name)
-                        if not os.path.isfile(full):
-                            continue
-
-                        lower = name.lower()
-
-                        if lower.endswith(".wvd"):
-                            found_file = True
-                            break
-
-                        for ext in found_blobs:
-                            if lower.endswith(ext):
-                                found_blobs[ext] = True
-
-                    if found_file:
-                        log_manager.info("Widevine CDM file (.wvd) found. Good to go!")
-                        widevine_cdm_found = True
-                        break
-                    elif all(found_blobs.values()):
-                        log_manager.info("Widevine CDM blob files (.bin and .pem) found. Good to go!")
-                        widevine_cdm_found = True
-                        break
-                    else:
-                        log_manager.critical(
-                            "Widevine CDM not properly configured. Downloading will not work without resolving this issue.\n"
-                            "Please ensure you have either the .wvd file or both .bin and .pem blob files mounted to the correct path.\n"
-                            "Should be as simple as uncommenting the '# Widevine' section in your docker-compose.yaml and putting the files in the right place.\n"
-                            "If you need more help, feel free to open a discussion on the GitHub repo :)"
-                        )
-                        sys.exit(1)
-
-                case "PlayReady":
-                    log_manager.info(f"Checking PlayReady CDM at {service_path}...")
-
-                    found_file = False
-                    found_blobs = {
-                        "bgroupcert.dat": False,
-                        "zgpriv.dat": False
-                    }
-
-                    for name in service_folder_contents:
-                        full = os.path.join(service_path, name)
-                        if not os.path.isfile(full):
-                            continue
-
-                        lower = name.lower()
-
-                        if lower.endswith(".prd"):
-                            found_file = True
-                            break
-
-                        for blob_name in found_blobs:
-                            if lower == blob_name.lower():
-                                found_blobs[blob_name] = True
-
-                    if found_file:
-                        log_manager.info("Playready CDM file (.prd) found. Good to go!")
-                        playready_cdm_found = True
-                        break
-                    elif all(found_blobs.values()):
-                        log_manager.info("Playready CDM blob files (bgroupcert.dat and zgpriv.dat) found. Checking to see if they are valid...")
-
-                        # check that bgroupcert.dat is at least 1KB, and zgpriv.dat is exactly 32 bytes.
-                        # these stats are from multi-downloader-nx's docs.
-                        bgroupcert_path = os.path.join(service_path, "bgroupcert.dat")
-                        zgpriv_path = os.path.join(service_path, "zgpriv.dat")
-
-                        bgroupcert_size = os.path.getsize(bgroupcert_path)
-                        zgpriv_size = os.path.getsize(zgpriv_path)
-
-                        if bgroupcert_size >= 1024 and zgpriv_size == 32:
-                            log_manager.info("Playready CDM blob files look valid. Good to go!")
-                            playready_cdm_found = True
-                            break
-                        else:
-                            log_manager.critical(
-                                "Playready CDM blob files found but look invalid:\n"
-                                f"- bgroupcert.dat size: {bgroupcert_size} bytes (should be at least 1024 bytes)\n"
-                                f"- zgpriv.dat size: {zgpriv_size} bytes (should be exactly 32 bytes)\n"
-                                "Please check your mounted files."
-                            )
-                            sys.exit(1)
-
-                    else:
-                        log_manager.critical(
-                            "Playready CDM not properly configured. Downloading will not work without resolving this issue.\n"
-                            "Please ensure you have either the .prd file or both bgroupcert.dat and zgpriv.dat blob files mounted to the correct path.\n"
-                            "Should be as simple as uncommenting the '# Playready' section in your docker-compose.yaml and putting the files in the right place.\n"
-                            "If you need more help, feel free to open a discussion on the GitHub repo :)"
-                        )
-                        sys.exit(1)
-
-        if widevine_cdm_found:
-            log_manager.info("Widevine CDM is properly configured. multi-downloader-nx will utilize mp4decrypt with a widevine CDM for decryption.")
-
-        if playready_cdm_found:
-            log_manager.info("Playready CDM is properly configured. multi-downloader-nx will utilize mp4decrypt with a playready CDM for decryption.")
-
-        if not widevine_cdm_found and not playready_cdm_found:
-            log_manager.critical(
-                "No valid CDMs found. Downloading will not work without resolving this issue.\n"
-                "Please ensure you have either a Widevine or Playready CDM mounted to the correct path.\n"
-                "Should be as simple as uncommenting the relevant section in your docker-compose.yaml and putting the files in the right place.\n"
-                "If you need more help, feel free to open a discussion on the GitHub repo :)"
-            )
-            sys.exit(1)
     else:
         log_manager.warning("Skipping CDM checks because SKIP_CDM_CHECK is set to True. Make sure you have a valid Widevine or Playready CDM mounted to the correct path if you want downloading to work!")
+
+    # ZLO checks
+    if ZLO_ENABLED:
+        if not os.path.isfile(ZLO_SERVICE_BIN_PATH):
+            log_manager.critical(f"ZLO is enabled, but the ZLO binary was not found at: {ZLO_SERVICE_BIN_PATH}")
+            sys.exit(1)
+
+        if not os.path.isdir(ZLO_SERVICE_CONFIG_SETTINGS_PATH):
+            log_manager.critical(f"ZLO is enabled and the binary was found, but the settings folder was not found at: {ZLO_SERVICE_CONFIG_SETTINGS_PATH}\nPlease mount the correct ZLO settings folder.")
+            sys.exit(1)
+
+        log_manager.info("ZLO checks completed. All good!")
 
     # authenticate with media server(s) if configured
     if PLEX_CONFIGURED is True or JELLY_CONFIGURED is True:
@@ -240,44 +132,80 @@ def app():
             log_manager.error(f"Unsupported notification preference: {config.app.notification_preference}. Supported options are 'ntfy', 'smtp' or 'none'.")
             sys.exit(1)
 
-    # service checks/auth
-    cr_mdnx_api = None
-    if MDNX_CR_ENABLED == True:
-        log_manager.info("Starting CR_MDNX_API...")
-        from appdata.modules.API.MDNX.crunchy import CR_MDNX_API
-        cr_mdnx_api = CR_MDNX_API()
+    # MDNX service init
+    for mdnx_service in SERVICES.mdnx.all():
+        if not mdnx_service.enabled:
+            log_manager.info(f"MDNX service '{mdnx_service.service_name}' is not enabled. Skipping...")
+            continue
 
-        # authenticate with MDNX crunchyroll service if needed or force auth if user wants to
-        log_manager.info("Checking to see if user is authenticated with MDNX service (cr_token.yml exists?)...")
-        if not os.path.exists(MDNX_SERVICE_CR_TOKEN_PATH) or config.app.cr_force_reauth == True:
-            log_manager.info("cr_token.yml not found or re-authentication forced. Starting authentication process...")
-            cr_mdnx_api.auth()
+        match mdnx_service.service_name:
+            case "crunchyroll":
+                log_manager.info("Starting CR_MDNX_API...")
+                from appdata.modules.API.MDNX.crunchy import CR_MDNX_API
+                mdnx_service.api = CR_MDNX_API()
 
-            # Update the "CR_FORCE_REAUTH" config to False if needed
-            if config.app.cr_force_reauth == True:
-                update_app_config("CR_FORCE_REAUTH", False)
-        else:
-            log_manager.info("cr_token.yml exists. Assuming user is already authenticated with CR MDNX service.")
+                # authenticate with MDNX crunchyroll service if needed or force auth if user wants to
+                log_manager.info("Checking to see if user is authenticated with MDNX service (cr_token.yml exists?)...")
+                if not os.path.exists(MDNX_SERVICE_CR_TOKEN_PATH) or config.app.cr_force_reauth == True:
+                    log_manager.info("cr_token.yml not found or re-authentication forced. Starting authentication process...")
+                    mdnx_service.api.auth()
 
-    hidive_mdnx_api = None
-    if MDNX_HIDIVE_ENABLED == True:
-        log_manager.info("Starting HIDIVE_MDNX_API...")
-        from appdata.modules.API.MDNX.hidive import HIDIVE_MDNX_API
-        hidive_mdnx_api = HIDIVE_MDNX_API()
+                    # Update the "CR_FORCE_REAUTH" config to False if needed
+                    if config.app.cr_force_reauth == True:
+                        update_app_config("CR_FORCE_REAUTH", False)
+                else:
+                    log_manager.info("cr_token.yml exists. Assuming user is already authenticated with CR MDNX service.")
 
-        # authenticate with MDNX hidive service if needed or force auth if user wants to
-        log_manager.info("Checking to see if user is authenticated with MDNX service (hd_new_token.yml exists?)...")
-        if not os.path.exists(MDNX_SERVICE_HIDIVE_TOKEN_PATH) or config.app.hidive_force_reauth == True:
-            log_manager.info("hd_new_token.yml not found or re-authentication forced. Starting authentication process...")
-            hidive_mdnx_api.auth()
+            case "hidive":
+                log_manager.info("Starting HIDIVE_MDNX_API...")
+                from appdata.modules.API.MDNX.hidive import HIDIVE_MDNX_API
+                mdnx_service.api = HIDIVE_MDNX_API()
 
-            # Update the "HIDIVE_FORCE_REAUTH" config to False if needed
-            if config.app.hidive_force_reauth == True:
-                update_app_config("HIDIVE_FORCE_REAUTH", False)
-        else:
-            log_manager.info("hd_new_token.yml exists. Assuming user is already authenticated with HiDive MDNX service.")
+                # authenticate with MDNX hidive service if needed or force auth if user wants to
+                log_manager.info("Checking to see if user is authenticated with MDNX service (hd_new_token.yml exists?)...")
+                if not os.path.exists(MDNX_SERVICE_HIDIVE_TOKEN_PATH) or config.app.hidive_force_reauth == True:
+                    log_manager.info("hd_new_token.yml not found or re-authentication forced. Starting authentication process...")
+                    mdnx_service.api.auth()
 
-    mainloop = MainLoop(cr_mdnx_api=cr_mdnx_api, hidive_mdnx_api=hidive_mdnx_api, notifier=notifier)
+                    # Update the "HIDIVE_FORCE_REAUTH" config to False if needed
+                    if config.app.hidive_force_reauth == True:
+                        update_app_config("HIDIVE_FORCE_REAUTH", False)
+                else:
+                    log_manager.info("hd_new_token.yml exists. Assuming user is already authenticated with HiDive MDNX service.")
+
+    # ZLO service init
+    for zlo_service in SERVICES.zlo.all():
+        if not zlo_service.enabled:
+            log_manager.info(f"ZLO service '{zlo_service.service_name}' is not enabled. Skipping...")
+            continue
+
+        match zlo_service.service_name:
+            case "zlo-crunchyroll":
+                log_manager.info("Starting CR_ZLO_API...")
+                from appdata.modules.API.ZLO7.crunchy import CR_ZLO_API
+                zlo_service.api = CR_ZLO_API()
+
+            case "zlo-hidive":
+                log_manager.info("Starting HIDIVE_ZLO_API...")
+                from appdata.modules.API.ZLO7.hidive import HIDIVE_ZLO_API
+                zlo_service.api = HIDIVE_ZLO_API()
+
+            case "zlo-adn":
+                log_manager.info("Starting ADN_ZLO_API...")
+                from appdata.modules.API.ZLO7.adn import ADN_ZLO_API
+                zlo_service.api = ADN_ZLO_API()
+
+            case "zlo-disney":
+                log_manager.info("Starting DISNEY_ZLO_API...")
+                from appdata.modules.API.ZLO7.disney import DISNEY_ZLO_API
+                zlo_service.api = DISNEY_ZLO_API()
+
+            case "zlo-amazon":
+                log_manager.info("Starting AMAZON_ZLO_API...")
+                from appdata.modules.API.ZLO7.amazon import AMAZON_ZLO_API
+                zlo_service.api = AMAZON_ZLO_API()
+
+    mainloop = MainLoop(notifier=notifier)
 
     def shutdown(signum, frame):
         """Signal handler to gracefully shutdown the application."""
@@ -296,7 +224,7 @@ if __name__ == "__main__":
     log_manager.info("Overriding sys.excepthook to log uncaught exceptions...")
     sys.excepthook = handle_exception
 
-    log_manager.info(f"mdnx-auto-dl v{__VERSION__} has started.")
+    log_manager.info(f"mdnx-auto-dl v{APP_VERSION} has started.")
     get_running_user()
     update_mdnx_config()
     output_effective_config(config)

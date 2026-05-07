@@ -29,7 +29,7 @@ class LogManager:
 
         # normalize log level from config (defaults to INFO)
         self.min_level = LEVEL_VALUES.get(
-            str(config.app.log_level).upper(),
+            config.app.log_level.upper(),
             LEVEL_VALUES["INFO"]
         )
 
@@ -75,8 +75,8 @@ class LogManager:
             if os.path.getsize(self.log_file) == 0:
                 return
 
-            self._archive_current_log_locked()
-            self._prune_archives_locked()
+            self._archive_current_log()
+            self._prune_archives()
 
         return
 
@@ -142,7 +142,7 @@ class LogManager:
 
         return None
 
-    def _archive_current_log_locked(self) -> None:
+    def _archive_current_log(self) -> None:
         """Archives the current log file into a zip with a timestamped name."""
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -162,7 +162,7 @@ class LogManager:
                 pass
         return
 
-    def _prune_archives_locked(self) -> None:
+    def _prune_archives(self) -> None:
         """Deletes oldest log archives if exceeding max_archives limit."""
 
         log_basename = os.path.basename(self.log_file)

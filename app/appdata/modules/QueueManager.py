@@ -1,18 +1,38 @@
-import os
-import json
+import sys
+import threading
 
 from .Globals import log_manager
-from .Vars import QUEUE_PATH
+from .Vars import (
+    config,
+    SERVICES,
+    update_app_config,
+)
+from .db.connection import open_connection
+from .db.queue_repo import (
+    delete_series, load_queue, set_episode_field, clear_queue, upsert_series,
+)
+from .types.queue import Queue, Season, Series, ServiceBucket
 
 
 class QueueManager:
-    def __init__(self, queue_path: str = QUEUE_PATH) -> None:
-        self.queue_path = queue_path
-        self.queue_data = self._load_queue()
+    def __init__(self) -> None:
+        self.conn = open_connection()
+        self.queue = load_queue(self.conn)
+        self._ensure_buckets()
+        self._lock = threading.Lock()
 
-        log_manager.debug(f"QueueManager initialized (path: {self.queue_path})")
+        log_manager.debug("QueueManager initialized")
 
-    def add(self, new_data: dict, service: str) -> None:
+        if config.app.clear_queue:
+            log_manager.info("CLEAR_QUEUE is True. Clearing queue tables.")
+            clear_queue(self.conn)
+            self.queue = Queue()
+            self._ensure_buckets()
+            update_app_config("CLEAR_QUEUE", False)
+            log_manager.info("CLEAR_QUEUE is True. Cleared the queue and flipped CLEAR_QUEUE back to False. Exiting to restart with a clean slate.")
+            sys.exit(0)
+
+    def add(self, new_data: dict[str, Series], service: str) -> None:
         """Add or update series in the queue for the specified service."""
 
         bucket_name = self._normalize_service(service)
@@ -20,103 +40,80 @@ class QueueManager:
             return
 
         log_manager.debug(f"Adding series to the queue under '{bucket_name}'.")
-        bucket = self.queue_data.setdefault(bucket_name, {})
 
-        for series_id, series_info in new_data.items():
-            # brand new series
-            if series_id not in bucket:
-                bucket[series_id] = series_info
+        with self._lock:
+            bucket = self.queue.buckets.setdefault(bucket_name, ServiceBucket())
 
-                # ensure episode flags exist for downstream logic
-                for s in series_info.get("seasons", {}).values():
-                    for ep in s.get("episodes", {}).values():
-                        ep.setdefault("episode_downloaded", False)
-                        ep.setdefault("episode_skip", False)
-                        ep.setdefault("has_all_dubs_subs", False)
+            for series_id, new_series in new_data.items():
+                existing_series = bucket.series.get(series_id)
 
-                log_manager.debug(f"Added series '{series_id}' to '{bucket_name}'.")
-                continue
-
-            # if series already exists, update its info (except seasons/episodes)
-            bucket[series_id]["series"] = series_info["series"]
-
-            # normalize season keys to the real season_id when available,
-            # and collapse any duplicates already present in the existing queue.
-            existing_seasons = bucket[series_id].setdefault("seasons", {})
-
-            # collapse duplicates already in the bucket (same season_id under different keys)
-            seen = {}
-            for old_key, old_season in list(existing_seasons.items()):
-                season_id = old_season.get("season_id")
-
-                if not season_id:
+                if existing_series is None:
+                    bucket.series[series_id] = new_series
+                    log_manager.debug(f"Added series '{series_id}' to '{bucket_name}'.")
+                    upsert_series(self.conn, bucket_name, series_id, new_series)
                     continue
 
-                if season_id in seen:
-                    keep_key = seen[season_id]
-                    keep = existing_seasons[keep_key]
+                # update only the SeriesInfo blob, leave existing seasons alone for merge
+                existing_series.series = new_series.series
 
-                    for ep_key, ep_val in old_season.get("episodes", {}).items():
-                        if ep_key not in keep.setdefault("episodes", {}):
-                            keep["episodes"][ep_key] = ep_val
-
-                    del existing_seasons[old_key]
-                else:
-                    seen[season_id] = old_key
-
-            # while ingesting new data, migrate target key to the stable season_id
-            for season_key, season_info in series_info.get("seasons", {}).items():
-                canonical_key = season_info.get("season_id") or season_key
-
-                # if we already have this season under another key, move it
-                if season_info.get("season_id"):
-                    prev_key = seen.get(season_info["season_id"])
-                    if prev_key and prev_key != canonical_key and prev_key in existing_seasons:
-
-                        # if destination key exists, merge. otherwise re-key
-                        if canonical_key in existing_seasons:
-                            dst = existing_seasons[canonical_key]
-                            src = existing_seasons[prev_key]
-
-                            for ep_key, ep_val in src.get("episodes", {}).items():
-                                if ep_key not in dst.setdefault("episodes", {}):
-                                    dst["episodes"][ep_key] = ep_val
-
-                            del existing_seasons[prev_key]
-                        else:
-                            existing_seasons[canonical_key] = existing_seasons.pop(prev_key)
-
-                        seen[season_info["season_id"]] = canonical_key
-
-                season = existing_seasons.setdefault(
-                    canonical_key,
-                    {**season_info, "episodes": {}}
-                )
-
-                for field_name, field_value in season_info.items():
-                    if field_name == "episodes":
+                # collapse any existing duplicates in current seasons by season_id
+                seen: dict[str, str] = {}
+                for old_key, old_season in list(existing_series.seasons.items()):
+                    if old_season.season_id == "":
                         continue
-
-                    season[field_name] = field_value
-
-                for ep_key, new_ep in season_info.get("episodes", {}).items():
-                    old_ep = season["episodes"].get(ep_key)
-
-                    # preserve local flags when refreshing episode data
-                    if old_ep:
-                        new_ep["episode_downloaded"] = old_ep.get("episode_downloaded", False)
-                        new_ep["episode_skip"] = old_ep.get("episode_skip", False)
-                        new_ep["has_all_dubs_subs"] = old_ep.get("has_all_dubs_subs", False)
+                    if old_season.season_id in seen:
+                        keep_key = seen[old_season.season_id]
+                        keep = existing_series.seasons[keep_key]
+                        for episode_key, episode_value in old_season.episodes.items():
+                            if episode_key not in keep.episodes:
+                                keep.episodes[episode_key] = episode_value
+                        del existing_series.seasons[old_key]
                     else:
-                        new_ep.setdefault("episode_downloaded", False)
-                        new_ep.setdefault("episode_skip", False)
-                        new_ep.setdefault("has_all_dubs_subs", False)
+                        seen[old_season.season_id] = old_key
 
-                    season["episodes"][ep_key] = new_ep
+                # merge incoming seasons. migrate keys to canonical season_id when possible
+                for season_key, new_season in new_series.seasons.items():
+                    canonical_key = new_season.season_id or season_key
 
-            log_manager.debug(f"Updated series '{series_id}' in '{bucket_name}'.")
+                    if new_season.season_id:
+                        prev_key = seen.get(new_season.season_id)
+                        if prev_key and prev_key != canonical_key and prev_key in existing_series.seasons:
+                            if canonical_key in existing_series.seasons:
+                                dst = existing_series.seasons[canonical_key]
+                                src = existing_series.seasons[prev_key]
+                                for episode_key, episode_value in src.episodes.items():
+                                    if episode_key not in dst.episodes:
+                                        dst.episodes[episode_key] = episode_value
+                                del existing_series.seasons[prev_key]
+                            else:
+                                existing_series.seasons[canonical_key] = existing_series.seasons.pop(prev_key)
+                            seen[new_season.season_id] = canonical_key
 
-        self._save_queue()
+                    existing_season = existing_series.seasons.get(canonical_key)
+                    if existing_season is None:
+                        existing_season = Season(
+                            season_id=new_season.season_id,
+                            season_number=new_season.season_number,
+                            season_name=new_season.season_name,
+                            episodes={},
+                        )
+                        existing_series.seasons[canonical_key] = existing_season
+                    else:
+                        existing_season.season_id = new_season.season_id
+                        existing_season.season_number = new_season.season_number
+                        existing_season.season_name = new_season.season_name
+
+                    for episode_key, new_episode in new_season.episodes.items():
+                        old_episode = existing_season.episodes.get(episode_key)
+                        if old_episode is not None:
+                            new_episode.episode_downloaded = old_episode.episode_downloaded
+                            new_episode.has_all_dubs_subs = old_episode.has_all_dubs_subs
+                            if old_episode.episode_skip:
+                                new_episode.episode_skip = True
+                        existing_season.episodes[episode_key] = new_episode
+
+                upsert_series(self.conn, bucket_name, series_id, existing_series)
+                log_manager.debug(f"Updated series '{series_id}' in '{bucket_name}'.")
 
     def remove(self, series_id: str, service: str) -> None:
         """Remove a series from the queue for the specified service."""
@@ -126,155 +123,80 @@ class QueueManager:
             return
 
         log_manager.debug(f"Removing series {series_id} from '{bucket_name}'.")
-        bucket = self.queue_data.setdefault(bucket_name, {})
 
-        if series_id in bucket:
-            del bucket[series_id]
-            self._save_queue()
-            log_manager.debug(f"Removed series '{series_id}' from '{bucket_name}'.")
-            return
+        with self._lock:
+            bucket = self.queue.buckets.setdefault(bucket_name, ServiceBucket())
+
+            if series_id in bucket.series:
+                del bucket.series[series_id]
+                delete_series(self.conn, bucket_name, series_id)
+                log_manager.debug(f"Removed series '{series_id}' from '{bucket_name}'.")
+                return
 
         log_manager.warning(f"Series '{series_id}' not found in '{bucket_name}'.")
 
-    def update_episode_status(self, series_id: str, season_id: str, episode_id: str, status: bool, service: str) -> None:
-        """Update the 'episode_downloaded' flag for an episode."""
+    def update_episode_status(self, series_id: str, season_key: str, episode_key: str, status: bool, service: str) -> None:
+        """Update the episode_downloaded flag for an episode."""
 
-        bucket_name = self._normalize_service(service)
-        if bucket_name is None:
-            return
+        self._set_flag(series_id, season_key, episode_key, "episode_downloaded", status, service)
 
-        bucket = self.queue_data.setdefault(bucket_name, {})
+    def update_episode_has_all_dubs_subs(self, series_id: str, season_key: str, episode_key: str, status: bool, service: str) -> None:
+        """Update the has_all_dubs_subs flag for an episode."""
 
-        if series_id not in bucket:
-            log_manager.warning(f"Series '{series_id}' not found in '{bucket_name}'.")
-            return
+        self._set_flag(series_id, season_key, episode_key, "has_all_dubs_subs", status, service)
 
-        if season_id not in bucket[series_id]["seasons"]:
-            log_manager.warning(f"Season '{season_id}' not found in series '{series_id}' ({bucket_name}).")
-            return
-
-        episodes = bucket[series_id]["seasons"][season_id].get("episodes", {})
-        if episode_id not in episodes:
-            log_manager.warning(
-                f"Episode '{episode_id}' not found in season '{season_id}' for series '{series_id}' ({bucket_name})."
-            )
-            return
-
-        episodes[episode_id]["episode_downloaded"] = status
-        self._save_queue()
-        log_manager.info(
-            f"Updated episode '{episode_id}' in series '{series_id}', season '{season_id}' "
-            f"to downloaded={status} ({bucket_name})."
-        )
-
-    def update_episode_has_all_dubs_subs(self, series_id: str, season_id: str, episode_id: str, status: bool, service: str) -> None:
-        """Update the 'has_all_dubs_subs' flag for an episode."""
-
-        bucket_name = self._normalize_service(service)
-        if bucket_name is None:
-            return
-
-        bucket = self.queue_data.setdefault(bucket_name, {})
-
-        if series_id not in bucket:
-            log_manager.warning(f"Series '{series_id}' not found in '{bucket_name}'.")
-            return
-
-        if season_id not in bucket[series_id]["seasons"]:
-            log_manager.warning(f"Season '{season_id}' not found in series '{series_id}' ({bucket_name}).")
-            return
-
-        episodes = bucket[series_id]["seasons"][season_id].get("episodes", {})
-        if episode_id not in episodes:
-            log_manager.warning(
-                f"Episode '{episode_id}' not found in season '{season_id}' for series '{series_id}' ({bucket_name})."
-            )
-            return
-
-        episodes[episode_id]["has_all_dubs_subs"] = status
-        self._save_queue()
-        log_manager.info(
-            f"Updated episode '{episode_id}' in series '{series_id}', season '{season_id}' "
-            f"to has_all_dubs_subs={status} ({bucket_name})."
-        )
-
-    def output(self, service: str | None = None) -> dict | None:
-        """Return the queue data, optionally scoped to a single service."""
-
-        if not self.queue_data:
-            return None
+    def output(self, service: str | None = None) -> Queue | ServiceBucket | None:
+        """Return the whole queue, the bucket for one service, or None if the service is unknown."""
 
         if service is None:
-            return self.queue_data
+            return self.queue
 
         bucket_name = self._normalize_service(service)
         if bucket_name is None:
             return None
 
-        return self.queue_data.get(bucket_name, {})
+        return self.queue.buckets.setdefault(bucket_name, ServiceBucket())
+
+    def _set_flag(self, series_id: str, season_key: str, episode_key: str, field: str, status: bool, service: str) -> None:
+        bucket_name = self._normalize_service(service)
+        if bucket_name is None:
+            return
+
+        with self._lock:
+            bucket = self.queue.buckets.setdefault(bucket_name, ServiceBucket())
+
+            series_obj = bucket.series.get(series_id)
+            if series_obj is None:
+                log_manager.warning(f"Series '{series_id}' not found in '{bucket_name}'.")
+                return
+
+            season_obj = series_obj.seasons.get(season_key)
+            if season_obj is None:
+                log_manager.warning(f"Season '{season_key}' not found in series '{series_id}' ({bucket_name}).")
+                return
+
+            episode_obj = season_obj.episodes.get(episode_key)
+            if episode_obj is None:
+                log_manager.warning(f"Episode '{episode_key}' not found in season '{season_key}' for series '{series_id}' ({bucket_name}).")
+                return
+
+            setattr(episode_obj, field, status)
+            set_episode_field(self.conn, bucket_name, series_id, season_key, episode_key, field, status)
+
+        log_manager.info(f"Updated episode '{episode_key}' in series '{series_id}', season '{season_key}' to {field}={status} ({bucket_name}).")
 
     def _normalize_service(self, service: str) -> str | None:
-        """Normalize service name to standard bucket names."""
+        """Normalize a service name to its standard queue bucket name."""
 
-        key = str(service or "").strip().lower()
+        normalized = service.strip().lower()
+        service_obj = SERVICES.get(normalized)
+        if service_obj is None:
+            log_manager.error(f"Unknown service '{service}'.")
+            return None
+        return service_obj.queue_bucket
 
-        if key in {"cr", "crunchy", "crunchyroll"}:
-            return "Crunchyroll"
+    def _ensure_buckets(self) -> None:
+        """Make sure every registered service has an entry in self.queue.buckets."""
 
-        if key in {"hd", "hidive"}:
-            return "HiDive"
-
-        log_manager.error(f"Unknown service '{service}'.")
-        return None
-
-    def _ensure_roots(self, data: dict) -> dict:
-        """Ensure both 'Crunchyroll' and 'HiDive' roots exist in the queue data."""
-
-        if not isinstance(data, dict):
-            return {"Crunchyroll": {}, "HiDive": {}}
-
-        # ensure both roots exist
-        data.setdefault("Crunchyroll", {})
-        data.setdefault("HiDive", {})
-        return data
-
-    def _load_queue(self) -> dict:
-        """Load the queue from disk, or initialize a new one if not present or malformed."""
-
-        if os.path.exists(self.queue_path):
-            try:
-                log_manager.debug(f"Loading queue from {self.queue_path}.")
-
-                with open(self.queue_path, "r", encoding="utf-8") as data_file:
-                    loaded = json.load(data_file)
-
-                loaded = self._ensure_roots(loaded)
-                log_manager.debug(f"Queue loaded from {self.queue_path}.")
-                return loaded
-
-            except json.JSONDecodeError:
-                log_manager.error("Malformed JSON in queue file. Starting with an empty queue.")
-
-            except Exception as e:
-                log_manager.error(f"Error loading queue. Starting with an empty queue.\n{e}")
-
-        else:
-            log_manager.debug(f"Queue file not found at {self.queue_path}. Starting with an empty queue.")
-
-        # create a new empty queue file on disk
-        init = {"Crunchyroll": {}, "HiDive": {}}
-
-        with open(self.queue_path, "w", encoding="utf-8") as f:
-            json.dump(init, f, indent=4, ensure_ascii=False)
-
-        return init
-
-    def _save_queue(self) -> None:
-        """Save the current queue data to disk."""
-
-        log_manager.debug("Saving queue.")
-
-        with open(self.queue_path, "w", encoding="utf-8") as f:
-            json.dump(self.queue_data, f, indent=4, ensure_ascii=False)
-
-        log_manager.debug(f"Queue saved to {self.queue_path}.")
+        for service in SERVICES.all():
+            self.queue.buckets.setdefault(service.queue_bucket, ServiceBucket())

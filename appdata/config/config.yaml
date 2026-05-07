@@ -1,0 +1,81 @@
+cr_monitor_series_id: {}
+hidive_monitor_series_id: {}
+zlo_cr_monitor_series_id: {}
+zlo_hidive_monitor_series_id: {}
+zlo_adn_monitor_series_id: {}
+zlo_disneyplus_monitor_series_id: {}
+zlo_amazon_monitor_series_id: {}
+
+app:
+    CR_ENABLED: false
+    CR_USERNAME: ""
+    CR_PASSWORD: ""
+    HIDIVE_ENABLED: false
+    HIDIVE_USERNAME: ""
+    HIDIVE_PASSWORD: ""
+    BACKUP_DUBS:
+        - "zho"
+    FOLDER_STRUCTURE: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    CHECK_MISSING_DUB_SUB: true
+    CHECK_FOR_UPDATES_INTERVAL: 3600
+    EPISODE_DL_DELAY: 30
+    LOG_LEVEL: "info"
+
+mdnx:
+    cli-defaults:
+        q: 0
+        partsize: 3
+        dubLang:
+            - "jpn"
+            - "eng"
+        dlsubs:
+            - "en"
+        defaultAudio: "jpn"
+        defaultSub: "eng"
+        vstream: "androidtv"
+        astream: "androidtv"
+        tsd: false
+
+zlo:
+    crunchyroll:
+        q: "1080p@avc"
+        qf: true
+        dubLang:
+            - "JP"
+            - "EN"
+        dlsubs:
+            - "EN"
+
+    hidive:
+        q: "1080p@avc"
+        qf: true
+        dubLang:
+            - "JP"
+            - "EN"
+        dlsubs:
+            - "EN"
+
+    adn:
+        q: "1080p@avc"
+        qf: true
+        dubLang:
+            - "JP"
+            - "EN"
+        dlsubs:
+            - "EN"
+
+    disney:
+        q: "1080p@avc"
+        qf: true
+        dubLang:
+            - "EN"
+        dlsubs:
+            - "EN"
+
+    amazon:
+        q: "1080p@avc"
+        qf: true
+        dubLang:
+            - "EN"
+        dlsubs:
+            - "EN"

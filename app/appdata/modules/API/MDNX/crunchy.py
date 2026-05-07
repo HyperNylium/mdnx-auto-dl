@@ -6,18 +6,21 @@ import subprocess
 import threading
 
 from appdata.modules.Globals import queue_manager, log_manager
+from appdata.modules.API.MDNX._shared import (
+    MDNX_API_OK_LOGS, MDNX_SERVICE_BIN_PATH, NAME_TO_CODE, VALID_LOCALES,
+)
 from appdata.modules.Vars import (
     config,
-    VALID_LOCALES, NAME_TO_CODE, MDNX_SERVICE_BIN_PATH, MDNX_API_OK_LOGS,
-    sanitize, apply_series_blacklist, get_season_monitor_config
+    apply_series_blacklist, get_season_monitor_config, sanitize,
 )
+from appdata.modules.types.queue import Episode, Season, Series, SeriesInfo
 
 
 class CR_MDNX_API:
     def __init__(self) -> None:
         self.mdnx_path = MDNX_SERVICE_BIN_PATH
         self.mdnx_service = "crunchy"
-        self.queue_service = "crunchy"
+        self.queue_service = "crunchyroll"
         self.username = str(config.app.cr_username)
         self.password = str(config.app.cr_password)
         self.download_thread = None
@@ -77,7 +80,12 @@ class CR_MDNX_API:
             log_manager.warning(f"MDNX API test result (stderr):\n{result.stderr}")
 
         dict_result = self._process_console_output(result.stdout, add2queue=False)
-        log_manager.info(f"Processed console output:\n{json.dumps(dict_result)}")
+
+        json_result = {}
+        for series_id, series in dict_result.items():
+            json_result[series_id] = series.model_dump()
+
+        log_manager.info(f"Processed console output:\n{json.dumps(json_result)}")
 
         # check if the output contains authentication errors
         error_triggers = ["invalid_grant", "Token Refresh Failed", "Authentication required", "Anonymous"]
@@ -286,7 +294,7 @@ class CR_MDNX_API:
         """Parses the console output from the MDNX CLI and constructs a structured dictionary of series, seasons, and episodes."""
 
         log_manager.debug("Processing console output...")
-        tmp_dict = {}             # maps series_id to series info
+        tmp_dict: dict[str, Series] = {}             # maps series_id to series info
         episode_counters = {}     # maps season key ("S1", "S2", etc) to episode counter
         season_num_map = {}       # we keep the first numeric label we see as a hint for fallback resolution
         season_id_to_key = {}     # we map season_id to "S{n}" in order of appearance to avoid duplicate label collisions
@@ -310,26 +318,26 @@ class CR_MDNX_API:
             s_key = staged_episode["season_key"]
             e_key = staged_episode["ep_key"]
 
-            # create a shell season if an episode appeared before its header
-            if s_key not in tmp_dict[s_id]["seasons"]:
-                tmp_dict[s_id]["seasons"][s_key] = {
-                    "season_id": None,
-                    "season_name": None,
-                    "season_number": tmp_dict[s_id]["seasons"].get(s_key, {}).get("season_number", s_key[1:]),
-                    "episodes": {}
-                }
+            series_obj = tmp_dict[s_id]
+            season_obj = series_obj.seasons.get(s_key)
+            if season_obj is None:
+                # create a shell season if an episode appeared before its header
+                season_obj = Season(
+                    season_id="",
+                    season_number=s_key[1:],
+                    season_name="",
+                    episodes={},
+                )
+                series_obj.seasons[s_key] = season_obj
 
             # write the staged episode
-            tmp_dict[s_id]["seasons"][s_key]["episodes"][e_key] = {
-                "episode_number": staged_episode["episode_number_clean"],
-                "episode_number_download": staged_episode["episode_number_download"],
-                "episode_name": staged_episode["episode_title_clean"],
-                "available_dubs": staged_episode["available_dubs"],
-                "available_subs": staged_episode["available_subs"],
-                "episode_downloaded": False,
-                "episode_skip": False,
-                "has_all_dubs_subs": False,
-            }
+            season_obj.episodes[e_key] = Episode(
+                episode_number=staged_episode["episode_number_clean"],
+                episode_number_download=staged_episode["episode_number_download"],
+                episode_name=staged_episode["episode_title_clean"],
+                available_dubs=staged_episode["available_dubs"],
+                available_subs=staged_episode["available_subs"],
+            )
 
             log_manager.debug(f"Committed episode {s_id}/{s_key}/{e_key} to tmp_dict.")
             staged_episode = None
@@ -353,7 +361,15 @@ class CR_MDNX_API:
 
                 # reset per-series state
                 current_series_id = info["series_id"]
-                tmp_dict[current_series_id] = {"series": info, "seasons": {}}
+                tmp_dict[current_series_id] = Series(
+                    series=SeriesInfo(
+                        series_name=info["series_name"],
+                        series_id=info["series_id"],
+                        seasons_count=info["seasons_count"],
+                        eps_count=info["eps_count"],
+                    ),
+                    seasons={},
+                )
                 season_num_map.clear()
                 season_id_to_key.clear()
                 season_order = 0
@@ -394,10 +410,12 @@ class CR_MDNX_API:
                 info["season_number"] = str(mapped_num)
 
                 # create the season bucket
-                tmp_dict[current_series_id]["seasons"][season_key] = {
-                    **info,
-                    "episodes": {}
-                }
+                tmp_dict[current_series_id].seasons[season_key] = Season(
+                    season_id=info["season_id"],
+                    season_number=info["season_number"],
+                    season_name=info["season_name"],
+                    episodes={},
+                )
                 episode_counters[season_key] = 1
 
                 # we memo the name to resolve episodes by name first
@@ -451,15 +469,15 @@ class CR_MDNX_API:
 
                     # if we still cannot resolve, create a shell season so the episode is not lost
                     log_manager.warning(f"Season not resolved by number or name in line: {line}")
-                    mapped_num = len(tmp_dict[current_series_id]["seasons"]) + 1
+                    mapped_num = len(tmp_dict[current_series_id].seasons) + 1
                     season_key = f"S{mapped_num}"
-                    if season_key not in tmp_dict[current_series_id]["seasons"]:
-                        tmp_dict[current_series_id]["seasons"][season_key] = {
-                            "season_id": None,
-                            "season_name": None,
-                            "season_number": str(mapped_num),
-                            "episodes": {}
-                        }
+                    if season_key not in tmp_dict[current_series_id].seasons:
+                        tmp_dict[current_series_id].seasons[season_key] = Season(
+                            season_id="",
+                            season_number=str(mapped_num),
+                            season_name="",
+                            episodes={},
+                        )
                         episode_counters[season_key] = 1
 
                     # stabilize future matches by updating maps from what we can infer here
@@ -501,7 +519,7 @@ class CR_MDNX_API:
                     "episode_number_download": episode_number_download,
                     "episode_title_clean": episode_title_clean,
                     "available_dubs": [],
-                    "available_subs": []
+                    "available_subs": [],
                 }
                 log_manager.debug(f"Staged new episode {current_series_id}/{season_key}/{ep_key}: '{episode_title_clean}'")
                 continue
@@ -548,38 +566,35 @@ class CR_MDNX_API:
         _commit_staged()
 
         # apply per-series blacklist to mark episodes to skip
-        tmp_dict = apply_series_blacklist(tmp_dict, service="cr")
+        tmp_dict = apply_series_blacklist(tmp_dict, service="crunchyroll")
 
         # remove empty seasons and renumber contiguous S1..SX to keep structure compact
-        for series_id, series_info in tmp_dict.items():
-            seasons = series_info["seasons"]
-
-            kept_seasons = []
-            for key, val in seasons.items():
-                if val["episodes"]:
-                    kept_seasons.append((key, val))
+        for series_id, series in tmp_dict.items():
+            kept_seasons: list[tuple[str, Season]] = []
+            for key, season in series.seasons.items():
+                if season.episodes:
+                    kept_seasons.append((key, season))
 
             # sort seasons by their current mapped number so renumbering is stable
-            kept_seasons.sort(key=lambda item: int(item[1]["season_number"]))
+            kept_seasons.sort(key=lambda item: int(item[1].season_number))
 
-            new_seasons = {}
+            new_seasons: dict[str, Season] = {}
             new_idx = 1
-            for old_key, season_info in kept_seasons:
+            for old_key, season in kept_seasons:
                 new_key = f"S{new_idx}"
                 if new_key != old_key:
                     log_manager.debug(f"Renaming season {old_key} to {new_key} in series {series_id}")
 
                 stored_season_number = str(new_idx)
-                season_monitor = get_season_monitor_config("cr", series_id, season_info.get("season_id"))
+                season_monitor = get_season_monitor_config("crunchyroll", series_id, season.season_id)
                 if season_monitor is not None and season_monitor.season_override is not None:
                     stored_season_number = str(season_monitor.season_override)
 
-                season_info["season_number"] = stored_season_number
-                season_info["eps_count"] = str(len(season_info["episodes"]))
-                new_seasons[new_key] = season_info
+                season.season_number = stored_season_number
+                new_seasons[new_key] = season
                 new_idx += 1
 
-            series_info["seasons"] = new_seasons
+            series.seasons = new_seasons
 
         log_manager.debug("Console output processed.")
 
