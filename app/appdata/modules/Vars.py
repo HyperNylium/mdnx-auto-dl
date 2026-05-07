@@ -4,6 +4,8 @@ import sys
 import pwd
 import grp
 import json
+import yaml
+import tomllib
 import subprocess
 import unicodedata
 from string import Template
@@ -11,19 +13,8 @@ from collections import OrderedDict
 from pydantic import ValidationError
 
 from .types.config import Config, AppConfig
-
-
-CONFIG_PATH = os.getenv("CONFIG_FILE", "appdata/config/config.json")
-QUEUE_PATH = os.getenv("QUEUE_FILE", "appdata/config/queue.json")
-TZ = os.getenv("TZ", "America/New_York")
-
-
-with open(CONFIG_PATH, 'r') as user_config_file:
-    overrides = json.load(user_config_file)
-
-config = Config.model_validate(overrides)
-
-del overrides
+from .types.service import Service, MdnxServices, ZloServices, Services
+from .types.queue import Series, ServiceBucket
 
 
 def _log(message: str, level: str = "info", exc_info=None) -> None:
@@ -48,6 +39,63 @@ def _log(message: str, level: str = "info", exc_info=None) -> None:
         pass
 
 
+def _resolve_config_path() -> str:
+    """Determine the config file path to use, checking environment variable and default locations."""
+
+    env_config_path = os.getenv("CONFIG_FILE")
+    if env_config_path:
+        return env_config_path
+
+    default_config_paths = [
+        "appdata/config/config.json",
+        "appdata/config/config.yaml",
+        "appdata/config/config.yml"
+    ]
+
+    for default_config_path in default_config_paths:
+        if os.path.exists(default_config_path):
+            _log(f"Found config file at {default_config_path}. Using it.", level="debug")
+            return default_config_path
+
+    return default_config_paths[0]
+
+
+def _read_config(config_path: str) -> dict:
+    """Read the config file from disk and return it as a dict."""
+
+    config_extension = os.path.splitext(config_path)[1].lower()
+
+    with open(config_path, "r", encoding="utf-8") as config_file:
+        match config_extension:
+            case ".json":
+                loaded_config = json.load(config_file)
+            case ".yaml" | ".yml":
+                loaded_config = yaml.safe_load(config_file) or {}
+            case _:
+                raise ValueError(f"Unsupported config format: {config_path}. Use .json, .yaml, or .yml.")
+
+    if not isinstance(loaded_config, dict):
+        raise ValueError(f"Config root must be an object/mapping in {config_path}.")
+
+    return loaded_config
+
+
+def _write_config(config_path: str, config_data: dict) -> None:
+    """Write the given config data dict to disk in the appropriate format based on file extension."""
+
+    config_extension = os.path.splitext(config_path)[1].lower()
+
+    with open(config_path, "w", encoding="utf-8") as config_file:
+        match config_extension:
+            case ".json":
+                json.dump(config_data, config_file, indent=4, ensure_ascii=False)
+                config_file.write("\n")
+            case ".yaml" | ".yml":
+                yaml.safe_dump(config_data, config_file, sort_keys=False, allow_unicode=True, indent=4)
+            case _:
+                raise ValueError(f"Unsupported config format: {config_path}. Use .json, .yaml, or .yml.")
+
+
 def output_effective_config(config: Config, max_chunk: int = 8000):
     """Output the effective config to logs, ordered like the model defaults."""
 
@@ -56,7 +104,17 @@ def output_effective_config(config: Config, max_chunk: int = 8000):
     config_dict = config.model_dump(by_alias=True)
     defaults_dict = Config().model_dump(by_alias=True)
 
-    SKIP_ORDERING_KEYS = {"cr_monitor_series_id", "hidive_monitor_series_id", "mdnx"}
+    SKIP_ORDERING_KEYS = {
+        "cr_monitor_series_id",
+        "hidive_monitor_series_id",
+        "zlo_cr_monitor_series_id",
+        "zlo_hidive_monitor_series_id",
+        "zlo_adn_monitor_series_id",
+        "zlo_disneyplus_monitor_series_id",
+        "zlo_amazon_monitor_series_id",
+        "mdnx",
+        "zlo"
+    }
 
     def _order_like_defaults(config_node, defaults_node):
         if not isinstance(config_node, dict) or not isinstance(defaults_node, dict):
@@ -95,25 +153,118 @@ def output_effective_config(config: Config, max_chunk: int = 8000):
             _log(line[i:i + max_chunk])
 
 
+CONFIG_PATH = _resolve_config_path()
+TZ = os.getenv("TZ", "America/New_York")
+
+with open("pyproject.toml", "rb") as pyproject_file:
+    APP_VERSION = str(tomllib.load(pyproject_file)["project"]["version"])
+
+
+overrides = _read_config(CONFIG_PATH)
+
+config = Config.model_validate(overrides)
+
+del overrides
+
+SERVICES = Services(
+    mdnx=MdnxServices(
+        crunchyroll=Service(
+            service_name="crunchyroll",
+            queue_bucket="Crunchyroll",
+            display_name="Crunchyroll",
+            tool="mdnx",
+            config=config.mdnx,
+            monitor_series_id=config.cr_monitor_series_id,
+            monitor_config_key="cr_monitor_series_id",
+            enabled=config.app.cr_enabled,
+        ),
+        hidive=Service(
+            service_name="hidive",
+            queue_bucket="HiDive",
+            display_name="HiDive",
+            tool="mdnx",
+            config=config.mdnx,
+            monitor_series_id=config.hidive_monitor_series_id,
+            monitor_config_key="hidive_monitor_series_id",
+            enabled=config.app.hidive_enabled,
+        ),
+    ),
+    zlo=ZloServices(
+        crunchyroll=Service(
+            service_name="zlo-crunchyroll",
+            queue_bucket="ZLO-Crunchyroll",
+            display_name="ZLO Crunchyroll",
+            tool="zlo",
+            config=config.zlo.crunchyroll,
+            monitor_series_id=config.zlo_cr_monitor_series_id,
+            monitor_config_key="zlo_cr_monitor_series_id",
+            enabled=config.app.zlo_cr_enabled,
+        ),
+        hidive=Service(
+            service_name="zlo-hidive",
+            queue_bucket="ZLO-HiDive",
+            display_name="ZLO HiDive",
+            tool="zlo",
+            config=config.zlo.hidive,
+            monitor_series_id=config.zlo_hidive_monitor_series_id,
+            monitor_config_key="zlo_hidive_monitor_series_id",
+            enabled=config.app.zlo_hidive_enabled,
+        ),
+        adn=Service(
+            service_name="zlo-adn",
+            queue_bucket="ZLO-ADN",
+            display_name="ZLO ADN",
+            tool="zlo",
+            config=config.zlo.adn,
+            monitor_series_id=config.zlo_adn_monitor_series_id,
+            monitor_config_key="zlo_adn_monitor_series_id",
+            enabled=config.app.zlo_adn_enabled,
+        ),
+        disney=Service(
+            service_name="zlo-disney",
+            queue_bucket="ZLO-DisneyPlus",
+            display_name="ZLO DisneyPlus",
+            tool="zlo",
+            config=config.zlo.disneyplus,
+            monitor_series_id=config.zlo_disneyplus_monitor_series_id,
+            monitor_config_key="zlo_disneyplus_monitor_series_id",
+            enabled=config.app.zlo_disneyplus_enabled,
+        ),
+        amazon=Service(
+            service_name="zlo-amazon",
+            queue_bucket="ZLO-Amazon",
+            display_name="ZLO Amazon",
+            tool="zlo",
+            config=config.zlo.amazon,
+            monitor_series_id=config.zlo_amazon_monitor_series_id,
+            monitor_config_key="zlo_amazon_monitor_series_id",
+            enabled=config.app.zlo_amazon_enabled,
+        ),
+    ),
+)
+
+
 # App settings
 TEMP_DIR = config.app.temp_dir
 BIN_DIR = config.app.bin_dir
 LOG_DIR = config.app.log_dir
 DATA_DIR = config.app.data_dir
 
-# Dynamic paths
-MDNX_SERVICE_BIN_PATH = os.path.join(BIN_DIR, "mdnx", "aniDL")
-MDNX_SERVICE_CR_TOKEN_PATH = os.path.join(BIN_DIR, "mdnx", "config", "cr_token.yml")
-MDNX_SERVICE_HIDIVE_TOKEN_PATH = os.path.join(BIN_DIR, "mdnx", "config", "hd_new_token.yml")
-MDNX_SERVICE_WIDEVINE_PATH = os.path.join(BIN_DIR, "mdnx", "widevine")
-MDNX_SERVICE_PLAYREADY_PATH = os.path.join(BIN_DIR, "mdnx", "playready")
-
 # Regular expression to match invalid characters in filenames
 INVALID_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1F]')
 
-# Streaming services enabled
-MDNX_CR_ENABLED: bool = config.app.cr_enabled
-MDNX_HIDIVE_ENABLED: bool = config.app.hidive_enabled
+# Supported download tools
+MDNX_ENABLED = False
+for mdnx_service in SERVICES.mdnx.all():
+    if mdnx_service.enabled:
+        MDNX_ENABLED = True
+        break
+
+ZLO_ENABLED = False
+for zlo_service in SERVICES.zlo.all():
+    if zlo_service.enabled:
+        ZLO_ENABLED = True
+        break
 
 # Vars related to media server stuff
 PLEX_URL = config.app.plex_url
@@ -122,61 +273,6 @@ JELLY_API_KEY = config.app.jelly_api_key
 
 PLEX_CONFIGURED = isinstance(PLEX_URL, str) and PLEX_URL.strip() != ""
 JELLY_CONFIGURED = isinstance(JELLY_URL, str) and JELLY_URL.strip() != "" and isinstance(JELLY_API_KEY, str) and JELLY_API_KEY.strip() != ""
-
-# Strings in multi-downloader-nx's logs that indicate a successful download
-MDNX_API_OK_LOGS = [
-    "[mkvmerge Done]",
-    "[mkvmerge] Mkvmerge finished"
-]
-
-# Language mapping for MDNX
-LANG_MAP = {
-    "English": ["eng", "en"],
-    "English (India)": ["eng", "en-IN"],
-    "Spanish": ["spa", "es-419"],
-    "Castilian": ["spa-ES", "es-ES"],
-    "Portuguese": ["por", "pt-BR"],
-    "Portuguese (Portugal)": ["por", "pt-PT"],
-    "French": ["fra", "fr"],
-    "German": ["deu", "de"],
-    "Arabic": ["ara-ME", "ar"],
-    "Arabic (Saudi Arabia)": ["ara", "ar"],
-    "Italian": ["ita", "it"],
-    "Russian": ["rus", "ru"],
-    "Turkish": ["tur", "tr"],
-    "Hindi": ["hin", "hi"],
-    "Chinese (Mandarin, PRC)": ["cmn", "zh"],
-    "Chinese (Mainland China)": ["zho", "zh-CN"],
-    "Chinese (Taiwan)": ["chi", "zh-TW"],
-    "Chinese (Hong-Kong)": ["zh-HK", "zh-HK"],
-    "Korean": ["kor", "ko"],
-    "Catalan": ["cat", "ca-ES"],
-    "Polish": ["pol", "pl-PL"],
-    "Thai": ["tha", "th-TH"],
-    "Tamil (India)": ["tam", "ta-IN"],
-    "Malay (Malaysia)": ["may", "ms-MY"],
-    "Vietnamese": ["vie", "vi-VN"],
-    "Indonesian": ["ind", "id-ID"],
-    "Telugu (India)": ["tel", "te-IN"],
-    "Japanese": ["jpn", "ja"],
-}
-
-# This will look like: {"English": "en", "Spanish": "es-419", ...}
-NAME_TO_CODE = {}
-for name, vals in LANG_MAP.items():
-    NAME_TO_CODE[name] = vals[0]  # vals[0] is the code
-
-# This will look like: {"en", "es-419", ...}
-VALID_LOCALES = set()
-for vals in LANG_MAP.values():
-    VALID_LOCALES.add(vals[1])  # vals[1] is the locale
-
-# This will look like: {"eng": "en", "spa": "es-419", ...}
-CODE_TO_LOCALE = {}
-for _name, vals in LANG_MAP.items():
-    code = vals[0].lower()
-    loc = vals[1].lower()
-    CODE_TO_LOCALE[code] = loc
 
 # This will look like: {"TEMP_DIR": "temp_dir", "CR_ENABLED": "cr_enabled", ...}
 APP_ALIAS_KEY_TO_FIELD_NAME = {}
@@ -189,7 +285,6 @@ APP_FIELD_NAME_TO_ALIAS_KEY = {}
 for field_name, field_info in AppConfig.model_fields.items():
     alias_key = field_info.alias or field_name
     APP_FIELD_NAME_TO_ALIAS_KEY[field_name] = alias_key
-
 
 # This will look like: ["TEMP_DIR", "BIN_DIR", "LOG_DIR", ...]
 APP_DEFAULT_KEY_ORDER = []
@@ -242,7 +337,7 @@ def dedupe_preserve_order(items, key=None):
 def dedupe_casefold(items):
     """Deduplicate a list of strings in a case-insensitive manner while preserving order."""
 
-    return dedupe_preserve_order(items, key=lambda s: (s or "").casefold())
+    return dedupe_preserve_order(items, key=lambda s: s.casefold())
 
 
 def format_duration(seconds: int) -> str:
@@ -274,105 +369,146 @@ def format_duration(seconds: int) -> str:
     return ", ".join(parts[:-1]) + f" and {parts[-1]}"
 
 
-def select_dubs(episode_info: dict, dub_overrides: list[str] | None = None):
-    """Determine which dubs to download based on desired, backup, and available dubs."""
-
-    available_dubs = set()
-    for dub_code in episode_info["available_dubs"]:
-        available_dubs.add(str(dub_code).lower())
-
-    _log(f"Available dubs: {available_dubs}", level="debug")
-
-    # if there are dub overrides for this season, use those instead of the global defaults.
-    if dub_overrides is not None:
-        desired_override_dubs = []
-        for lang_code in dub_overrides:
-            desired_override_dubs.append(str(lang_code).lower())
-
-        _log(f"Season dub overrides: {desired_override_dubs}", level="debug")
-
-        selected_override_dubs = []
-        for lang_code in desired_override_dubs:
-            if lang_code in available_dubs:
-                selected_override_dubs.append(lang_code)
-
-        if selected_override_dubs:
-            _log(f"Using season dub overrides: {selected_override_dubs}", level="debug")
-            return selected_override_dubs
-
-        _log("No season dub overrides are available for this episode. Skipping it.", level="debug")
+def check_widevine(service_path: str) -> bool:
+    if not os.path.isdir(service_path):
         return False
 
-    desired_dubs = set()
-    for lang_code in config.mdnx.cli_defaults.dubLang:
-        desired_dubs.add(str(lang_code).lower())
+    service_folder_contents = []
+    for name in os.listdir(service_path):
+        if name == ".gitkeep":
+            continue
+        service_folder_contents.append(name)
 
-    backup_dubs = set()
-    for lang_code in config.app.backup_dubs:
-        backup_dubs.add(str(lang_code).lower())
+    has_files = False
+    for name in service_folder_contents:
+        full = os.path.join(service_path, name)
+        if os.path.isfile(full):
+            has_files = True
+            break
 
-    _log(f"Desired dubs: {desired_dubs}", level="debug")
-    _log(f"Backup dubs: {backup_dubs}", level="debug")
+    if not has_files:
+        return False
 
-    # if desired dub is available, use the default already present.
-    if desired_dubs & available_dubs:
-        _log(f"Desired dubs available: {desired_dubs & available_dubs}", level="debug")
-        return None
+    found_wvd = False
+    found_bin = False
+    found_pem = False
+    found_device_client_id_blob = False
+    found_device_private_key = False
 
-    # if backups are available but not the desired dubs, override with that intersection.
-    if backup_dubs & available_dubs:
-        _log(f"Desired dubs not available, but backup dubs are: {backup_dubs & available_dubs}", level="debug")
-        return list(backup_dubs & available_dubs)
+    for name in service_folder_contents:
+        full = os.path.join(service_path, name)
+        if not os.path.isfile(full):
+            continue
 
-    # otherwise fall back to the alphabetically first available dub.
-    if available_dubs and config.app.fallback_to_any_dub:
-        _log("Neither desired nor backup dubs are available. Falling back to first available dub.", level="debug")
-        first_dub = next(iter(sorted(available_dubs)))
-        return [first_dub]
+        lower = name.lower()
 
-    # no dubs at all, which is unexpected tbh.
-    # but, you never know with Crunchyroll...
-    # will skip the episode in this case.
-    _log("No dubs available at all for this episode. Skipping it.", level="debug")
+        if lower.endswith(".wvd"):
+            found_wvd = True
+            break
+
+        if lower.endswith(".bin"):
+            found_bin = True
+
+        if lower.endswith(".pem"):
+            found_pem = True
+
+        if lower == "device_client_id_blob":
+            found_device_client_id_blob = True
+
+        if lower == "device_private_key":
+            found_device_private_key = True
+
+    if found_wvd:
+        return True
+
+    if found_bin and found_pem:
+        return True
+
+    if found_device_client_id_blob and found_device_private_key:
+        return True
+
     return False
 
 
-def select_subs(episode_info: dict, sub_overrides: list[str] | None = None):
-    """Determine which subtitles to download when a season subtitle override is set."""
+def check_playready(service_path: str) -> bool:
+    if not os.path.isdir(service_path):
+        return False
 
-    if sub_overrides is None:
-        _log("No season sub overrides set. Not passing subtitle CLI override.", level="debug")
-        return None
+    service_folder_contents = []
+    for name in os.listdir(service_path):
+        if name == ".gitkeep":
+            continue
+        service_folder_contents.append(name)
 
-    available_subs = set()
-    for locale_code in episode_info["available_subs"]:
-        available_subs.add(str(locale_code).lower())
+    has_files = False
+    for name in service_folder_contents:
+        full = os.path.join(service_path, name)
+        if os.path.isfile(full):
+            has_files = True
+            break
 
-    _log(f"Available subs: {available_subs}", level="debug")
+    if not has_files:
+        return False
 
-    desired_override_subs = []
-    for locale_code in sub_overrides:
-        desired_override_subs.append(str(locale_code).lower())
+    found_prd = False
+    bgroupcert_path = None
+    zgpriv_path = None
 
-    _log(f"Season sub overrides: {desired_override_subs}", level="debug")
+    for name in service_folder_contents:
+        full = os.path.join(service_path, name)
+        if not os.path.isfile(full):
+            continue
 
-    selected_override_subs = []
-    for locale_code in desired_override_subs:
-        if locale_code in available_subs:
-            selected_override_subs.append(locale_code)
+        lower = name.lower()
 
-    if selected_override_subs:
-        _log(f"Using season sub overrides: {selected_override_subs}", level="debug")
-        return selected_override_subs
+        if lower.endswith(".prd"):
+            found_prd = True
+            break
 
-    _log("No season sub overrides are available for this episode. Skipping subtitle override.", level="debug")
-    return None
+        if lower == "bgroupcert.dat":
+            bgroupcert_path = full
+
+        if lower == "zgpriv.dat":
+            zgpriv_path = full
+
+    if found_prd:
+        return True
+
+    if bgroupcert_path and zgpriv_path:
+        bgroupcert_size = os.path.getsize(bgroupcert_path)
+        zgpriv_size = os.path.getsize(zgpriv_path)
+
+        if bgroupcert_size >= 1024 and zgpriv_size == 32:
+            return True
+
+    return False
 
 
-def probe_streams(file_path: str) -> tuple[set, set]:
-    """Use ffprobe to get audio and subtitle languages from the given media file."""
+def validate_cdm(service_path: str, service_name: str, required: bool = False) -> bool:
+    match service_name:
+        case "Widevine":
+            is_valid = check_widevine(service_path)
+        case "PlayReady":
+            is_valid = check_playready(service_path)
+        case _:
+            _log(f"Unknown CDM type: {service_name}", level="critical")
+            sys.exit(1)
 
-    timeout = 180  # 3 minutes
+    if is_valid:
+        _log(f"{service_name} CDM is valid at path: {service_path}")
+        return True
+
+    if required:
+        _log(f"{service_name} CDM is required but was not found or is invalid at path: {service_path}", level="critical")
+        sys.exit(1)
+
+    return False
+
+
+def _ffprobe(file_path: str) -> list[dict]:
+    """Run ffprobe -show_streams and return the parsed list of stream dicts."""
+
+    timeout = 180
     cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", file_path]
 
     _log(f"Running ffprobe on {file_path} with command: {' '.join(cmd)}", level="debug")
@@ -381,60 +517,26 @@ def probe_streams(file_path: str) -> tuple[set, set]:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         _log(f"ffprobe timed out after {format_duration(timeout)} on {file_path}", level="error")
-        return set(), set()
+        return []
 
     try:
         data = json.loads(result.stdout)
-    except json.JSONDecodeError as e:
-        _log(f"ffprobe JSON decode error on {file_path}: {e}", level="error")
-        return set(), set()
+    except json.JSONDecodeError as decode_error:
+        _log(f"ffprobe JSON decode error on {file_path}: {decode_error}", level="error")
+        return []
 
-    if data == {}:  # no streams found
-        _log(f"ffprobe found no dubs/subs for {file_path}", level="error")
-        return set(), set()
+    if data == {}:
+        _log(f"ffprobe found no streams for {file_path}", level="error")
+        return []
 
-    _log(f"ffprobe output for {file_path}: {data}", level="debug")
+    streams = data.get("streams") or []
+    if not isinstance(streams, list):
+        _log(f"ffprobe returned non-list streams for {file_path}", level="error")
+        return []
 
-    audio_langs = set()
-    sub_langs = set()
+    _log(f"ffprobe output for {file_path}: {streams}", level="debug")
 
-    for stream in data.get("streams", []):
-        tags = stream.get("tags", {})
-        raw_lang = str(tags.get("language", "")).strip().lower()
-        title = tags.get("title", "").strip()
-
-        mapped_audio = None
-        mapped_sub = None
-
-        # if the title matches one of the LANG_MAP keys, get its dub and sub codes
-        if title in LANG_MAP:
-            # LANG_MAP[title] == ["dub_code", "sub_code"]
-            mapped_audio = LANG_MAP[title][0].lower()
-            mapped_sub = LANG_MAP[title][1].lower()
-
-        if stream.get("codec_type") == "audio":
-            if mapped_audio is not None:
-                lang = mapped_audio
-            else:
-                lang = raw_lang
-
-            audio_langs.add(lang)
-
-        elif stream.get("codec_type") == "subtitle":
-            if mapped_sub is not None:
-                lang = mapped_sub
-
-            elif raw_lang in CODE_TO_LOCALE:
-                lang = CODE_TO_LOCALE[raw_lang]
-
-            else:
-                lang = raw_lang
-
-            sub_langs.add(lang)
-
-    _log(f"Probed {file_path}: audio languages: {audio_langs}, subtitle languages: {sub_langs}", level="debug")
-
-    return audio_langs, sub_langs
+    return streams
 
 
 def get_season_monitor_config(service: str, series_id: str, season_id: str | None):
@@ -443,14 +545,14 @@ def get_season_monitor_config(service: str, series_id: str, season_id: str | Non
     if not season_id:
         return None
 
-    match str(service or "").strip().lower():
-        case "cr" | "crunchy" | "crunchyroll":
-            service_monitor_config = config.cr_monitor_series_id
-        case "hd" | "hidive":
-            service_monitor_config = config.hidive_monitor_series_id
-        case _:
-            _log(f"Unknown service '{service}' when reading season monitor config.", level="error")
-            return None
+    normalized_service = service.strip().lower()
+
+    service_obj = SERVICES.get(normalized_service)
+    if service_obj is None:
+        _log(f"Unknown service '{service}' when reading season monitor config.", level="error")
+        return None
+
+    service_monitor_config = service_obj.monitor_series_id
 
     series_config = service_monitor_config.get(series_id)
     if not series_config:
@@ -459,49 +561,12 @@ def get_season_monitor_config(service: str, series_id: str, season_id: str | Non
     return series_config.get(season_id)
 
 
-def get_wanted_dubs_and_subs(service: str, series_id: str, season_id: str | None) -> tuple[set, set]:
-    """Get the wanted dub and sub lists for a season, using overrides when they exist."""
+def apply_series_blacklist(tmp_dict: dict[str, Series], service: str) -> dict[str, Series]:
+    """Apply per-season blacklists from config: mark matching episodes as episode_skip=True."""
 
-    season_monitor = get_season_monitor_config(service, series_id, season_id)
-
-    # if there are dub/sub overrides for this season, use those.
-    # Otherwise, use the global defaults from config.
-    if season_monitor is not None and season_monitor.dub_overrides is not None:
-        wanted_dub_source = season_monitor.dub_overrides
-    else:
-        wanted_dub_source = config.mdnx.cli_defaults.dubLang
-
-    if season_monitor is not None and season_monitor.sub_overrides is not None:
-        wanted_sub_source = season_monitor.sub_overrides
-    else:
-        wanted_sub_source = config.mdnx.cli_defaults.dlsubs
-
-    wanted_dubs = set()
-    for language_code in wanted_dub_source:
-        wanted_dubs.add(str(language_code).lower())
-
-    wanted_subs = set()
-    for locale_code in wanted_sub_source:
-        wanted_subs.add(str(locale_code).lower())
-
-    _log(f"Effective wanted tracks for {service} {series_id}/{season_id}: dubs={wanted_dubs}, subs={wanted_subs}", level="debug")
-
-    return wanted_dubs, wanted_subs
-
-
-def apply_series_blacklist(tmp_dict: dict, service: str) -> dict:
-    """Apply season and episode blacklists from config to the given tmp_dict structure."""
-
-    if not isinstance(tmp_dict, dict):
-        return tmp_dict
-
-    for series_id, series_info in tmp_dict.items():
-        seasons = series_info.get("seasons") or {}
-
-        for _season_key, season_info in seasons.items():
-            season_id = season_info.get("season_id")
-            season_monitor = get_season_monitor_config(service, series_id, season_id)
-
+    for series_id, series in tmp_dict.items():
+        for _season_key, season in series.seasons.items():
+            season_monitor = get_season_monitor_config(service, series_id, season.season_id)
             if season_monitor is None:
                 continue
 
@@ -510,23 +575,21 @@ def apply_series_blacklist(tmp_dict: dict, service: str) -> dict:
                 continue
 
             if "*" in blacklist_rules:
-                for episode_info in (season_info.get("episodes") or {}).values():
-                    episode_info["episode_skip"] = True
+                for episode in season.episodes.values():
+                    episode.episode_skip = True
                 continue
 
-            for episode_key, episode_info in (season_info.get("episodes") or {}).items():
+            for episode_key, episode in season.episodes.items():
                 try:
-                    local_episode_number = int(str(episode_key).lstrip("E"))
+                    local_episode_number = int(episode_key.lstrip("E"))
                 except Exception:
                     continue
 
                 should_skip_episode = False
-
                 for raw_rule in blacklist_rules:
                     if raw_rule is None:
                         continue
-
-                    rule_text = str(raw_rule).strip()
+                    rule_text = raw_rule.strip()
                     if not rule_text:
                         continue
 
@@ -537,10 +600,8 @@ def apply_series_blacklist(tmp_dict: dict, service: str) -> dict:
                             range_end = int(parts[1])
                         except Exception:
                             continue
-
                         if range_start > range_end:
                             range_start, range_end = range_end, range_start
-
                         if range_start <= local_episode_number <= range_end:
                             should_skip_episode = True
                             break
@@ -549,13 +610,12 @@ def apply_series_blacklist(tmp_dict: dict, service: str) -> dict:
                             single_episode_number = int(rule_text)
                         except Exception:
                             continue
-
                         if local_episode_number == single_episode_number:
                             should_skip_episode = True
                             break
 
                 if should_skip_episode:
-                    episode_info["episode_skip"] = True
+                    episode.episode_skip = True
 
     return tmp_dict
 
@@ -659,65 +719,9 @@ def get_running_user():
     return (uid, user, gid, group, euid, egid)
 
 
-def format_value(val):
-    """
-    Format the value based on its type:
-    - Integers and floats are returned as-is.
-    - Booleans are returned as 'true' or 'false' (YAML style).
-    - Lists are formatted as ["elem1", "elem2", ...] with double quotes around strings.
-    - Strings are wrapped in double quotes.
-    """
-
-    if isinstance(val, bool):
-        return "true" if val else "false"
-
-    elif isinstance(val, (int, float)):
-        return str(val)
-
-    elif isinstance(val, list):
-
-        # format each element in the list. If an element is a string, wrap it in quotes.
-        formatted_elements = []
-
-        for item in val:
-            if isinstance(item, str):
-                formatted_elements.append(f'"{item}"')
-            else:
-                formatted_elements.append(str(item))
-
-        formatted_elements = ", ".join(formatted_elements)
-        return f'[{formatted_elements}]'
-
-    else:
-        return f'"{val}"'
-
-
-def update_mdnx_config():
-    """Update MDNX config files based on current settings in config.json."""
-
-    _log("Updating MDNX config files with new settings from config.json...")
-
-    mdnx_config = config.mdnx.model_dump(by_alias=True)
-
-    for mdnx_config_file, mdnx_config_settings in mdnx_config.items():
-        file_path = os.path.join(BIN_DIR, "mdnx", "config", f"{mdnx_config_file}.yml")
-
-        lines = []
-        for setting_key, setting_value in mdnx_config_settings.items():
-            formatted_value = format_value(setting_value)
-            lines.append(f"{setting_key}: {formatted_value}\n")
-
-        with open(file_path, "w", encoding="utf-8") as file:
-            file.writelines(lines)
-
-        _log(f"Updated {file_path} with new settings.", level="debug")
-
-    _log("MDNX config updated.")
-
-
 def update_app_config(config_key: str, new_value) -> bool:
     """
-    Update one AppConfig option in config.json under the 'app' section.
+    Update one AppConfig option in config.json/yaml/yml under the 'app' section.
 
     config_key can be either:
       - field name: "cr_force_reauth"
@@ -735,10 +739,9 @@ def update_app_config(config_key: str, new_value) -> bool:
         _log(f"Unknown app config key: {config_key}", level="error")
         return False
 
-    # read config.json from disk
+    # read config file from disk
     try:
-        with open(CONFIG_PATH, "r", encoding="utf-8") as config_file:
-            on_disk_config = json.load(config_file, object_pairs_hook=OrderedDict)
+        on_disk_config = _read_config(CONFIG_PATH)
     except Exception as read_error:
         _log(f"Failed to read config file: {read_error}", level="error")
         return False
@@ -758,11 +761,9 @@ def update_app_config(config_key: str, new_value) -> bool:
         _log(f"Invalid value for app.{alias_key_to_write}: {validation_error}", level="error")
         return False
 
-    # write back to disk config.json
+    # write back to disk config.json/yaml/yml
     try:
-        with open(CONFIG_PATH, "w", encoding="utf-8") as config_file:
-            json.dump(on_disk_config, config_file, indent=4)
-            config_file.write("\n")
+        _write_config(CONFIG_PATH, on_disk_config)
     except Exception as write_error:
         _log(f"Failed to write config file: {write_error}", level="error")
         return False
@@ -780,7 +781,7 @@ def update_app_config(config_key: str, new_value) -> bool:
 def build_folder_structure(base_dir: str, series_title: str, season: str, episode: str, episode_name: str, extension: str = ".mkv") -> str:
     """Build the folder structure and file name based on the template in config."""
 
-    template_str = str(config.app.folder_structure)
+    template_str = config.app.folder_structure
 
     substitutes = {
         "seriesTitle": series_title,
@@ -822,41 +823,35 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
     return full_path
 
 
-def get_episode_file_path(queue: dict, series_id: str, season_key: str, episode_key: str, base_dir: str, extension=".mkv"):
-    """Get the full file path for the given series/season/episode from the queue."""
+def get_episode_file_path(bucket: ServiceBucket, series_id: str, season_key: str, episode_key: str, base_dir: str, extension: str = ".mkv") -> str:
+    """Build the on-disk file path for one queued episode using the configured folder structure."""
 
-    # get data from the queue.
-    raw_series = queue[series_id]["series"]["series_name"]
-    season = queue[series_id]["seasons"][season_key]["season_number"]
-    episode = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_number"]
-    raw_episode_name = queue[series_id]["seasons"][season_key]["episodes"][episode_key]["episode_name"]
+    series = bucket.series[series_id]
+    season = series.seasons[season_key]
+    episode = season.episodes[episode_key]
 
-    # treat specials (queue key starts with "S") as season 0 so the
-    # build_folder_structure logic can detect them.
+    raw_series = series.series.series_name
+    season_number = season.season_number
+    episode_number = episode.episode_number
+    raw_episode_name = episode.episode_name
+
     if episode_key.startswith("S"):
-        season = "0"
+        season_number = "0"
 
-    # build the folder structure and file name.
-    file_name = build_folder_structure(base_dir, raw_series, season, episode, raw_episode_name, extension)
+    file_name = build_folder_structure(base_dir, raw_series, season_number, episode_number, raw_episode_name, extension)
 
     _log(f"Built file path for series ID {series_id}, season {season_key}, episode {episode_key}: {file_name}", level="debug")
 
-    # combine to form the full file path.
     return file_name
 
 
-def iter_episodes(bucket_data: dict):
-    """
-    Generator to iterate over all episodes in the given bucket_data structure.
-    Yields tuples of (series_id, season_key, episode_key, season_info, episode_info).
-    """
+def iter_episodes(bucket: ServiceBucket):
+    """Yield (series_id, season_key, episode_key, Season, Episode) tuples for every episode in the bucket."""
 
-    if not isinstance(bucket_data, dict) or not bucket_data:
+    if bucket is None:
         return
 
-    for series_id, series_info in bucket_data.items():
-        seasons = series_info.get("seasons") or {}
-        for season_key, season_info in seasons.items():
-            episodes = season_info.get("episodes") or {}
-            for episode_key, episode_info in episodes.items():
-                yield series_id, season_key, episode_key, season_info, episode_info
+    for series_id, series in bucket.series.items():
+        for season_key, season in series.seasons.items():
+            for episode_key, episode in season.episodes.items():
+                yield series_id, season_key, episode_key, season, episode
