@@ -27,7 +27,6 @@ RUN uv sync --frozen --no-dev
 ENV PATH="/app/.venv/bin:$PATH"
 
 COPY app/ .
-COPY alembic.ini ./alembic.ini
 
 RUN find /app -type f \( -name "*.sh" -o -name "*.py" \) -exec sed -i 's/\r$//' {} + && \
     find /app -type f -name "*.sh" -exec chmod +x {} +
