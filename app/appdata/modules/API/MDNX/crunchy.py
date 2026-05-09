@@ -42,6 +42,12 @@ class CR_MDNX_API:
             r'^\[(?P<ep_type>E|S)(?P<episode_number>\d+)\]\s+(?P<full_episode_name>.+)$'
         )
 
+        # Special seasons: we want to filter out OVAs, movies, compilations, etc
+        self.special_season_pattern = re.compile(
+            r'\b(OVA|OAD|ONA|Specials?|Recap|Compilation|Summary|Movie|Film)\b',
+            re.IGNORECASE,
+        )
+
         # Versions (dubs): lines starting with "- Versions: "
         self.versions_pattern = re.compile(
             r'-\s*Versions:\s*(.+)'
@@ -302,7 +308,9 @@ class CR_MDNX_API:
         current_series_id = None
         active_season_key = None
         active_episode_key = None  # holds the current episode key like "E1"
-        name_to_season_key = {}   # map normalized season_name to season_key so episodes can resolve by name first
+        name_to_season_key = {}    # map normalized season_name to season_key so episodes can resolve by name first
+        skipped_season_names = set()    # lowercased sanitized names of seasons we dropped as specials
+        skipped_season_numbers = set()  # original "Season: N" numbers we dropped as specials
 
         # we stage an episode because its dubs/subs lines arrive after the [E..] line
         staged_episode = None  # dict with: series_id, season_key, ep_key, episode_number_clean, episode_number_download, episode_title_clean, available_subs, available_dubs
@@ -389,6 +397,15 @@ class CR_MDNX_API:
                 info = match.groupdict()
                 info["season_name"] = sanitize(info["season_name"])
 
+                # drop OVA, recap, movie, etc seasons by their displayed label so they never reach the queue
+                if self.special_season_pattern.search(info["season_name"]):
+                    log_manager.debug(f"Skipping special season [{info['season_id']}] '{info['season_name']}' (Season: {info['season_number']}).")
+                    skipped_season_names.add(info["season_name"].lower())
+                    skipped_season_numbers.add(int(info["season_number"]))
+                    active_season_key = None
+                    active_episode_key = None
+                    continue
+
                 # key seasons by season_id and appearance order so duplicate "Season: 1" labels do not collide
                 season_id = info["season_id"]
                 if season_id not in season_id_to_key:
@@ -448,6 +465,17 @@ class CR_MDNX_API:
                 full_name_guess = re.sub(r'^\[\d{4}-\d{2}-\d{2}\]\s*', '', full_name_guess)  # strip leading date if present
                 parts_before = full_name_guess.split(' - Season ', 1)
                 season_name_guess = parts_before[0].strip()
+
+                # drop episodes that belong to a season we already skipped above, by name or by numeric label
+                season_name_lower = sanitize(season_name_guess).lower()
+                if season_name_lower in skipped_season_names:
+                    log_manager.debug(f"Skipping episode under dropped special season '{season_name_guess}': {line}")
+                    continue
+
+                drop_num_match = re.search(r'- Season (\d+) -', line)
+                if drop_num_match and int(drop_num_match.group(1)) in skipped_season_numbers:
+                    log_manager.debug(f"Skipping episode under dropped special season number {drop_num_match.group(1)}: {line}")
+                    continue
 
                 # try by season name first because names disambiguate duplicate numeric labels
                 guessed_key = name_to_season_key.get(sanitize(season_name_guess).lower())
