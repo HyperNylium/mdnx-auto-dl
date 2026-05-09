@@ -1,0 +1,43 @@
+# Extra-specials override file.
+#
+# Lists episodes that the per-provider special-episode detection misses.
+#
+# Structure:
+#   <downloader>:
+#     <service>:
+#       <series_id>:
+#         <season_key>: [<entry>, <entry>, ...]
+#
+# Where:
+#   downloader  -> "mdnx" or "zlo"
+#   service     -> mdnx: crunchyroll | hidive
+#                  zlo : crunchyroll | hidive | adn | disneyplus | amazon
+#   series_id   -> the series id the parser already returns
+#   season_key  -> "S<n>" using the service's season number (NOT the post-renumber S1/S2/S3 the parser may map to).
+#   entry       -> for MDNX:  a number ("7") or a range ("3-5")
+#                  for ZLO:   a number ("7"), a range ("3-5"), or an episode id tagged with the "id:" prefix (e.g. "id:GWDU8GV0X").
+#
+# If you would like to add a series to this list but dont understand how to,
+# feel free to open an issue with the series/episode URL and i can do the change for you ;)
+#
+# Keep in mind that github has a 5min cache timeout. so even if i do the change, you may need to take a coffe break.
+
+mdnx:
+  crunchyroll:
+    # Kaiju No. 8
+    GG5H5XQ7D:
+      S2: ["13"]  # skip "Kaiju No. 8: Mission Recon"
+      S3: ["14"]  # skip "Hoshina's Day Off"
+
+  hidive: {}
+
+zlo:
+  crunchyroll:
+    # Kaiju No. 8
+    GG5H5XQ7D:
+      S2: ["1"]  # skip "Kaiju No. 8: Mission Recon"
+      S3: ["1"]  # skip "Hoshina's Day Off"
+  hidive: {}
+  adn: {}
+  disneyplus: {}
+  amazon: {}

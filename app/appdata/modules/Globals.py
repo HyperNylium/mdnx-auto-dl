@@ -6,3 +6,6 @@ file_manager = FileManager()
 
 from .QueueManager import QueueManager  # noqa: E402
 queue_manager = QueueManager()
+
+from .ExtraSpecials import ExtraSpecials  # noqa: E402
+extra_specials = ExtraSpecials()

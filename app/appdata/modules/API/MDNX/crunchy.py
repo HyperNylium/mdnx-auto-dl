@@ -14,6 +14,7 @@ from appdata.modules.Vars import (
     apply_series_blacklist, get_season_monitor_config, sanitize,
 )
 from appdata.modules.types.queue import Episode, Season, Series, SeriesInfo
+from appdata.modules.Globals import extra_specials
 
 
 class CR_MDNX_API:
@@ -451,6 +452,14 @@ class CR_MDNX_API:
                 # skip specials like "[Sxx]" because we index only normal episodes
                 if ep_info["ep_type"] == "S":
                     continue
+
+                # extra-specials override: drop using upstream "Season N" label and [Exx] number
+                upstream_season_match = re.search(r'- Season (\d+) -', line)
+                if upstream_season_match and current_series_id:
+                    upstream_season_id = f"S{upstream_season_match.group(1)}"
+                    if extra_specials.is_extra_special("mdnx", "crunchyroll", current_series_id, upstream_season_id, ep_info["episode_number"]):
+                        log_manager.debug(f"Skipping extra-special at {upstream_season_id}E{ep_info['episode_number']} series_id={current_series_id}")
+                        continue
 
                 # skip PV or trailer entries that are not full episodes
                 if ep_info["full_episode_name"].lstrip().lower().startswith("pv"):

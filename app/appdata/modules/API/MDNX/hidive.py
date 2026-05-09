@@ -14,6 +14,7 @@ from appdata.modules.Vars import (
     apply_series_blacklist, dedupe_casefold, get_season_monitor_config, sanitize,
 )
 from appdata.modules.types.queue import Episode, Season, Series, SeriesInfo
+from appdata.modules.Globals import extra_specials
 
 
 class HIDIVE_MDNX_API:
@@ -554,6 +555,11 @@ class HIDIVE_MDNX_API:
                     # otherwise assign sequentially among kept episodes
                     download_num = flat_idx + 1
                     flat_idx += 1
+
+                # extra-specials override: drop using upstream [Sxx Eyy] download number
+                if extra_specials.is_extra_special("mdnx", "hidive", current_series_id, season_key, str(download_num)):
+                    log_manager.debug(f"Skipping extra-special at {season_key}E{download_num} series_id={current_series_id}")
+                    continue
 
                 filtered_episode_rows.append((local_tree_index, record, download_num))
 
