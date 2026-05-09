@@ -35,11 +35,15 @@ def load_queue(conn: sqlite3.Connection) -> Queue:
     for series_row in series_rows:
         service = series_row["service"]
         series_id = series_row["series_id"]
-        series_data = json.loads(series_row["series_data"])
 
         bucket = buckets.setdefault(service, ServiceBucket())
         bucket.series[series_id] = Series(
-            series=SeriesInfo.model_validate(series_data),
+            series=SeriesInfo(
+                series_name=series_row["series_name"],
+                series_id=series_id,
+                seasons_count=series_row["seasons_count"],
+                eps_count=series_row["eps_count"],
+            ),
             seasons={},
         )
 
@@ -106,14 +110,19 @@ def clear_queue(conn: sqlite3.Connection) -> None:
 def upsert_series(conn: sqlite3.Connection, service: str, series_id: str, series: Series) -> None:
     """Insert or replace one series row, and all its seasons/episodes."""
 
-    series_data_json = series.series.model_dump_json()
-
     with _write_lock:
         with conn:
             conn.execute(
-                "INSERT OR REPLACE INTO queue_series (service, series_id, series_data) "
-                "VALUES (?, ?, ?)",
-                (service, series_id, series_data_json),
+                "INSERT OR REPLACE INTO queue_series "
+                "(service, series_id, series_name, seasons_count, eps_count) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (
+                    service,
+                    series_id,
+                    series.series.series_name,
+                    series.series.seasons_count,
+                    series.series.eps_count,
+                ),
             )
 
             conn.execute(

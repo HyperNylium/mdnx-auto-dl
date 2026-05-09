@@ -9,7 +9,9 @@ queue_series = Table(
     metadata,
     Column("service", Text, primary_key=True, nullable=False),
     Column("series_id", Text, primary_key=True, nullable=False),
-    Column("series_data", Text, nullable=False),
+    Column("series_name", Text, nullable=False),
+    Column("seasons_count", Text, nullable=True),
+    Column("eps_count", Text, nullable=True),
     sqlite_with_rowid=False,
 )
 

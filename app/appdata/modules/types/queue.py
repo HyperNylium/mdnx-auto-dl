@@ -2,9 +2,12 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class SeriesInfo(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="forbid")
 
     series_name: str
+    series_id: str | None = None
+    seasons_count: str | None = None
+    eps_count: str | None = None
 
 
 class Episode(BaseModel):
