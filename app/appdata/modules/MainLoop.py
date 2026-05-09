@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from .MediaServerManager import mediaserver_scan_library
-from .Globals import file_manager, queue_manager, log_manager
+from .Globals import file_manager, queue_manager, log_manager, extra_specials
 from .ServiceHelper import get_wanted_dubs_and_subs, probe_streams, select_dubs, select_subs
 from .Vars import (
     config,
@@ -34,6 +34,9 @@ class MainLoop:
         try:
             while not self.stop_requested:
                 log_manager.debug("Executing MainLoop task.")
+
+                # pull the latest extra-specials.yaml and rebuild internal state for overrides.
+                extra_specials.refresh()
 
                 if self.skip_queue_refresh is True:
                     log_manager.info("SKIP_QUEUE_REFRESH is True. Skipping queue refresh step and using old queue data.")
