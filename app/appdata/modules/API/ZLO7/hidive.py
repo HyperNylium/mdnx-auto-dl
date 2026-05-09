@@ -17,13 +17,6 @@ from appdata.modules.Vars import (
 from appdata.modules.types.queue import Episode, Season, Series, SeriesInfo
 
 
-# TODO: figure out better special season/episode detection on ZLO CLI side, then remove this bs.
-_SPECIAL_SEASON_PATTERN = re.compile(
-    r'\b(OVA|OAD|ONA|Specials?|Recap|Compilation|Summary|Movie|Film)\b',
-    re.IGNORECASE,
-)
-
-
 class HIDIVE_ZLO_API:
     def __init__(self) -> None:
         self.zlo_path = ZLO_SERVICE_BIN_PATH
@@ -294,12 +287,6 @@ class HIDIVE_ZLO_API:
             raw_season_number = season_data.get("season")
             fallback_title_number = raw_season_number if raw_season_number not in (None, "") else json_index + 1
             raw_season_title = str(season_data.get("title") or f"Season {fallback_title_number}")
-
-            # TODO: figure out better special season/episode detection on ZLO CLI side, then remove this bs.
-            # drop OVA / Recap / Movie / Specials seasons. Titles arrive as e.g. "Season 1 OVA".
-            if _SPECIAL_SEASON_PATTERN.search(raw_season_title):
-                log_manager.debug(f"Skipping special season (title='{raw_season_title}', season_id={season_id})")
-                continue
 
             raw_episode_list = season_data.get("episodes") or []
             if not isinstance(raw_episode_list, list) or raw_episode_list == []:
