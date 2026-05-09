@@ -21,7 +21,9 @@ def upgrade() -> None:
     op.create_table('queue_series',
         sa.Column('service', sa.Text(), nullable=False),
         sa.Column('series_id', sa.Text(), nullable=False),
-        sa.Column('series_data', sa.Text(), nullable=False),
+        sa.Column('series_name', sa.Text(), nullable=False),
+        sa.Column('seasons_count', sa.Text(), nullable=True),
+        sa.Column('eps_count', sa.Text(), nullable=True),
         sa.PrimaryKeyConstraint('service', 'series_id'),
         sqlite_with_rowid=False
     )
