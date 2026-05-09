@@ -45,9 +45,11 @@ class HIDIVE_MDNX_API:
         # Titles like "Coming 10/10/25 15:00 UTC", "TBA", etc.
         self.unreleased_title_flag = re.compile(r'^\s*(coming|tba|tbd|available\s+on|premieres?|releasing)\b', re.IGNORECASE)
 
-        # Probe headers
-        self.audio_header = re.compile(r'(?i)\bAudio(?:s|(?:\s+Tracks)?)\s*:\s*')
-        self.subs_header = re.compile(r'(?i)\bSub(?:s|titles?)\s*:\s*')
+        # Versions: lines starting with "- Versions: "
+        self.versions_pattern = re.compile(r'-\s*Versions:\s*(.+)', re.IGNORECASE)
+
+        # Subtitles: lines starting with "- Subtitles: "
+        self.subtitles_pattern = re.compile(r'-\s*Subtitles:\s*(.+)', re.IGNORECASE)
 
         # Special markers
         self.special_season_flag = re.compile(r'\b(OVA|OAD|ONA|Specials?|Recap|Compilation|Summary|Movie|Film)\b', re.IGNORECASE)
@@ -315,7 +317,8 @@ class HIDIVE_MDNX_API:
         current_season_key = None
 
         seasons_meta = {}          # season_key -> parsed season metadata
-        episodes_by_season = {}    # season_key -> list of (episode_id, title)
+        episodes_by_season = {}    # season_key -> list of dicts {episode_id, title, available_dubs, available_subs}
+        current_episode_record = None  # reference to the dict in episodes_by_season for the most recent [E.] line
 
         flat_groups = []           # list of {"season_code": int, "map": {local_idx -> download_number}}
         current_flat_main_code = None
@@ -349,6 +352,7 @@ class HIDIVE_MDNX_API:
                 episodes_by_season.clear()
                 flat_groups.clear()
                 current_season_key = None
+                current_episode_record = None
                 skip_current_season = False
                 current_flat_main_code = None
                 current_group_local_index = 0
@@ -387,6 +391,7 @@ class HIDIVE_MDNX_API:
 
                 season_key = f"S{season_number}"
                 current_season_key = None
+                current_episode_record = None
                 skip_current_season = season_is_special
 
                 if skip_current_season:
@@ -409,11 +414,45 @@ class HIDIVE_MDNX_API:
             if current_season_key and not skip_current_season:
                 episode_match = self.episode_pattern.match(line)
                 if episode_match:
-                    # append raw episode rows; stream info is probed later
                     gd = episode_match.groupdict()
-                    episodes_by_season[current_season_key].append(
-                        (gd["episode_id"], gd["episode_title"])
-                    )
+                    record = {
+                        "episode_id": gd["episode_id"],
+                        "title": gd["episode_title"],
+                        "available_dubs": [],
+                        "available_subs": [],
+                    }
+                    episodes_by_season[current_season_key].append(record)
+                    current_episode_record = record
+                    continue
+
+                # versions line under the most recent episode (e.g. "- Versions: English, Japanese")
+                versions_match = self.versions_pattern.match(line)
+                if versions_match and current_episode_record is not None:
+                    raw_list = versions_match.group(1)
+
+                    # normalize each display name to a canonical audio code
+                    dub_codes = []
+                    for token in self._clean_tokens(raw_list):
+                        code = self._norm_audio(token)
+                        if code:
+                            dub_codes.append(code)
+
+                    current_episode_record["available_dubs"] = dedupe_casefold(dub_codes)
+                    continue
+
+                # subtitles line under the most recent episode (e.g. "- Subtitles: English, Portuguese")
+                subtitles_match = self.subtitles_pattern.match(line)
+                if subtitles_match and current_episode_record is not None:
+                    raw_list = subtitles_match.group(1)
+
+                    # normalize each display name to a canonical subtitle locale
+                    sub_locales = []
+                    for token in self._clean_tokens(raw_list):
+                        loc = self._norm_sub(token)
+                        if loc:
+                            sub_locales.append(loc)
+
+                    current_episode_record["available_subs"] = dedupe_casefold(sub_locales)
                     continue
 
             # Flat list rows like "[S01 E03] Title"
@@ -499,7 +538,9 @@ class HIDIVE_MDNX_API:
             flat_idx = 0  # consume only when we keep a hierarchical episode
             filtered_episode_rows = []
 
-            for local_tree_index, (episode_id, title) in enumerate(episode_list, start=1):
+            for local_tree_index, record in enumerate(episode_list, start=1):
+                title = record["title"]
+
                 # drop unreleased and special episodes based on title cues
                 if title and (self.special_episode_title_flag.search(title) or self.unreleased_title_flag.search(title)):
                     log_manager.debug(f"Skipping unavailable/special at {season_key} idx={local_tree_index} title='{title}'.")
@@ -514,16 +555,14 @@ class HIDIVE_MDNX_API:
                     download_num = flat_idx + 1
                     flat_idx += 1
 
-                filtered_episode_rows.append((local_tree_index, episode_id, title, download_num))
+                filtered_episode_rows.append((local_tree_index, record, download_num))
 
-            # build the final episodes dict and probe stream languages for each kept episode
+            # build the final episodes dict
             episodes_dict: dict[str, Episode] = {}
-            for local_index, (_, _episode_id, title, download_num) in enumerate(filtered_episode_rows, start=1):
-                dubs_list, subs_list = self._probe_episode_streams(series_id=current_series_id, season_id=season_id, episode_index=download_num)
-
-                # dedupe because probes can repeat values across lines
-                dubs_list = dedupe_casefold(dubs_list)
-                subs_list = dedupe_casefold(subs_list)
+            for local_index, (_, record, download_num) in enumerate(filtered_episode_rows, start=1):
+                title = record["title"]
+                dubs_list = record["available_dubs"]
+                subs_list = record["available_subs"]
 
                 episode_key = f"E{local_index}"
                 episode_name = sanitize(title) if title else f"Episode {local_index}"
@@ -560,87 +599,6 @@ class HIDIVE_MDNX_API:
             # push the parsed result to the queue for downstream consumers
             queue_manager.add(tmp_dict, self.queue_service)
         return tmp_dict
-
-    def _probe_episode_streams(self, series_id: str, season_id: str, episode_index: int):
-        """Probe available audio and subtitle streams for a specific episode."""
-
-        log_manager.info(f"Probing streams for series {series_id} season {season_id} episode {episode_index}...")
-
-        # "--dubLang und" returns the available dubs/subs without actually downloading the episode
-        cmd = [self.mdnx_path, "--service", self.mdnx_service, "--srz", str(series_id), "-s", str(season_id), "-e", str(episode_index), "--dubLang", "und"]
-
-        log_manager.debug(f"Probing streams: {' '.join(cmd)}")
-        try:
-            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8")
-            log_manager.debug(f"Probe output:\n{result.stdout}")
-        except Exception as exc:
-            # if the probe fails we return empty lists so the caller can decide how to proceed
-            log_manager.error(f"Probe failed (series {series_id} season {season_id} episode {episode_index}): {exc}")
-            return [], []
-
-        available_dubs = []  # collected normalized audio codes like "eng", "jpn"
-        available_subs = []  # collected normalized subtitle locales like "en", "pt-BR"
-        in_audios = False    # simple state machine to read multi-line sections
-        in_subs = False
-
-        for raw_line in result.stdout.splitlines():
-            line = raw_line.strip()
-
-            if not line:
-                # blank lines end any active section block
-                in_audios = False
-                in_subs = False
-                continue
-
-            # header like "Audio: English, Japanese"
-            if self.audio_header.search(raw_line):
-                in_audios, in_subs = True, False
-
-                # parse tokens on the same header line, if present
-                tail = self.audio_header.split(raw_line, 1)[-1].strip()
-                if tail:
-                    for token in self._clean_tokens(tail):
-                        code = self._norm_audio(token)  # map display name or code to canonical audio code
-                        if code:
-                            available_dubs.append(code)
-                continue
-
-            # header like "Subs: EN, PT-BR"
-            if self.subs_header.search(raw_line):
-                in_audios, in_subs = False, True
-
-                # parse tokens on the same header line, if present
-                tail = self.subs_header.split(raw_line, 1)[-1].strip()
-                if tail:
-                    for token in self._clean_tokens(tail):
-                        loc = self._norm_sub(token)  # map display name or code to canonical locale
-                        if loc:
-                            available_subs.append(loc)
-                continue
-
-            # continuation lines under the Audio section
-            if in_audios and line:
-                for token in self._clean_tokens(line):
-                    code = self._norm_audio(token)
-                    if code:
-                        available_dubs.append(code)
-                continue
-
-            # continuation lines under the Subs section
-            if in_subs and line:
-                for token in self._clean_tokens(line):
-                    loc = self._norm_sub(token)
-                    if loc:
-                        available_subs.append(loc)
-                continue
-
-        # remove duplicates while preserving case-insensitive uniqueness
-        dubs_deduped = dedupe_casefold(available_dubs)
-        subs_deduped = dedupe_casefold(available_subs)
-
-        log_manager.info(f"Probe S{season_id}E{episode_index}: dubs={dubs_deduped}, subs={subs_deduped}")
-
-        return dubs_deduped, subs_deduped
 
     def _clean_tokens(self, text: str):
         """Split a comma-separated list, trim, drop empties."""
