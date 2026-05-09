@@ -28,8 +28,10 @@ LANG_MAP: dict[str, list[str | None]] = {
     "English (India)": ["eng", "en-IN"],
     "English (UK)": ["eng", "en"],
 
-    "Spanish": ["spa", "es-419"],
+    "Spanish": ["spa-419", "es-419"],
     "Spanish (Mexico)": ["spa-419", "es-419"],
+    "Spanish LatAm": ["spa", "es-419"],
+    "Spanish Europe": ["spa-ES", "es-ES"],
     "Castilian": ["spa-ES", "es-ES"],
 
     "Portuguese": ["por", "pt-BR"],
@@ -40,7 +42,7 @@ LANG_MAP: dict[str, list[str | None]] = {
 
     "German": ["deu", "de"],
 
-    "Arabic": ["ara-ME", "ar"],
+    "Arabic": ["ara", "ar"],
     "Arabic (Saudi Arabia)": ["ara", "ar"],
     "Arabic (Modern Standard)": ["ara-ME", "ar"],
 

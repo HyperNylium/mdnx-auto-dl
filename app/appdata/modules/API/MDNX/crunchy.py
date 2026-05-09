@@ -42,12 +42,12 @@ class CR_MDNX_API:
             r'^\[(?P<ep_type>E|S)(?P<episode_number>\d+)\]\s+(?P<full_episode_name>.+)$'
         )
 
-        # Versions (dubs): lines starting with "- Versions":
+        # Versions (dubs): lines starting with "- Versions: "
         self.versions_pattern = re.compile(
             r'-\s*Versions:\s*(.+)'
         )
 
-        # Subtitles: lines starting with "- Subtitles":
+        # Subtitles: lines starting with "- Subtitles: "
         self.subtitles_pattern = re.compile(
             r'-\s*Subtitles:\s*(.+)'
         )
