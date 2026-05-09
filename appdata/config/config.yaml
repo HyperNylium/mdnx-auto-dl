@@ -64,7 +64,7 @@ zlo:
         dlsubs:
             - "EN"
 
-    disney:
+    disneyplus:
         q: "1080p@avc"
         qf: true
         dubLang:
