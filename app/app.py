@@ -11,7 +11,7 @@ from appdata.modules.API.MDNX._shared import (
     update_mdnx_config
 )
 from appdata.modules.API.ZLO7._shared import (
-    ZLO_SERVICE_BIN_PATH, ZLO_SERVICE_CONFIG_SETTINGS_PATH,
+    ZLO_SERVICE_BIN_PATH, ZLO_SERVICE_CONFIG_SETTINGS_PATH
 )
 from appdata.modules.Vars import (
     config,

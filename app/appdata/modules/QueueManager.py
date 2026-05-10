@@ -5,11 +5,11 @@ from .Globals import log_manager
 from .Vars import (
     config,
     SERVICES,
-    update_app_config,
+    update_app_config
 )
 from .db.connection import open_connection
 from .db.queue_repo import (
-    delete_series, load_queue, set_episode_field, clear_queue, upsert_series,
+    delete_series, load_queue, set_episode_field, clear_queue, upsert_series
 )
 from .types.queue import Queue, Season, Series, ServiceBucket
 
