@@ -7,11 +7,11 @@ import threading
 
 from appdata.modules.Globals import queue_manager, log_manager
 from appdata.modules.API.MDNX._shared import (
-    CODE_TO_LOCALE, LANG_MAP, MDNX_API_OK_LOGS, MDNX_SERVICE_BIN_PATH, VALID_LOCALES,
+    CODE_TO_LOCALE, LANG_MAP, MDNX_API_OK_LOGS, MDNX_SERVICE_BIN_PATH, VALID_LOCALES
 )
 from appdata.modules.Vars import (
     config,
-    apply_series_blacklist, dedupe_casefold, get_season_monitor_config, sanitize,
+    apply_series_blacklist, dedupe_casefold, get_season_monitor_config, sanitize
 )
 from appdata.modules.types.queue import Episode, Season, Series, SeriesInfo
 from appdata.modules.Globals import extra_specials

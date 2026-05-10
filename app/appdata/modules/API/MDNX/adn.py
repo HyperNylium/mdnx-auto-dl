@@ -10,7 +10,7 @@ from appdata.modules.API.MDNX._shared import (
 )
 from appdata.modules.Vars import (
     config,
-    apply_series_blacklist, dedupe_casefold, get_season_monitor_config, sanitize,
+    apply_series_blacklist, dedupe_casefold, get_season_monitor_config, sanitize
 )
 from appdata.modules.types.queue import Episode, Season, Series, SeriesInfo
 from appdata.modules.Globals import extra_specials

@@ -9,7 +9,7 @@ from .ServiceHelper import get_wanted_dubs_and_subs, probe_streams, select_dubs,
 from .Vars import (
     config,
     DATA_DIR, JELLY_CONFIGURED, PLEX_CONFIGURED, SERVICES, TEMP_DIR, TZ,
-    format_duration, get_episode_file_path, get_season_monitor_config, iter_episodes,
+    format_duration, get_episode_file_path, get_season_monitor_config, iter_episodes
 )
 from .types.queue import Episode, ServiceBucket
 

@@ -6,12 +6,12 @@ import threading
 from appdata.modules.Globals import queue_manager, log_manager
 from appdata.modules.API.ZLO7._shared import (
     ZLO_SERVICE_BIN_PATH,
-    normalize_zlo_dubs, normalize_zlo_subtitles, normalize_zlo_qualities,
+    normalize_zlo_dubs, normalize_zlo_subtitles, normalize_zlo_qualities
 )
 from appdata.modules.Vars import (
     config,
     TEMP_DIR,
-    apply_series_blacklist, get_season_monitor_config, sanitize,
+    apply_series_blacklist, get_season_monitor_config, sanitize
 )
 from appdata.modules.types.queue import Episode, Season, Series, SeriesInfo
 from appdata.modules.Globals import extra_specials
