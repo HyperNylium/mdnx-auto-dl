@@ -6,7 +6,7 @@ from appdata.modules.MainLoop import MainLoop
 from appdata.modules.Globals import file_manager, log_manager
 from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
 from appdata.modules.API.MDNX._shared import (
-    MDNX_SERVICE_CR_TOKEN_PATH, MDNX_SERVICE_HIDIVE_TOKEN_PATH,
+    MDNX_SERVICE_CR_TOKEN_PATH, MDNX_SERVICE_HIDIVE_TOKEN_PATH, MDNX_SERVICE_ADN_TOKEN_PATH,
     MDNX_SERVICE_PLAYREADY_PATH, MDNX_SERVICE_WIDEVINE_PATH,
     update_mdnx_config
 )
@@ -172,6 +172,23 @@ def app():
                         update_app_config("HIDIVE_FORCE_REAUTH", False)
                 else:
                     log_manager.info("hd_new_token.yml exists. Assuming user is already authenticated with HiDive MDNX service.")
+
+            case "adn":
+                log_manager.info("Starting ADN_MDNX_API...")
+                from appdata.modules.API.MDNX.adn import ADN_MDNX_API
+                mdnx_service.api = ADN_MDNX_API()
+
+                # authenticate with MDNX adn service if needed or force auth if user wants to
+                log_manager.info("Checking to see if user is authenticated with MDNX service (adn_token.yml exists?)...")
+                if not os.path.exists(MDNX_SERVICE_ADN_TOKEN_PATH) or config.app.adn_force_reauth == True:
+                    log_manager.info("adn_token.yml not found or re-authentication forced. Starting authentication process...")
+                    mdnx_service.api.auth()
+
+                    # Update the "ADN_FORCE_REAUTH" config to False if needed
+                    if config.app.adn_force_reauth == True:
+                        update_app_config("ADN_FORCE_REAUTH", False)
+                else:
+                    log_manager.info("adn_token.yml exists. Assuming user is already authenticated with ADN MDNX service.")
 
     # ZLO service init
     for zlo_service in SERVICES.zlo.all():

@@ -1,5 +1,6 @@
 cr_monitor_series_id: {}
 hidive_monitor_series_id: {}
+adn_monitor_series_id: {}
 zlo_cr_monitor_series_id: {}
 zlo_hidive_monitor_series_id: {}
 zlo_adn_monitor_series_id: {}
@@ -13,6 +14,9 @@ app:
     HIDIVE_ENABLED: false
     HIDIVE_USERNAME: ""
     HIDIVE_PASSWORD: ""
+    ADN_ENABLED: false
+    ADN_USERNAME: ""
+    ADN_PASSWORD: ""
     BACKUP_DUBS:
         - "zho"
     FOLDER_STRUCTURE: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"

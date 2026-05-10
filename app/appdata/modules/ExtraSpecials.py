@@ -159,6 +159,7 @@ class ExtraSpecials:
         total = 0
         total += self._ingest_service("mdnx", "crunchyroll", cfg.mdnx.crunchyroll, self._classify_mdnx_entry)
         total += self._ingest_service("mdnx", "hidive", cfg.mdnx.hidive, self._classify_mdnx_entry)
+        total += self._ingest_service("mdnx", "adn", cfg.mdnx.adn, self._classify_mdnx_entry)
         total += self._ingest_service("zlo", "crunchyroll", cfg.zlo.crunchyroll, self._classify_zlo_entry)
         total += self._ingest_service("zlo", "hidive", cfg.zlo.hidive, self._classify_zlo_entry)
         total += self._ingest_service("zlo", "adn", cfg.zlo.adn, self._classify_zlo_entry)

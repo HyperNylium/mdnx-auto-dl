@@ -10,6 +10,7 @@ class MdnxExtraSpecials(BaseModel):
 
     crunchyroll: SeriesMap = Field(default_factory=dict)
     hidive: SeriesMap = Field(default_factory=dict)
+    adn: SeriesMap = Field(default_factory=dict)
 
 
 class ZloExtraSpecials(BaseModel):
