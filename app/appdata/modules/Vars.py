@@ -107,6 +107,7 @@ def output_effective_config(config: Config, max_chunk: int = 8000):
     SKIP_ORDERING_KEYS = {
         "cr_monitor_series_id",
         "hidive_monitor_series_id",
+        "adn_monitor_series_id",
         "zlo_cr_monitor_series_id",
         "zlo_hidive_monitor_series_id",
         "zlo_adn_monitor_series_id",
@@ -187,6 +188,16 @@ SERVICES = Services(
             monitor_series_id=config.hidive_monitor_series_id,
             monitor_config_key="hidive_monitor_series_id",
             enabled=config.app.hidive_enabled,
+        ),
+        adn=Service(
+            service_name="adn",
+            queue_bucket="ADN",
+            display_name="ADN",
+            tool="mdnx",
+            config=config.mdnx,
+            monitor_series_id=config.adn_monitor_series_id,
+            monitor_config_key="adn_monitor_series_id",
+            enabled=config.app.adn_enabled,
         ),
     ),
     zlo=ZloServices(
