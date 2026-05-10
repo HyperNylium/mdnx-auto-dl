@@ -14,7 +14,7 @@ from appdata.modules.Vars import (
     apply_series_blacklist, get_season_monitor_config, sanitize
 )
 from appdata.modules.types.queue import Episode, Season, Series, SeriesInfo
-from appdata.modules.Globals import extra_specials
+from appdata.modules.Globals import remote_specials
 
 
 class ADN_ZLO_API:
@@ -302,14 +302,14 @@ class ADN_ZLO_API:
                     log_manager.debug(f"Skipping special episode (title='{episode_data.get('title')}', season_id={season_id})")
                     continue
 
-                # extra-specials override: drop using upstream season number and episode number/id
+                # remote-specials override: drop using upstream season number and episode number/id
                 if raw_season_number not in (None, ""):
                     override_season_key = f"S{raw_season_number}"
                     override_episode_number = str(episode_data.get("episode") or "").strip()
                     override_episode_id_raw = str(episode_data.get("id") or "").strip()
                     override_episode_id = override_episode_id_raw if override_episode_id_raw != "" else None
-                    if extra_specials.is_extra_special("zlo", "adn", series_id, override_season_key, override_episode_number, episode_id=override_episode_id):
-                        log_manager.debug(f"Skipping extra-special at {override_season_key}E{override_episode_number} series_id={series_id} id={override_episode_id_raw}")
+                    if remote_specials.is_remote_special("zlo", "adn", series_id, override_season_key, override_episode_number, episode_id=override_episode_id):
+                        log_manager.debug(f"Skipping remote-special at {override_season_key}E{override_episode_number} series_id={series_id} id={override_episode_id_raw}")
                         continue
 
                 raw_episode_number = episode_data.get("episode")
