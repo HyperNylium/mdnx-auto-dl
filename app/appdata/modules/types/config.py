@@ -17,6 +17,10 @@ class AppConfig(BaseModel):
     hidive_username: str = Field("", alias="HIDIVE_USERNAME")
     hidive_password: str = Field("", alias="HIDIVE_PASSWORD")
 
+    adn_enabled: bool = Field(False, alias="ADN_ENABLED")
+    adn_username: str = Field("", alias="ADN_USERNAME")
+    adn_password: str = Field("", alias="ADN_PASSWORD")
+
     zlo_cr_enabled: bool = Field(False, alias="ZLO_CR_ENABLED")
     zlo_hidive_enabled: bool = Field(False, alias="ZLO_HIDIVE_ENABLED")
     zlo_adn_enabled: bool = Field(False, alias="ZLO_ADN_ENABLED")
@@ -37,6 +41,7 @@ class AppConfig(BaseModel):
     cr_skip_api_test: bool = Field(False, alias="CR_SKIP_API_TEST")
     hidive_force_reauth: bool = Field(False, alias="HIDIVE_FORCE_REAUTH")
     hidive_skip_api_test: bool = Field(False, alias="HIDIVE_SKIP_API_TEST")
+    adn_force_reauth: bool = Field(False, alias="ADN_FORCE_REAUTH")
     clear_queue: bool = Field(False, alias="CLEAR_QUEUE")
 
     only_create_queue: bool = Field(False, alias="ONLY_CREATE_QUEUE")
@@ -138,6 +143,7 @@ class Config(BaseModel):
 
     cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
     hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    adn_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
 
     zlo_cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
     zlo_hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)

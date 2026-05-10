@@ -51,11 +51,16 @@ class MdnxServices(BaseModel):
 
     crunchyroll: Service
     hidive: Service
+    adn: Service
 
     def all(self) -> list[Service]:
         """Return every MDNX service as a flat list for iteration."""
 
-        return [self.crunchyroll, self.hidive]
+        return [
+            self.crunchyroll,
+            self.hidive,
+            self.adn
+        ]
 
 
 class ZloServices(BaseModel):
