@@ -13,7 +13,7 @@ from appdata.modules.Vars import (
     apply_series_blacklist, dedupe_casefold, get_season_monitor_config, sanitize
 )
 from appdata.modules.types.queue import Episode, Season, Series, SeriesInfo
-from appdata.modules.Globals import extra_specials
+from appdata.modules.Globals import remote_specials
 
 
 # Language normalization map for ADN. Maps from user-facing language names to (audio_code, sub_locale) pairs.
@@ -392,11 +392,11 @@ class ADN_MDNX_API:
                     _flush_season()
                     current_season_index += 1
 
-                # Check if this episode is marked in the extra-specials list.
+                # Check if this episode is marked in the remote-specials list.
                 # If so, skip it entirely.
                 season_key = f"S{current_season_index}"
-                if extra_specials.is_extra_special("mdnx", "adn", current_series_id, season_key, str(download_number), episode_id=episode_id):
-                    log_manager.debug(f"Skipping extra-special at {season_key}E{download_number} series_id={current_series_id} id={episode_id}")
+                if remote_specials.is_remote_special("mdnx", "adn", current_series_id, season_key, str(download_number), episode_id=episode_id):
+                    log_manager.debug(f"Skipping remote-special at {season_key}E{download_number} series_id={current_series_id} id={episode_id}")
                     current_episode_record = None
                     continue
 
