@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 SeriesMap = dict[str, dict[str, list[str]]]
 
 
-class MdnxExtraSpecials(BaseModel):
+class MdnxRemoteSpecials(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     crunchyroll: SeriesMap = Field(default_factory=dict)
@@ -13,7 +13,7 @@ class MdnxExtraSpecials(BaseModel):
     adn: SeriesMap = Field(default_factory=dict)
 
 
-class ZloExtraSpecials(BaseModel):
+class ZloRemoteSpecials(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     crunchyroll: SeriesMap = Field(default_factory=dict)
@@ -23,8 +23,8 @@ class ZloExtraSpecials(BaseModel):
     amazon: SeriesMap = Field(default_factory=dict)
 
 
-class ExtraSpecialsConfig(BaseModel):
+class RemoteSpecialsConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    mdnx: MdnxExtraSpecials = Field(default_factory=MdnxExtraSpecials)
-    zlo: ZloExtraSpecials = Field(default_factory=ZloExtraSpecials)
+    mdnx: MdnxRemoteSpecials = Field(default_factory=MdnxRemoteSpecials)
+    zlo: ZloRemoteSpecials = Field(default_factory=ZloRemoteSpecials)
