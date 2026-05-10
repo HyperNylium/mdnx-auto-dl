@@ -20,13 +20,23 @@ def load_queue(conn: sqlite3.Connection) -> Queue:
 
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM queue_series")
+    cursor.execute("SELECT * FROM queue_series ORDER BY service, series_id")
     series_rows = cursor.fetchall()
 
-    cursor.execute("SELECT * FROM queue_seasons")
+    cursor.execute(
+        "SELECT * FROM queue_seasons "
+        "ORDER BY service, series_id, "
+        "CAST(SUBSTR(season_key, 2) AS INTEGER)"
+    )
     season_rows = cursor.fetchall()
 
-    cursor.execute("SELECT * FROM queue_episodes")
+    cursor.execute(
+        "SELECT * FROM queue_episodes "
+        "ORDER BY service, series_id, "
+        "CAST(SUBSTR(season_key, 2) AS INTEGER), "
+        "SUBSTR(episode_key, 1, 1), "
+        "CAST(SUBSTR(episode_key, 2) AS INTEGER)"
+    )
     episode_rows = cursor.fetchall()
     cursor.close()
 
