@@ -5,7 +5,7 @@ import requests
 from pydantic import ValidationError
 
 from .Globals import log_manager
-from .types.extra_specials import ExtraSpecialsConfig
+from .types.remote_specials import RemoteSpecialsConfig
 
 
 # digits only like "7"
@@ -35,9 +35,9 @@ def _expand_range(range_match: re.Match) -> set[str]:
     return numbers
 
 
-class ExtraSpecials:
+class RemoteSpecials:
     def __init__(self) -> None:
-        self._url = os.getenv("EXTRA_SPECIALS_URL", "https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/dev/extra-specials.yaml").strip()
+        self._url = os.getenv("REMOTE_SPECIALS_URL", "https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/dev/remote-specials.yaml").strip()
 
         # (downloader, service, series_id, season_id) -> (numbers_set, ids_set)
         self._overrides: dict[tuple[str, str, str, str], tuple[set[str], set[str]]] = {}
@@ -115,12 +115,12 @@ class ExtraSpecials:
         return entry_count
 
     def refresh(self) -> None:
-        """Fetch EXTRA_SPECIALS_URL, validate, and rebuild state."""
+        """Fetch REMOTE_SPECIALS_URL, validate, and rebuild state."""
 
         self._overrides.clear()
 
         if self._url.lower() == "false" or self._url == "":
-            log_manager.debug("extra specials URL is disabled. Feature disabled this pass.")
+            log_manager.debug("remote specials URL is disabled. Feature disabled this pass.")
             return
 
         try:
@@ -151,7 +151,7 @@ class ExtraSpecials:
                 del raw[top_key]
 
         try:
-            cfg = ExtraSpecialsConfig.model_validate(raw)
+            cfg = RemoteSpecialsConfig.model_validate(raw)
         except ValidationError as validation_error:
             log_manager.warning(f"schema validation failed: {validation_error}. Feature disabled this pass.")
             return
@@ -168,7 +168,7 @@ class ExtraSpecials:
 
         log_manager.info(f"loaded {total} entries across {len(self._overrides)} season slots.")
 
-    def is_extra_special(self, downloader: str, service: str, series_id: str, season_id: str, episode_number: str, episode_id: str | None = None) -> bool:
+    def is_remote_special(self, downloader: str, service: str, series_id: str, season_id: str, episode_number: str, episode_id: str | None = None) -> bool:
         """True if this episode is in the override file for this downloader/service."""
 
         key = (downloader, service, str(series_id), str(season_id))
