@@ -71,33 +71,32 @@ class QueueManager:
                     else:
                         seen[old_season.season_id] = old_key
 
-                # merge incoming seasons. migrate keys to canonical season_id when possible
+                # merge incoming seasons. always key by the season_key (S1, S2, etc).
+                # if the same season_id appears under a different old key, rename to the new key.
                 for season_key, new_season in new_series.seasons.items():
-                    canonical_key = new_season.season_id or season_key
-
                     if new_season.season_id:
                         prev_key = seen.get(new_season.season_id)
-                        if prev_key and prev_key != canonical_key and prev_key in existing_series.seasons:
-                            if canonical_key in existing_series.seasons:
-                                dst = existing_series.seasons[canonical_key]
+                        if prev_key and prev_key != season_key and prev_key in existing_series.seasons:
+                            if season_key in existing_series.seasons:
+                                dst = existing_series.seasons[season_key]
                                 src = existing_series.seasons[prev_key]
                                 for episode_key, episode_value in src.episodes.items():
                                     if episode_key not in dst.episodes:
                                         dst.episodes[episode_key] = episode_value
                                 del existing_series.seasons[prev_key]
                             else:
-                                existing_series.seasons[canonical_key] = existing_series.seasons.pop(prev_key)
-                            seen[new_season.season_id] = canonical_key
+                                existing_series.seasons[season_key] = existing_series.seasons.pop(prev_key)
+                            seen[new_season.season_id] = season_key
 
-                    existing_season = existing_series.seasons.get(canonical_key)
+                    existing_season = existing_series.seasons.get(season_key)
                     if existing_season is None:
                         existing_season = Season(
                             season_id=new_season.season_id,
                             season_number=new_season.season_number,
                             season_name=new_season.season_name,
-                            episodes={},
+                            episodes={}
                         )
-                        existing_series.seasons[canonical_key] = existing_season
+                        existing_series.seasons[season_key] = existing_season
                     else:
                         existing_season.season_id = new_season.season_id
                         existing_season.season_number = new_season.season_number
@@ -108,9 +107,23 @@ class QueueManager:
                         if old_episode is not None:
                             new_episode.episode_downloaded = old_episode.episode_downloaded
                             new_episode.has_all_dubs_subs = old_episode.has_all_dubs_subs
-                            if old_episode.episode_skip:
-                                new_episode.episode_skip = True
                         existing_season.episodes[episode_key] = new_episode
+
+                    # drop episodes the provider no longer lists for this season
+                    stale_episode_keys = []
+                    for existing_episode_key in existing_season.episodes:
+                        if existing_episode_key not in new_season.episodes:
+                            stale_episode_keys.append(existing_episode_key)
+                    for stale_episode_key in stale_episode_keys:
+                        del existing_season.episodes[stale_episode_key]
+
+                # drop seasons the provider no longer lists for this series
+                stale_season_keys = []
+                for existing_season_key in existing_series.seasons:
+                    if existing_season_key not in new_series.seasons:
+                        stale_season_keys.append(existing_season_key)
+                for stale_season_key in stale_season_keys:
+                    del existing_series.seasons[stale_season_key]
 
                 upsert_series(self.conn, bucket_name, series_id, existing_series)
                 log_manager.debug(f"Updated series '{series_id}' in '{bucket_name}'.")
@@ -133,7 +146,7 @@ class QueueManager:
                 log_manager.debug(f"Removed series '{series_id}' from '{bucket_name}'.")
                 return
 
-        log_manager.warning(f"Series '{series_id}' not found in '{bucket_name}'.")
+            log_manager.warning(f"Series '{series_id}' not found in '{bucket_name}'.")
 
     def update_episode_status(self, series_id: str, season_key: str, episode_key: str, status: bool, service: str) -> None:
         """Update the episode_downloaded flag for an episode."""
