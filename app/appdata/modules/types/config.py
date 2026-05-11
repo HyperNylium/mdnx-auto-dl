@@ -1,13 +1,19 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class DestinationConfig(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    dir: str = Field(min_length=1)
+    folder_structure: str = Field(min_length=1)
+
+
 class AppConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
     temp_dir: str = Field("/app/appdata/temp", alias="TEMP_DIR")
     bin_dir: str = Field("/app/appdata/bin", alias="BIN_DIR")
     log_dir: str = Field("/app/appdata/logs", alias="LOG_DIR")
-    data_dir: str = Field("/data", alias="DATA_DIR")
 
     cr_enabled: bool = Field(False, alias="CR_ENABLED")
     cr_username: str = Field("", alias="CR_USERNAME")
@@ -28,10 +34,6 @@ class AppConfig(BaseModel):
     zlo_amazon_enabled: bool = Field(False, alias="ZLO_AMAZON_ENABLED")
 
     backup_dubs: list[str] = Field(["zho"], alias="BACKUP_DUBS")
-    folder_structure: str = Field(
-        "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
-        alias="FOLDER_STRUCTURE",
-    )
 
     check_missing_dub_sub: bool = Field(True, alias="CHECK_MISSING_DUB_SUB")
     check_for_updates_interval: int = Field(3600, alias="CHECK_FOR_UPDATES_INTERVAL")
@@ -150,6 +152,8 @@ class Config(BaseModel):
     zlo_adn_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
     zlo_disneyplus_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
     zlo_amazon_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+
+    destinations: dict[str, DestinationConfig] = Field(default_factory=dict)
 
     app: AppConfig = Field(default_factory=AppConfig)
     mdnx: MdnxConfig = Field(default_factory=MdnxConfig)

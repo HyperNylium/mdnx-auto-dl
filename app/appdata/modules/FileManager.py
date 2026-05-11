@@ -4,7 +4,8 @@ from shutil import copyfile as shcopy
 
 from .Globals import log_manager
 from .Vars import (
-    TEMP_DIR, DATA_DIR,
+    config,
+    TEMP_DIR, SERVICES,
     sanitize
 )
 
@@ -12,51 +13,64 @@ from .Vars import (
 class FileManager:
     def __init__(self):
         self.source = TEMP_DIR
-        self.dest = DATA_DIR
         self.readyCheckInterval = 1  # seconds between size checks
         self.readyStableSeconds = 5  # how long size must remain unchanged
         self.readyTimeout = 300      # overall timeout for readiness
         self.moveRetries = 3         # number of attempts to move file
         self.retryDelay = 5          # seconds between move attempts
 
-        log_manager.info(f"FileManager initialized with: Source: {self.source} | Destination: {self.dest}")
+        # destinations get logged per-dir during test(), so keep this line minimal.
+        log_manager.info(f"FileManager initialized with: Source: {self.source}")
 
     def test(self) -> bool:
-        """Test if the destination directory is accessible with read/write permissions."""
+        """Check that every enabled service's destination directory is accessible with read/write permissions."""
 
-        log_manager.info(f"Checking Read/Write permissions for: {self.dest}")
+        dirs_to_test = []
+        for service in SERVICES.all():
+            if not service.enabled:
+                continue
 
-        if not os.path.isdir(self.dest):
-            log_manager.error(f"Directory not found: {self.dest}")
-            return False
+            dest_dir = config.destinations[service.service_name].dir
+            if dest_dir not in dirs_to_test:
+                dirs_to_test.append(dest_dir)
 
-        # check read/write permissions
-        can_r = os.access(self.dest, os.R_OK)
-        can_w = os.access(self.dest, os.W_OK)
-        log_manager.info(f"os.access -> R:{can_r} W:{can_w}")
-        if not (can_r and can_w):
-            log_manager.warning(f"Missing required R/W on {self.dest}")
-            return False
+        for dest_dir in dirs_to_test:
+            log_manager.info(f"Checking Read/Write permissions for: {dest_dir}")
 
-        # practical test for write/read permissions
-        test_path = os.path.join(self.dest, "permtest.txt")
-        try:
-            with open(test_path, "w", encoding="utf-8") as f:
-                f.write("ok")
-            with open(test_path, "r", encoding="utf-8") as f:
-                data = f.read()
-            success = (data == "ok")
-            log_manager.info(f"Write/read test {'passed' if success else 'failed'} at {test_path}")
-            return success
-        except Exception as e:
-            log_manager.error(f"Write/read test failed in {self.dest}: {e}")
-            return False
-        finally:
+            if not os.path.isdir(dest_dir):
+                log_manager.error(f"Directory not found: {dest_dir}")
+                return False
+
+            # check read/write permissions
+            can_r = os.access(dest_dir, os.R_OK)
+            can_w = os.access(dest_dir, os.W_OK)
+            log_manager.info(f"os.access -> R:{can_r} W:{can_w}")
+            if not (can_r and can_w):
+                log_manager.warning(f"Missing required R/W on {dest_dir}")
+                return False
+
+            # practical test for write/read permissions
+            test_path = os.path.join(dest_dir, "permtest.txt")
             try:
-                if os.path.exists(test_path):
-                    os.remove(test_path)
+                with open(test_path, "w", encoding="utf-8") as f:
+                    f.write("ok")
+                with open(test_path, "r", encoding="utf-8") as f:
+                    data = f.read()
+                success = (data == "ok")
+                log_manager.info(f"Write/read test {'passed' if success else 'failed'} at {test_path}")
+                if not success:
+                    return False
             except Exception as e:
-                log_manager.warning(f"Could not clean up {test_path}\nMay fail when doing episode dub/sub updates\nFull error: {e}")
+                log_manager.error(f"Write/read test failed in {dest_dir}: {e}")
+                return False
+            finally:
+                try:
+                    if os.path.exists(test_path):
+                        os.remove(test_path)
+                except Exception as e:
+                    log_manager.warning(f"Could not clean up {test_path}\nMay fail when doing episode dub/sub updates\nFull error: {e}")
+
+        return True
 
     def transfer(self, src_path: str, dst_path: str, overwrite: bool = False) -> bool:
         """Transfer a file from src_path to dst_path with readiness checks and retries."""

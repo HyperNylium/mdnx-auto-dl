@@ -1,6 +1,6 @@
 # Remote-specials override file.
 #
-# Lists episodes that the per-provider special-episode detection misses.
+# Lists episodes that the per-service special-episode detection misses.
 #
 # Structure:
 #   <downloader>:
