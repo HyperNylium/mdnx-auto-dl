@@ -16,7 +16,7 @@ from appdata.modules.API.ZLO7._shared import (
 from appdata.modules.Vars import (
     config,
     APP_VERSION, JELLY_CONFIGURED, MDNX_ENABLED, PLEX_CONFIGURED, SERVICES, ZLO_ENABLED,
-    get_running_user, handle_exception, output_effective_config, update_app_config, validate_cdm
+    get_running_user, handle_exception, output_effective_config, update_app_config, validate_cdm, validate_destinations
 )
 
 
@@ -212,7 +212,7 @@ def app():
                 from appdata.modules.API.ZLO7.adn import ADN_ZLO_API
                 zlo_service.api = ADN_ZLO_API()
 
-            case "zlo-disney":
+            case "zlo-disneyplus":
                 log_manager.info("Starting DISNEY_ZLO_API...")
                 from appdata.modules.API.ZLO7.disney import DISNEY_ZLO_API
                 zlo_service.api = DISNEY_ZLO_API()
@@ -245,4 +245,5 @@ if __name__ == "__main__":
     get_running_user()
     update_mdnx_config()
     output_effective_config(config)
+    validate_destinations()
     app()

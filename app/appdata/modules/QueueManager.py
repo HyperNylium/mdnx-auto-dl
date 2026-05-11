@@ -109,7 +109,7 @@ class QueueManager:
                             new_episode.has_all_dubs_subs = old_episode.has_all_dubs_subs
                         existing_season.episodes[episode_key] = new_episode
 
-                    # drop episodes the provider no longer lists for this season
+                    # drop episodes the service no longer lists for this season
                     stale_episode_keys = []
                     for existing_episode_key in existing_season.episodes:
                         if existing_episode_key not in new_season.episodes:
@@ -117,7 +117,7 @@ class QueueManager:
                     for stale_episode_key in stale_episode_keys:
                         del existing_season.episodes[stale_episode_key]
 
-                # drop seasons the provider no longer lists for this series
+                # drop seasons the service no longer lists for this series
                 stale_season_keys = []
                 for existing_season_key in existing_series.seasons:
                     if existing_season_key not in new_series.seasons:

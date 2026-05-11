@@ -8,7 +8,7 @@ from .Globals import file_manager, queue_manager, log_manager, remote_specials
 from .ServiceHelper import get_wanted_dubs_and_subs, probe_streams, select_dubs, select_subs
 from .Vars import (
     config,
-    DATA_DIR, JELLY_CONFIGURED, PLEX_CONFIGURED, SERVICES, TEMP_DIR, TZ,
+    JELLY_CONFIGURED, PLEX_CONFIGURED, SERVICES, TEMP_DIR, TZ,
     format_duration, get_episode_file_path, get_season_monitor_config, iter_episodes
 )
 from .types.queue import Episode, ServiceBucket
@@ -119,7 +119,7 @@ class MainLoop:
         action_label: str,
         service: str,
         before_dubs: set | None = None,
-        before_subs: set | None = None,
+        before_subs: set | None = None
     ) -> dict:
         """Build a dict snapshot for the notification buffer."""
 
@@ -149,7 +149,7 @@ class MainLoop:
             "after_dubs": sorted(after_dubs),
             "after_subs": sorted(after_subs),
             "path": file_path,
-            "time_taken": format_duration(int(time_taken)),
+            "time_taken": format_duration(int(time_taken))
         }
 
     def _flush_notifications(self) -> None:
@@ -288,13 +288,15 @@ class MainLoop:
         if bucket is None:
             return
 
+        service_obj = SERVICES.get(service)
+
         for series_id, season_key, episode_key, season, episode in iter_episodes(bucket):
 
             if self.stop_requested:
                 log_manager.info(f"Stop requested. Skipping download for {service_label}.")
                 return
 
-            file_path = get_episode_file_path(bucket, series_id, season_key, episode_key, DATA_DIR)
+            file_path = get_episode_file_path(bucket, series_id, season_key, episode_key, service_obj)
             episode_basename = os.path.basename(file_path)
 
             if episode.episode_skip:
@@ -373,6 +375,8 @@ class MainLoop:
         if bucket is None:
             return
 
+        service_obj = SERVICES.get(service)
+
         for series_id, season_key, episode_key, season, episode in iter_episodes(bucket):
 
             if self.stop_requested:
@@ -385,7 +389,7 @@ class MainLoop:
             if season_monitor is not None and (season_monitor.dub_overrides is not None or season_monitor.sub_overrides is not None):
                 season_has_track_overrides = True
 
-            file_path = get_episode_file_path(bucket, series_id, season_key, episode_key, DATA_DIR)
+            file_path = get_episode_file_path(bucket, series_id, season_key, episode_key, service_obj)
             episode_basename = os.path.basename(file_path)
 
             if episode.episode_skip:
@@ -490,7 +494,7 @@ class MainLoop:
                     series_name = bucket.series[series_id].series.series_name
                     snapshot = self._snapshot_episode(
                         series_name, episode, file_path, dl_elapsed, "updated", service,
-                        before_dubs=local_dubs, before_subs=local_subs,
+                        before_dubs=local_dubs, before_subs=local_subs
                     )
                     self.notifications_buffer.append(snapshot)
                 else:
