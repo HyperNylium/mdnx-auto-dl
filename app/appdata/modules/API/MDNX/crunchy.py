@@ -374,8 +374,6 @@ class CR_MDNX_API:
                     series=SeriesInfo(
                         series_name=info["series_name"],
                         series_id=info["series_id"],
-                        seasons_count=info["seasons_count"],
-                        eps_count=info["eps_count"],
                     ),
                     seasons={},
                 )
@@ -632,6 +630,13 @@ class CR_MDNX_API:
                 new_idx += 1
 
             series.seasons = new_seasons
+
+        # calculate seasons_count and eps_count for each series based on the final processed data,
+        # so they reflect any filtering or restructuring we did above
+        for series_id, series in tmp_dict.items():
+            total_episode_count = sum(len(season.episodes) for season in series.seasons.values())
+            series.series.seasons_count = str(len(series.seasons))
+            series.series.eps_count = str(total_episode_count)
 
         log_manager.debug("Console output processed.")
 
