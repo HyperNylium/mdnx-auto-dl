@@ -165,28 +165,28 @@ jobs:
           echo "Updated versions.txt:"
           cat versions.txt
 
-      - name: Bump __VERSION__ in app/app.py
+      - name: Bump app version in pyproject.toml
         if: steps.check_update.outputs.needs_update == 'true'
         run: |
           python - << 'PY'
           import re
-          from pathlib import Path
 
-          path = Path("app/app.py")
-          text = path.read_text(encoding="utf-8")
+          with open("pyproject.toml", "r", encoding="utf-8") as pyproject_file:
+              text = pyproject_file.read()
 
-          pattern = r'(__VERSION__\s*=\s*")(\d+)\.(\d+)\.(\d+)(")'
+          pattern = r'(^version\s*=\s*")(\d+)\.(\d+)\.(\d+)(")'
 
-          def bump_patch(match: re.Match) -> str:
+          def bump_patch(match):
               major, minor, patch = map(int, match.group(2, 3, 4))
               patch += 1
               return f'{match.group(1)}{major}.{minor}.{patch}{match.group(5)}'
 
-          new_text, count = re.subn(pattern, bump_patch, text, count=1)
+          new_text, count = re.subn(pattern, bump_patch, text, count=1, flags=re.MULTILINE)
           if count == 0:
-              raise SystemExit("Could not find __VERSION__ assignment in app/app.py")
+              raise SystemExit("Could not find version assignment in pyproject.toml")
 
-          path.write_text(new_text, encoding="utf-8")
+          with open("pyproject.toml", "w", encoding="utf-8") as pyproject_file:
+              pyproject_file.write(new_text)
           PY
 
       - name: Show changed files
