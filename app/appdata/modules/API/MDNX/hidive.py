@@ -345,7 +345,6 @@ class HIDIVE_MDNX_API:
                     series=SeriesInfo(
                         series_name=sanitize(gd["series_name"]),
                         series_id=gd["series_id"],
-                        seasons_count=str(gd["seasons_count"]),
                     ),
                     seasons={},
                 )
@@ -597,8 +596,10 @@ class HIDIVE_MDNX_API:
         # apply per-series blacklist to mark episodes to skip
         tmp_dict = apply_series_blacklist(tmp_dict, service="hidive")
 
-        # fill in total ep count on series metadata
+        # calculate seasons_count and eps_count for each series based on the final processed data,
+        # so they reflect any filtering or restructuring we did above
         tmp_dict[current_series_id].series.eps_count = str(total_episodes)
+        tmp_dict[current_series_id].series.seasons_count = str(len(tmp_dict[current_series_id].seasons))
 
         log_manager.debug("Console output processed.")
         if add2queue:
