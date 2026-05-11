@@ -372,12 +372,17 @@ def probe_streams(file_path: str) -> tuple[set, set]:
                 audio_langs.add(LANG_MAP[title])
             case "subtitle":
                 # ZLO tags subs as "<Language> [Full]".
-                if not title.endswith(" [Full]"):
+                lookup_title = title.removesuffix(" [Full]").strip().lower()
+                if not lookup_title:
                     continue
-                lookup_title = title.removesuffix(" [Full]").strip()
-                if lookup_title not in LANG_MAP:
+                matched_code = None
+                for lang_name, lang_code in LANG_MAP.items():
+                    if lang_name.lower() == lookup_title:
+                        matched_code = lang_code
+                        break
+                if matched_code is None:
                     continue
-                sub_langs.add(LANG_MAP[lookup_title])
+                sub_langs.add(matched_code)
             case _:
                 continue
 
