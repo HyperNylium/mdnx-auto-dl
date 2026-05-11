@@ -363,18 +363,21 @@ def probe_streams(file_path: str) -> tuple[set, set]:
     for stream in streams:
         tags = stream.get("tags", {})
         title = tags.get("title", "").strip()
-
-        if title not in LANG_MAP:
-            continue
-
-        zlo_code = LANG_MAP[title]
         codec_type = stream.get("codec_type")
 
         match codec_type:
             case "audio":
-                audio_langs.add(zlo_code)
+                if title not in LANG_MAP:
+                    continue
+                audio_langs.add(LANG_MAP[title])
             case "subtitle":
-                sub_langs.add(zlo_code)
+                # ZLO tags subs as "<Language> [Full]".
+                if not title.endswith(" [Full]"):
+                    continue
+                lookup_title = title.removesuffix(" [Full]").strip()
+                if lookup_title not in LANG_MAP:
+                    continue
+                sub_langs.add(LANG_MAP[lookup_title])
             case _:
                 continue
 
