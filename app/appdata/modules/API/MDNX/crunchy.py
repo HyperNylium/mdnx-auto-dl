@@ -633,7 +633,7 @@ class CR_MDNX_API:
 
         # calculate seasons_count and eps_count for each series based on the final processed data,
         # so they reflect any filtering or restructuring we did above
-        for series_id, series in tmp_dict.items():
+        for _series_id, series in tmp_dict.items():
             total_episode_count = sum(len(season.episodes) for season in series.seasons.values())
             series.series.seasons_count = str(len(series.seasons))
             series.series.eps_count = str(total_episode_count)
