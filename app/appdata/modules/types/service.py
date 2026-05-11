@@ -69,7 +69,7 @@ class ZloServices(BaseModel):
     crunchyroll: Service
     hidive: Service
     adn: Service
-    disney: Service
+    disneyplus: Service
     amazon: Service
 
     def all(self) -> list[Service]:
@@ -79,8 +79,8 @@ class ZloServices(BaseModel):
             self.crunchyroll,
             self.hidive,
             self.adn,
-            self.disney,
-            self.amazon,
+            self.disneyplus,
+            self.amazon
         ]
 
 

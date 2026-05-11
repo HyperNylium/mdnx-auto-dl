@@ -7,6 +7,32 @@ zlo_adn_monitor_series_id: {}
 zlo_disneyplus_monitor_series_id: {}
 zlo_amazon_monitor_series_id: {}
 
+destinations:
+    crunchyroll:
+        dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    hidive:
+        dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    adn:
+        dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    zlo-crunchyroll:
+        dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    zlo-hidive:
+        dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    zlo-adn:
+        dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    zlo-disneyplus:
+        dir: "/data/TV Shows"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    zlo-amazon:
+        dir: "/data/TV Shows"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+
 app:
     CR_ENABLED: false
     CR_USERNAME: ""
@@ -19,7 +45,6 @@ app:
     ADN_PASSWORD: ""
     BACKUP_DUBS:
         - "zho"
-    FOLDER_STRUCTURE: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
     CHECK_MISSING_DUB_SUB: true
     CHECK_FOR_UPDATES_INTERVAL: 3600
     EPISODE_DL_DELAY: 30
