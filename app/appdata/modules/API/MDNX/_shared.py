@@ -3,7 +3,7 @@ import os
 from appdata.modules.Vars import (
     config,
     BIN_DIR,
-    dedupe_casefold, _ffprobe
+    dedupe_casefold, ffprobe
 )
 from appdata.modules.types.queue import Episode
 from appdata.modules.types.service import Service
@@ -269,7 +269,7 @@ def get_wanted_dubs_and_subs(service: Service, series_id: str, season_id: str | 
 
 
 def probe_streams(file_path: str) -> tuple[set, set]:
-    streams = _ffprobe(file_path)
+    streams = ffprobe(file_path)
     if streams == []:
         return set(), set()
 

@@ -13,11 +13,14 @@ services:
       # multi-download-nx config location
       - ./appdata/mdnx/config:/app/appdata/bin/mdnx/config:rw
 
-      # plex/jellyfin/emby anime storage location.
-      # Only modify the left side, not the right.
-      # Example:
-      #- /mnt/plexdata/Anime:/data:rw
-      - ./appdata/data:/data:rw
+      # plex/jellyfin library storage location(s).
+      # Make sure you add the container path (e.g, "/data/Anime" part) to your config's destinations.<service>.dir
+      # and set a folder structure that matches what you have in your media server library
+      # Examples:
+      #- /mnt/plexdata/Anime:/data/Anime:rw 
+      #- /mnt/plexdata/TV Shows:/data/TV Shows:rw
+      - ./appdata/data/Anime:/data/Anime:rw
+      - ./appdata/data/TV Shows:/data/TV Shows:rw
 
       ### This is the CDM section that is required in order to run.
       ### Please choose what CDM you have (widevine or playready)

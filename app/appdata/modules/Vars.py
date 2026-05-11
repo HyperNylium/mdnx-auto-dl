@@ -177,7 +177,7 @@ SERVICES = Services(
             config=config.mdnx,
             monitor_series_id=config.cr_monitor_series_id,
             monitor_config_key="cr_monitor_series_id",
-            enabled=config.app.cr_enabled,
+            enabled=config.app.cr_enabled
         ),
         hidive=Service(
             service_name="hidive",
@@ -187,7 +187,7 @@ SERVICES = Services(
             config=config.mdnx,
             monitor_series_id=config.hidive_monitor_series_id,
             monitor_config_key="hidive_monitor_series_id",
-            enabled=config.app.hidive_enabled,
+            enabled=config.app.hidive_enabled
         ),
         adn=Service(
             service_name="adn",
@@ -197,8 +197,8 @@ SERVICES = Services(
             config=config.mdnx,
             monitor_series_id=config.adn_monitor_series_id,
             monitor_config_key="adn_monitor_series_id",
-            enabled=config.app.adn_enabled,
-        ),
+            enabled=config.app.adn_enabled
+        )
     ),
     zlo=ZloServices(
         crunchyroll=Service(
@@ -209,7 +209,7 @@ SERVICES = Services(
             config=config.zlo.crunchyroll,
             monitor_series_id=config.zlo_cr_monitor_series_id,
             monitor_config_key="zlo_cr_monitor_series_id",
-            enabled=config.app.zlo_cr_enabled,
+            enabled=config.app.zlo_cr_enabled
         ),
         hidive=Service(
             service_name="zlo-hidive",
@@ -219,7 +219,7 @@ SERVICES = Services(
             config=config.zlo.hidive,
             monitor_series_id=config.zlo_hidive_monitor_series_id,
             monitor_config_key="zlo_hidive_monitor_series_id",
-            enabled=config.app.zlo_hidive_enabled,
+            enabled=config.app.zlo_hidive_enabled
         ),
         adn=Service(
             service_name="zlo-adn",
@@ -229,17 +229,17 @@ SERVICES = Services(
             config=config.zlo.adn,
             monitor_series_id=config.zlo_adn_monitor_series_id,
             monitor_config_key="zlo_adn_monitor_series_id",
-            enabled=config.app.zlo_adn_enabled,
+            enabled=config.app.zlo_adn_enabled
         ),
-        disney=Service(
-            service_name="zlo-disney",
+        disneyplus=Service(
+            service_name="zlo-disneyplus",
             queue_bucket="ZLO-DisneyPlus",
             display_name="ZLO DisneyPlus",
             tool="zlo",
             config=config.zlo.disneyplus,
             monitor_series_id=config.zlo_disneyplus_monitor_series_id,
             monitor_config_key="zlo_disneyplus_monitor_series_id",
-            enabled=config.app.zlo_disneyplus_enabled,
+            enabled=config.app.zlo_disneyplus_enabled
         ),
         amazon=Service(
             service_name="zlo-amazon",
@@ -249,9 +249,9 @@ SERVICES = Services(
             config=config.zlo.amazon,
             monitor_series_id=config.zlo_amazon_monitor_series_id,
             monitor_config_key="zlo_amazon_monitor_series_id",
-            enabled=config.app.zlo_amazon_enabled,
-        ),
-    ),
+            enabled=config.app.zlo_amazon_enabled
+        )
+    )
 )
 
 
@@ -259,7 +259,6 @@ SERVICES = Services(
 TEMP_DIR = config.app.temp_dir
 BIN_DIR = config.app.bin_dir
 LOG_DIR = config.app.log_dir
-DATA_DIR = config.app.data_dir
 
 # Regular expression to match invalid characters in filenames
 INVALID_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1F]')
@@ -358,7 +357,7 @@ def format_duration(seconds: int) -> str:
         ("day", 86400),
         ("hour", 3600),
         ("minute", 60),
-        ("second", 1),
+        ("second", 1)
     ]
 
     parts = []
@@ -516,7 +515,41 @@ def validate_cdm(service_path: str, service_name: str, required: bool = False) -
     return False
 
 
-def _ffprobe(file_path: str) -> list[dict]:
+def validate_destinations() -> None:
+    """Verify every enabled service has a 'destinations' entry, and warn about any unknown keys."""
+
+    # map of destination key -> whether the service is enabled in app config.
+    required_destinations = {
+        "crunchyroll": config.app.cr_enabled,
+        "hidive": config.app.hidive_enabled,
+        "adn": config.app.adn_enabled,
+        "zlo-crunchyroll": config.app.zlo_cr_enabled,
+        "zlo-hidive": config.app.zlo_hidive_enabled,
+        "zlo-adn": config.app.zlo_adn_enabled,
+        "zlo-disneyplus": config.app.zlo_disneyplus_enabled,
+        "zlo-amazon": config.app.zlo_amazon_enabled
+    }
+
+    missing_destinations = []
+    for destination_key, is_enabled in required_destinations.items():
+        if is_enabled and destination_key not in config.destinations:
+            missing_destinations.append(destination_key)
+
+    if missing_destinations:
+        _log(f"Missing 'destinations' entry for enabled service(s): {', '.join(missing_destinations)}", level="error")
+        sys.exit(1)
+
+    # warn for any extra keys that dont match a known service.
+    unknown_destinations = []
+    for destination_key in config.destinations:
+        if destination_key not in required_destinations:
+            unknown_destinations.append(destination_key)
+
+    if unknown_destinations:
+        _log(f"Ignoring unknown 'destinations' key(s): {', '.join(unknown_destinations)}", level="warning")
+
+
+def ffprobe(file_path: str) -> list[dict]:
     """Run ffprobe -show_streams and return the parsed list of stream dicts."""
 
     timeout = 180
@@ -789,10 +822,8 @@ def update_app_config(config_key: str, new_value) -> bool:
     return True
 
 
-def build_folder_structure(base_dir: str, series_title: str, season: str, episode: str, episode_name: str, extension: str = ".mkv") -> str:
-    """Build the folder structure and file name based on the template in config."""
-
-    template_str = config.app.folder_structure
+def build_folder_structure(base_dir: str, series_title: str, season: str, episode: str, episode_name: str, template_str: str, extension: str = ".mkv") -> str:
+    """Build the folder structure and file name based on the template the caller supplies."""
 
     substitutes = {
         "seriesTitle": series_title,
@@ -834,8 +865,8 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
     return full_path
 
 
-def get_episode_file_path(bucket: ServiceBucket, series_id: str, season_key: str, episode_key: str, base_dir: str, extension: str = ".mkv") -> str:
-    """Build the on-disk file path for one queued episode using the configured folder structure."""
+def get_episode_file_path(bucket: ServiceBucket, series_id: str, season_key: str, episode_key: str, service: Service, extension: str = ".mkv") -> str:
+    """Build the on-disk file path for one queued episode using the per-service destination."""
 
     series = bucket.series[series_id]
     season = series.seasons[season_key]
@@ -849,7 +880,9 @@ def get_episode_file_path(bucket: ServiceBucket, series_id: str, season_key: str
     if episode_key.startswith("S"):
         season_number = "0"
 
-    file_name = build_folder_structure(base_dir, raw_series, season_number, episode_number, raw_episode_name, extension)
+    destination = config.destinations[service.service_name]
+
+    file_name = build_folder_structure(destination.dir, raw_series, season_number, episode_number, raw_episode_name, destination.folder_structure, extension)
 
     _log(f"Built file path for series ID {series_id}, season {season_key}, episode {episode_key}: {file_name}", level="debug")
 

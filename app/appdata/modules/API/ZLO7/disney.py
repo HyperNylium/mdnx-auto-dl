@@ -22,7 +22,7 @@ class DISNEY_ZLO_API:
         self.zlo_path = ZLO_SERVICE_BIN_PATH
         self.zlo_working_dir = os.path.dirname(self.zlo_path)
         self.zlo_service = "disney"
-        self.queue_service = "zlo-disney"
+        self.queue_service = "zlo-disneyplus"
         self.service_config = config.zlo.disneyplus
         self.download_filename = os.path.join(self.service_config.dlpath, "output.mkv")
         self.download_thread = None
