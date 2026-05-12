@@ -74,8 +74,8 @@ LANG_MAP: dict[str, list[str | None]] = {
 
 # ISO 639-2/B to 639-2/T map
 ISO_B_TO_T: dict[str, str] = {
-    "fre": "fra",  # French
-    "ger": "deu",  # German
+    "fre": LANG_MAP["French"][0],
+    "ger": LANG_MAP["German"][0]
 }
 
 
