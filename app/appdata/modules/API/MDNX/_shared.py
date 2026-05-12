@@ -1,4 +1,5 @@
 import os
+import re
 
 from appdata.modules.Vars import (
     config,
@@ -69,6 +70,12 @@ LANG_MAP: dict[str, list[str | None]] = {
     "Indonesian": ["ind", "id-ID"],
     "Telugu (India)": ["tel", "te-IN"],
     "Japanese": ["jpn", "ja"],
+}
+
+# ISO 639-2/B to 639-2/T map
+ISO_B_TO_T: dict[str, str] = {
+    "fre": "fra",  # French
+    "ger": "deu",  # German
 }
 
 
@@ -277,9 +284,14 @@ def probe_streams(file_path: str) -> tuple[set, set]:
     sub_langs = set()
 
     for stream in streams:
-        tags = stream.get("tags", {})
-        raw_lang = str(tags.get("language", "")).strip().lower()
-        title = tags.get("title", "").strip()
+        ffprobe_tags = stream.get("tags", {})
+        ffprobe_lang = str(ffprobe_tags.get("language", "")).strip().lower()
+        ffprobe_title = ffprobe_tags.get("title", "").strip()
+
+        raw_lang = ISO_B_TO_T.get(ffprobe_lang, ffprobe_lang)
+        title = re.sub(r"\s*\[[^\]]*\]\s*", " ", ffprobe_title).strip()
+
+        _log(f"Probing stream: codec_type={stream.get('codec_type')}, raw_lang={raw_lang}, title={title}", level="debug")
 
         mapped_audio = None
         mapped_sub = None
