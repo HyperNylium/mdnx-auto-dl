@@ -288,10 +288,10 @@ def probe_streams(file_path: str) -> tuple[set, set]:
         ffprobe_lang = str(ffprobe_tags.get("language", "")).strip().lower()
         ffprobe_title = ffprobe_tags.get("title", "").strip()
 
-        raw_lang = ISO_B_TO_T.get(ffprobe_lang, ffprobe_lang)
+        lang = ISO_B_TO_T.get(ffprobe_lang, ffprobe_lang)
         title = re.sub(r"\s*\[[^\]]*\]\s*", " ", ffprobe_title).strip()
 
-        _log(f"Probing stream: codec_type={stream.get('codec_type')}, raw_lang={raw_lang}, title={title}", level="debug")
+        _log(f"Probing stream: codec_type={stream.get('codec_type')}, ffprobe_lang={ffprobe_lang}, ffprobe_title={ffprobe_title!r}, lang={lang}, title={title!r}", level="debug")
 
         mapped_audio = None
         mapped_sub = None
@@ -310,14 +310,14 @@ def probe_streams(file_path: str) -> tuple[set, set]:
                 if mapped_audio is not None:
                     audio_langs.add(mapped_audio)
                 else:
-                    audio_langs.add(raw_lang)
+                    audio_langs.add(lang)
             case "subtitle":
                 if mapped_sub is not None:
                     sub_langs.add(mapped_sub)
-                elif raw_lang in CODE_TO_LOCALE:
-                    sub_langs.add(CODE_TO_LOCALE[raw_lang])
+                elif lang in CODE_TO_LOCALE:
+                    sub_langs.add(CODE_TO_LOCALE[lang])
                 else:
-                    sub_langs.add(raw_lang)
+                    sub_langs.add(lang)
             case _:
                 continue
 
