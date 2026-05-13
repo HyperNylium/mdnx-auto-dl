@@ -26,7 +26,6 @@ class PLEX_API:
             log_manager.error("PLEX_URL is not set or empty. Please set it in config.json. Exiting...")
             sys.exit(1)
 
-        # normalize server URL
         if isinstance(self.server_url, str):
             self.server_url = self.server_url.strip().rstrip("/")
 
@@ -90,7 +89,6 @@ class PLEX_API:
             log_manager.info("No valid token yet.")
             return False
 
-        # if user has set URL override, use whatever is in PLEX_URL
         if self.url_override:
             log_manager.info("PLEX_URL_OVERRIDE is true. Using whatever is in PLEX_URL for scan endpoint.")
             url = self.server_url
@@ -126,7 +124,7 @@ class PLEX_API:
         headers = {
             "Accept": "application/json",
             "X-Plex-Product": self.product_name,
-            "X-Plex-Client-Identifier": self.client_id,
+            "X-Plex-Client-Identifier": self.client_id
         }
         if include_token and self.token:
             headers["X-Plex-Token"] = self.token
@@ -182,7 +180,7 @@ class PLEX_API:
             {
                 "clientID": self.client_id,
                 "code": code,
-                "context[device][product]": self.product_name,
+                "context[device][product]": self.product_name
             }
         )
         return pin_id, code, auth_url
@@ -227,7 +225,6 @@ class JELLYFIN_API:
         self.url_override = config.app.jelly_url_override
         self.server_url = None
 
-        # normalize server URL
         if isinstance(raw_url, str):
             self.server_url = raw_url.strip().rstrip("/")
 

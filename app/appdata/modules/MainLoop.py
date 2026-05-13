@@ -71,12 +71,11 @@ class MainLoop:
                     log_manager.info("Triggering media server scan.")
                     mediaserver_scan_library()
 
-                # flush notifications buffer if it has items.
                 if self.notifications_buffer:
                     log_manager.info("Flushing notifications buffer.")
                     self._flush_notifications()
 
-                # wait for self.timeout seconds or exit early if stop_event is set.
+                # wait for self.loop_timeout seconds or exit early if stop is requested.
                 log_manager.info(f"MainLoop iteration completed. Next iteration in {format_duration(self.loop_timeout)} ({(datetime.now(ZoneInfo(TZ)) + timedelta(seconds=self.loop_timeout)).strftime('%I:%M:%S %p')}).")
                 if self._wait_or_interrupt(timeout=self.loop_timeout):
                     return
@@ -223,7 +222,6 @@ class MainLoop:
 
         body = "\n".join(lines).strip()
 
-        # send notification and clear buffer
         try:
             self.notifier.notify(subject, body)
         finally:
@@ -254,7 +252,6 @@ class MainLoop:
                 log_manager.info(f"Your '{service.monitor_config_key}' list is empty. Skipped refreshing empty list.")
                 continue
 
-            # start or update monitors
             log_manager.info(f"Checking {service.display_name} monitors...")
             for series_id in monitor_ids:
                 if series_id not in queue_ids:

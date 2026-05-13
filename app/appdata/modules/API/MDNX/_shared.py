@@ -20,7 +20,7 @@ MDNX_SERVICE_PLAYREADY_PATH = os.path.join(BIN_DIR, "mdnx", "playready")
 
 MDNX_API_OK_LOGS = [
     "[mkvmerge Done]",
-    "[mkvmerge] Mkvmerge finished",
+    "[mkvmerge] Mkvmerge finished"
 ]
 
 
@@ -69,7 +69,7 @@ LANG_MAP: dict[str, list[str | None]] = {
     "Vietnamese": ["vie", "vi-VN"],
     "Indonesian": ["ind", "id-ID"],
     "Telugu (India)": ["tel", "te-IN"],
-    "Japanese": ["jpn", "ja"],
+    "Japanese": ["jpn", "ja"]
 }
 
 # ISO 639-2/B to 639-2/T map

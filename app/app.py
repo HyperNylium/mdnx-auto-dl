@@ -34,7 +34,6 @@ def app():
     # check if user has a widevine or playready CDM, and do checks to see if they are valid.
     if config.app.skip_cdm_check is False:
 
-        # MDNX checks
         if MDNX_ENABLED:
             mdnx_widevine_valid = validate_cdm(MDNX_SERVICE_WIDEVINE_PATH, "Widevine", required=False)
             mdnx_playready_valid = validate_cdm(MDNX_SERVICE_PLAYREADY_PATH, "PlayReady", required=False)
@@ -52,7 +51,6 @@ def app():
     else:
         log_manager.warning("Skipping CDM checks because SKIP_CDM_CHECK is set to True. Make sure you have a valid Widevine or Playready CDM mounted to the correct path if you want downloading to work!")
 
-    # ZLO checks
     if ZLO_ENABLED:
         if not os.path.isfile(ZLO_SERVICE_BIN_PATH):
             log_manager.critical(f"ZLO is enabled, but the ZLO binary was not found at: {ZLO_SERVICE_BIN_PATH}\nPlease mount the correct ZLO binary and restart the application.")
@@ -64,7 +62,6 @@ def app():
 
         log_manager.info("ZLO checks completed. All good!")
 
-    # authenticate with media server(s) if configured
     if PLEX_CONFIGURED is True or JELLY_CONFIGURED is True:
         if PLEX_CONFIGURED is True:
             log_manager.info("PLEX_URL is set. Plex media server scan enabled.")
@@ -85,7 +82,6 @@ def app():
     else:
         log_manager.info("No media servers configured. Skipping media server auth/scan.")
 
-    # figure out notification preference
     match config.app.notification_preference:
         case "ntfy":
             log_manager.info("User prefers ntfy notifications. Setting up ntfy script...")
@@ -132,7 +128,6 @@ def app():
             log_manager.error(f"Unsupported notification preference: {config.app.notification_preference}. Supported options are 'ntfy', 'smtp' or 'none'.")
             sys.exit(1)
 
-    # MDNX service init
     for mdnx_service in SERVICES.mdnx.all():
         if not mdnx_service.enabled:
             log_manager.info(f"MDNX service '{mdnx_service.service_name}' is not enabled. Skipping...")
@@ -190,7 +185,6 @@ def app():
                 else:
                     log_manager.info("adn_token.yml exists. Assuming user is already authenticated with ADN MDNX service.")
 
-    # ZLO service init
     for zlo_service in SERVICES.zlo.all():
         if not zlo_service.enabled:
             log_manager.info(f"ZLO service '{zlo_service.service_name}' is not enabled. Skipping...")
