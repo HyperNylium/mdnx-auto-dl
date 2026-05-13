@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import subprocess
 import threading
@@ -38,6 +39,10 @@ class HIDIVE_ZLO_API:
             log_manager.debug("stdbuf not found, using default command without buffering.")
 
         log_manager.info(f"ZLO API initialized with: Path: {self.zlo_path} | Service: {self.zlo_service}")
+
+        # Titles like "E7 - Coming 5/19/26 13:30 UTC", "TBA", etc (after stripping the "E# - " prefix).
+        self.unreleased_title_flag = re.compile(r'^\s*(coming|tba|tbd|available\s+on|premieres?|releasing)\b', re.IGNORECASE)
+        self.episode_prefix_strip = re.compile(r'^\s*E\d+(?:\.\d+)?\s*-\s*', re.IGNORECASE)
 
     def start_monitor(self, series_id: str) -> str:
         """Load a full series payload and add it to the queue."""
@@ -326,6 +331,12 @@ class HIDIVE_ZLO_API:
 
                 if episode_title.lstrip().lower().startswith("pv"):
                     log_manager.debug(f"Skipping PV entry in ZLO JSON: {episode_title}")
+                    continue
+
+                # drop unreleased episodes whose title is a placeholder like "Coming 5/19/26 13:30 UTC"
+                title_for_match = self.episode_prefix_strip.sub("", episode_title)
+                if self.unreleased_title_flag.match(title_for_match):
+                    log_manager.debug(f"Skipping unreleased episode (title='{episode_title}', season_id={season_id})")
                     continue
 
                 kept_episode_count += 1
