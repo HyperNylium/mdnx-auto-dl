@@ -8,7 +8,7 @@ from .types.service import Service
 
 TOOL_MODULES = {
     "mdnx": mdnx_shared,
-    "zlo": zlo_shared,
+    "zlo": zlo_shared
 }
 
 

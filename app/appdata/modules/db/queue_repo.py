@@ -11,7 +11,7 @@ _write_lock = threading.Lock()
 _ALLOWED_EPISODE_FIELDS = {
     "episode_downloaded",
     "episode_skip",
-    "has_all_dubs_subs",
+    "has_all_dubs_subs"
 }
 
 
@@ -131,7 +131,7 @@ def upsert_series(conn: sqlite3.Connection, service: str, series_id: str, series
                     series_id,
                     series.series.series_name,
                     series.series.seasons_count,
-                    series.series.eps_count,
+                    series.series.eps_count
                 ),
             )
 
@@ -151,7 +151,7 @@ def upsert_series(conn: sqlite3.Connection, service: str, series_id: str, series
                         season_key,
                         season.season_id,
                         season.season_number,
-                        season.season_name,
+                        season.season_name
                     ),
                 )
 
@@ -177,7 +177,7 @@ def upsert_series(conn: sqlite3.Connection, service: str, series_id: str, series
                             json.dumps(episode.available_qualities),
                             int(episode.episode_downloaded),
                             int(episode.episode_skip),
-                            int(episode.has_all_dubs_subs),
+                            int(episode.has_all_dubs_subs)
                         ),
                     )
 

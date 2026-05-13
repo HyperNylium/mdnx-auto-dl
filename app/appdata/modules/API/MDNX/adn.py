@@ -22,7 +22,7 @@ ADN_LANG_MAP = {
     "fr": LANG_MAP["French"],
     "de": LANG_MAP["German"],
     "pl": LANG_MAP["Polish"],
-    "ja": LANG_MAP["Japanese"],
+    "ja": LANG_MAP["Japanese"]
 }
 
 
@@ -145,7 +145,6 @@ class ADN_MDNX_API:
             log_manager.info("Waiting for download worker thread to exit...")
             thread.join(timeout=5.0)
 
-        # clear handles
         with self.download_lock:
             if self.download_thread is thread:
                 self.download_thread = None
@@ -201,11 +200,9 @@ class ADN_MDNX_API:
 
         worker.start()
 
-        # wait for download to finish
         while worker.is_alive():
             worker.join(timeout=1.0)
 
-        # retrieve results
         rc = result["returncode"]
         success = result["success"]
 
@@ -405,7 +402,7 @@ class ADN_MDNX_API:
                     "download_number": download_number,
                     "title": clean_title,
                     "available_dubs": [],
-                    "available_subs": [],
+                    "available_subs": []
                 }
                 current_season_episodes.append(record)
                 current_episode_record = record
