@@ -195,7 +195,6 @@ class HIDIVE_MDNX_API:
             log_manager.info("Waiting for download worker thread to exit...")
             thread.join(timeout=5.0)
 
-        # clear handles
         with self.download_lock:
             if self.download_thread is thread:
                 self.download_thread = None
@@ -251,11 +250,9 @@ class HIDIVE_MDNX_API:
 
         worker.start()
 
-        # wait for download to finish
         while worker.is_alive():
             worker.join(timeout=1.0)
 
-        # retrieve results
         rc = result["returncode"]
         success = result["success"]
 
@@ -405,7 +402,7 @@ class HIDIVE_MDNX_API:
                     "season_id": gd["season_id"],
                     "season_name": f"Season {season_number}",
                     "season_number": str(season_number),
-                    "eps_count": str(int(gd["eps_count"])),
+                    "eps_count": str(int(gd["eps_count"]))
                 }
                 episodes_by_season.setdefault(season_key, [])
                 continue
@@ -419,7 +416,7 @@ class HIDIVE_MDNX_API:
                         "episode_id": gd["episode_id"],
                         "title": gd["episode_title"],
                         "available_dubs": [],
-                        "available_subs": [],
+                        "available_subs": []
                     }
                     episodes_by_season[current_season_key].append(record)
                     current_episode_record = record
@@ -490,7 +487,7 @@ class HIDIVE_MDNX_API:
             return tmp_dict
 
         # enforce S1..SX order for seasons we kept
-        ordered_seasons = sorted(seasons_meta.items(), key=lambda kv: int(kv[1]["season_number"]))
+        ordered_seasons = sorted(seasons_meta.items(), key=lambda season_entry: int(season_entry[1]["season_number"]))
 
         # pointer into flat_groups
         flat_ptr = 0
@@ -531,7 +528,7 @@ class HIDIVE_MDNX_API:
 
             # produce a list of download indices in tree order
             if download_map:
-                flat_order = [download_map[k] for k in sorted(download_map.keys())]
+                flat_order = [download_map[key] for key in sorted(download_map.keys())]
             else:
                 flat_order = []
 
@@ -603,7 +600,6 @@ class HIDIVE_MDNX_API:
 
         log_manager.debug("Console output processed.")
         if add2queue:
-            # push the parsed result to the queue for downstream consumers
             queue_manager.add(tmp_dict, self.queue_service)
         return tmp_dict
 
@@ -616,7 +612,7 @@ class HIDIVE_MDNX_API:
         tokens = []
         for token in text.split(','):
             token = token.strip()
-            if token:  # non-empty after stripping
+            if token:
                 tokens.append(token)
 
         return tokens

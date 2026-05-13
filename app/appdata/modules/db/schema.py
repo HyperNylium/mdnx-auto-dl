@@ -56,7 +56,7 @@ queue_episodes = Table(
         [
             "queue_seasons.service",
             "queue_seasons.series_id",
-            "queue_seasons.season_key",
+            "queue_seasons.season_key"
         ],
         ondelete="CASCADE",
     ),

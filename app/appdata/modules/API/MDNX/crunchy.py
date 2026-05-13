@@ -188,7 +188,6 @@ class CR_MDNX_API:
             log_manager.info("Waiting for download worker thread to exit...")
             thread.join(timeout=5.0)
 
-        # clear handles
         with self.download_lock:
             if self.download_thread is thread:
                 self.download_thread = None
@@ -244,11 +243,9 @@ class CR_MDNX_API:
 
         worker.start()
 
-        # wait for download to finish
         while worker.is_alive():
             worker.join(timeout=1.0)
 
-        # retrieve results
         rc = result["returncode"]
         success = result["success"]
 
@@ -301,7 +298,7 @@ class CR_MDNX_API:
         """Parses the console output from the MDNX CLI and constructs a structured dictionary of series, seasons, and episodes."""
 
         log_manager.debug("Processing console output...")
-        tmp_dict: dict[str, Series] = {}             # maps series_id to series info
+        tmp_dict: dict[str, Series] = {}  # maps series_id to Series object
         episode_counters = {}     # maps season key ("S1", "S2", etc) to episode counter
         season_num_map = {}       # we keep the first numeric label we see as a hint for fallback resolution
         season_id_to_key = {}     # we map season_id to "S{n}" in order of appearance to avoid duplicate label collisions
@@ -554,7 +551,7 @@ class CR_MDNX_API:
                     "episode_number_download": episode_number_download,
                     "episode_title_clean": episode_title_clean,
                     "available_dubs": [],
-                    "available_subs": [],
+                    "available_subs": []
                 }
                 log_manager.debug(f"Staged new episode {current_series_id}/{season_key}/{ep_key}: '{episode_title_clean}'")
                 continue

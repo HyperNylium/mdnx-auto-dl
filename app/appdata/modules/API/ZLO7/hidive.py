@@ -154,7 +154,7 @@ class HIDIVE_ZLO_API:
             "--service", self.zlo_service,
             "--item", series_id,
             "--season", season_id,
-            "--episode", episode_number,
+            "--episode", episode_number
         ]
 
         quality_value = self.service_config.q.strip()
@@ -282,7 +282,7 @@ class HIDIVE_ZLO_API:
                     eps_count="0",
                 ),
                 seasons={},
-            ),
+            )
         }
 
         total_episode_count = 0
@@ -371,7 +371,7 @@ class HIDIVE_ZLO_API:
                 "season_title": season_title,
                 "raw_season_number": raw_season_number,
                 "json_index": json_index,
-                "episodes_dict": episodes_dict,
+                "episodes_dict": episodes_dict
             })
 
         def _sort_key(candidate):

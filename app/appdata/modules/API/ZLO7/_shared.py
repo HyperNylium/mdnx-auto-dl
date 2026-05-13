@@ -90,7 +90,7 @@ LANG_MAP: dict[str, tuple[str, str | None]] = {
     "Macedonian": ("MK", "mkd"),
     "Croatian": ("HR", "hrv"),
     "Slovenian": ("SL", "slv"),
-    "Bulgarian": ("BG", "bul"),
+    "Bulgarian": ("BG", "bul")
 }
 
 
@@ -109,7 +109,7 @@ ISO_B_TO_T: dict[str, str] = {
     "mac": LANG_MAP["Macedonian"][1],
     "rum": LANG_MAP["Romanian"][1],
     "baq": LANG_MAP["Basque"][1],
-    "may": LANG_MAP["Malay (Malaysia)"][1],
+    "may": LANG_MAP["Malay (Malaysia)"][1]
 }
 
 

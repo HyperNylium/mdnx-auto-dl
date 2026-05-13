@@ -150,8 +150,8 @@ def output_effective_config(config: Config, max_chunk: int = 8000):
     formatted_json = json.dumps(ordered_config, indent=4)
 
     for line in formatted_json.splitlines():
-        for i in range(0, len(line), max_chunk):
-            _log(line[i:i + max_chunk])
+        for chunk_start in range(0, len(line), max_chunk):
+            _log(line[chunk_start:chunk_start + max_chunk])
 
 
 CONFIG_PATH = _resolve_config_path()
@@ -255,15 +255,13 @@ SERVICES = Services(
 )
 
 
-# App settings
 TEMP_DIR = config.app.temp_dir
 BIN_DIR = config.app.bin_dir
 LOG_DIR = config.app.log_dir
 
-# Regular expression to match invalid characters in filenames
 INVALID_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1F]')
 
-# Supported download tools
+# Whether any MDNX or ZLO services are enabled
 MDNX_ENABLED = False
 for mdnx_service in SERVICES.mdnx.all():
     if mdnx_service.enabled:
@@ -276,7 +274,6 @@ for zlo_service in SERVICES.zlo.all():
         ZLO_ENABLED = True
         break
 
-# Vars related to media server stuff
 PLEX_URL = config.app.plex_url
 JELLY_URL = config.app.jelly_url
 JELLY_API_KEY = config.app.jelly_api_key
@@ -347,7 +344,7 @@ def dedupe_preserve_order(items, key=None):
 def dedupe_casefold(items):
     """Deduplicate a list of strings in a case-insensitive manner while preserving order."""
 
-    return dedupe_preserve_order(items, key=lambda s: s.casefold())
+    return dedupe_preserve_order(items, key=lambda value: value.casefold())
 
 
 def format_duration(seconds: int) -> str:
@@ -539,7 +536,6 @@ def validate_destinations() -> None:
         _log(f"Missing 'destinations' entry for enabled service(s): {', '.join(missing_destinations)}", level="error")
         sys.exit(1)
 
-    # warn for any extra keys that dont match a known service.
     unknown_destinations = []
     for destination_key in config.destinations:
         if destination_key not in required_destinations:
@@ -731,7 +727,6 @@ def sanitize(path_segment: str, ascii_only: bool = False, max_len: int = 255) ->
         sanitized = re.sub(r"\.(\s+)([A-Za-z0-9]{1,10})$", r".\2", sanitized)
         sanitized = sanitized.rstrip(" .")
 
-    # truncate safely, preserving extension if present
     if len(sanitized) > max_len:
         if "." in sanitized:
             name_part, dot, ext_part = sanitized.rpartition(".")
@@ -783,7 +778,6 @@ def update_app_config(config_key: str, new_value) -> bool:
         _log(f"Unknown app config key: {config_key}", level="error")
         return False
 
-    # read config file from disk
     try:
         on_disk_config = _read_config(CONFIG_PATH)
     except Exception as read_error:
@@ -795,7 +789,6 @@ def update_app_config(config_key: str, new_value) -> bool:
         _log("Invalid config: missing 'app' object.", level="error")
         return False
 
-    # apply update
     app_config_section[alias_key_to_write] = new_value
 
     # validate updated app section before writing
@@ -805,14 +798,12 @@ def update_app_config(config_key: str, new_value) -> bool:
         _log(f"Invalid value for app.{alias_key_to_write}: {validation_error}", level="error")
         return False
 
-    # write back to disk config.json/yaml/yml
     try:
         _write_config(CONFIG_PATH, on_disk_config)
     except Exception as write_error:
         _log(f"Failed to write config file: {write_error}", level="error")
         return False
 
-    # refresh in-memory app config
     try:
         config.app = AppConfig.model_validate(app_config_section)
     except ValidationError as refresh_error:
@@ -856,7 +847,6 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
 
     full_path = os.path.join(base_dir, *parts)
 
-    # add extension if the user omitted it
     if not full_path.lower().endswith(extension.lower()):
         full_path = f"{full_path}{extension}"
 
