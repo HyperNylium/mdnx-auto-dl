@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import subprocess
 
@@ -17,83 +18,102 @@ ZLO_SERVICE_CONFIG_SETTINGS_PATH = os.path.join(ZLO_SERVICE_CONFIG_PATH, "settin
 
 
 # format is: "Language Name": "zlo_code"
-LANG_MAP: dict[str, str] = {
-    "English": "EN",
-    "English (India)": "EN",
-    "English (UK)": "EN-GB",
+LANG_MAP: dict[str, tuple[str, str | None]] = {
+    "English": ("EN", "eng"),
+    "English (India)": ("EN", None),
+    "English (UK)": ("EN-GB", None),
 
-    "Spanish": "LA-ES",
-    "Spanish (Mexico)": "MX-ES",
-    "Castilian": "ES",
+    "Spanish": ("LA-ES", "spa"),
+    "Spanish (Mexico)": ("MX-ES", None),
+    "Castilian": ("ES", None),
 
-    "Portuguese": "PT",
-    "Portuguese (Portugal)": "PT-PT",
+    "Portuguese": ("PT", "por"),
+    "Portuguese (Portugal)": ("PT-PT", None),
 
-    "French": "FR",
-    "French (Canada)": "FR-CA",
+    "French":  ("FR", "fra"),
+    "French (Canada)": ("FR-CA", None),
 
-    "German": "DE",
+    "German": ("DE", "deu"),
 
-    "Arabic": "AR",
-    "Arabic (Saudi Arabia)": "AR",
-    "Arabic (Modern Standard)": "AR-001",
+    "Arabic": ("AR", "ara"),
+    "Arabic (Saudi Arabia)": ("AR", None),
+    "Arabic (Modern Standard)": ("AR-001", None),
 
-    "Italian": "IT",
-    "Russian": "RU",
-    "Turkish": "TR",
-    "Hindi": "HI",
+    "Italian": ("IT", "ita"),
+    "Russian": ("RU", "rus"),
+    "Turkish": ("TR", "tur"),
+    "Hindi": ("HI", "hin"),
 
-    "Chinese (Mandarin, PRC)": "CN",
-    "Chinese (Mainland China)": "CN",
-    "Chinese (Taiwan)": "TW",
-    "Chinese (Hong-Kong)": "HK",
-    "Chinese (Simplified)": "CN",
-    "Chinese (Traditional)": "TW",
+    "Chinese (Mandarin, PRC)": ("CN", "zho"),
+    "Chinese (Mainland China)": ("CN", None),
+    "Chinese (Taiwan)": ("TW", None),
+    "Chinese (Hong-Kong)": ("HK", None),
+    "Chinese (Simplified)": ("CN", None),
+    "Chinese (Traditional)": ("TW", None),
 
-    "Korean": "KO",
-    "Catalan": "CA",
-    "Polish": "PL",
-    "Thai": "TH",
-    "Tamil (India)": "TA",
-    "Malay (Malaysia)": "MS",
-    "Vietnamese": "VI",
-    "Indonesian": "ID",
-    "Telugu (India)": "TE",
-    "Japanese": "JP",
+    "Korean": ("KO", "kor"),
+    "Catalan": ("CA", "cat"),
+    "Polish": ("PL", "pol"),
+    "Thai": ("TH", "tha"),
+    "Tamil (India)": ("TA", "tam"),
+    "Malay (Malaysia)": ("MS", "msa"),
+    "Vietnamese": ("VI", "vie"),
+    "Indonesian": ("ID", "ind"),
+    "Telugu (India)": ("TE", "tel"),
+    "Japanese": ("JP", "jpn"),
 
-    "Norwegian Bokmal": "NB",
+    "Norwegian Bokmal": ("NB", "nob"),
 
-    "Dutch": "NL",
-    "Swedish": "SV",
-    "Finnish": "FI",
-    "Norwegian": "NO",
-    "Greek": "EL",
-    "Hebrew": "HE",
-    "Ukrainian": "UK",
-    "Persian": "FA",
-    "Bengali": "BN",
-    "Czech": "CS",
-    "Romanian": "RO",
-    "Hungarian": "HU",
-    "Tagalog": "TL",
-    "Khmer": "KM",
-    "Burmese": "MY",
-    "Mongolian": "MN",
-    "Icelandic": "IS",
-    "Slovak": "SK",
-    "Kannada": "KN",
-    "Malayalam": "ML",
-    "Basque": "EU",
-    "Galician": "GL",
-    "Serbian": "SR",
-    "Macedonian": "MK",
-    "Croatian": "HR",
-    "Slovenian": "SL",
-    "Bulgarian": "BG",
+    "Dutch": ("NL", "nld"),
+    "Swedish": ("SV", "swe"),
+    "Finnish": ("FI", "fin"),
+    "Norwegian": ("NO", "nor"),
+    "Greek": ("EL", "ell"),
+    "Hebrew": ("HE", "heb"),
+    "Ukrainian": ("UK", "ukr"),
+    "Persian": ("FA", "fas"),
+    "Bengali": ("BN", "ben"),
+    "Czech": ("CS", "ces"),
+    "Romanian": ("RO", "ron"),
+    "Hungarian": ("HU", "hun"),
+    "Tagalog": ("TL", "tgl"),
+    "Khmer": ("KM", "khm"),
+    "Burmese": ("MY", "mya"),
+    "Mongolian": ("MN", "mon"),
+    "Icelandic": ("IS", "isl"),
+    "Slovak": ("SK", "slk"),
+    "Kannada": ("KN", "kan"),
+    "Malayalam": ("ML", "mal"),
+    "Basque":  ("EU", "eus"),
+    "Galician": ("GL", "glg"),
+    "Serbian": ("SR", "srp"),
+    "Macedonian": ("MK", "mkd"),
+    "Croatian": ("HR", "hrv"),
+    "Slovenian": ("SL", "slv"),
+    "Bulgarian": ("BG", "bul"),
 }
 
 
-VALID_ZLO_CODES: set[str] = set(LANG_MAP.values())
+# ISO 639-2/B to 639-2/T map
+ISO_B_TO_T: dict[str, str] = {
+    "fre": "fra",
+    "ger": "deu",
+    "chi": "zho",
+    "cze": "ces",
+    "dut": "nld",
+    "gre": "ell",
+    "per": "fas",
+    "slo": "slk",
+    "bur": "mya",
+    "ice": "isl",
+    "mac": "mkd",
+    "rum": "ron",
+    "baq": "eus",
+    "may": "msa",
+}
+
+
+VALID_ZLO_CODES: set[str] = {zlo_code for zlo_code, _ in LANG_MAP.values()}
 
 
 def _log(message: str, level: str = "info") -> None:
@@ -360,28 +380,34 @@ def probe_streams(file_path: str) -> tuple[set, set]:
     sub_langs = set()
 
     for stream in streams:
-        tags = stream.get("tags", {})
-        title = tags.get("title", "").strip()
+        ffprobe_tags = stream.get("tags", {})
+        ffprobe_lang = str(ffprobe_tags.get("language", "")).strip().lower()
+        ffprobe_title = ffprobe_tags.get("title", "").strip()
+
+        lang = ISO_B_TO_T.get(ffprobe_lang, ffprobe_lang)
+        title = re.sub(r"\s*\[[^\]]*\]\s*", " ", ffprobe_title).strip()
+
+        _log(f"Probing stream: codec_type={stream.get('codec_type')}, ffprobe_lang={ffprobe_lang}, ffprobe_title={ffprobe_title!r}, lang={lang}, title={title!r}", level="debug")
+
+        mapped_code = None
+        if title in LANG_MAP:
+            mapped_code = LANG_MAP[title][0]
+        elif lang:
+            for _, (zlo_code, iso) in LANG_MAP.items():
+                if iso == lang:
+                    mapped_code = zlo_code
+                    break
+
         codec_type = stream.get("codec_type")
 
         match codec_type:
             case "audio":
-                if title not in LANG_MAP:
-                    continue
-                audio_langs.add(LANG_MAP[title])
+                if mapped_code is not None:
+                    audio_langs.add(mapped_code)
             case "subtitle":
                 # ZLO tags subs as "<Language> [Full]".
-                lookup_title = title.removesuffix(" [Full]").strip().lower()
-                if not lookup_title:
-                    continue
-                matched_code = None
-                for lang_name, lang_code in LANG_MAP.items():
-                    if lang_name.lower() == lookup_title:
-                        matched_code = lang_code
-                        break
-                if matched_code is None:
-                    continue
-                sub_langs.add(matched_code)
+                if mapped_code is not None:
+                    sub_langs.add(mapped_code)
             case _:
                 continue
 
