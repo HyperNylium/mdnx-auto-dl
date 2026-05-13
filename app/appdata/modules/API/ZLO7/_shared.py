@@ -1,4 +1,6 @@
 import os
+import json
+import subprocess
 
 from appdata.modules.Vars import (
     config,
@@ -344,10 +346,7 @@ def get_wanted_dubs_and_subs(service: Service, series_id: str, season_id: str | 
         if normalized:
             wanted_subs.add(normalized)
 
-    _log(
-        f"Effective wanted ZLO tracks for {service.service_name} {series_id}/{season_id}: dubs={wanted_dubs}, subs={wanted_subs}",
-        level="debug"
-    )
+    _log(f"Effective wanted ZLO tracks for {service.service_name} {series_id}/{season_id}: dubs={wanted_dubs}, subs={wanted_subs}", level="debug")
 
     return wanted_dubs, wanted_subs
 
@@ -386,9 +385,107 @@ def probe_streams(file_path: str) -> tuple[set, set]:
             case _:
                 continue
 
-    _log(
-        f"Probed {file_path}: ZLO audio langs={audio_langs}, sub langs={sub_langs}",
-        level="debug",
-    )
+    _log(f"Probed {file_path}: ZLO audio langs={audio_langs}, sub langs={sub_langs}", level="debug")
 
     return audio_langs, sub_langs
+
+
+def _get_last_packet_pts(file_path: str, stream_index: int) -> float | None:
+    timeout = 180
+    packet_cmd = [
+        "ffprobe", "-v", "quiet",
+        "-select_streams", str(stream_index),
+        "-show_entries", "packet=pts_time",
+        "-of", "csv=p=0",
+        file_path,
+    ]
+
+    _log(f"Running ffprobe packet scan on stream {stream_index} of {file_path}", level="debug")
+
+    try:
+        packet_result = subprocess.run(packet_cmd, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        _log(f"ffprobe packet scan timed out on stream {stream_index} of {file_path}", level="error")
+        return None
+
+    # Iterate from the end so we stop as soon as we find a usable timestamp.
+    # ffprobe can emit "N/A" or blank lines for packets that lack PTS info.
+    last_pts = None
+    for raw_line in reversed(packet_result.stdout.splitlines()):
+        line = raw_line.strip()
+        if line == "" or line == "N/A":
+            continue
+        try:
+            last_pts = float(line)
+            break
+        except ValueError:
+            continue
+
+    return last_pts
+
+
+def verify_download(file_path: str) -> bool:
+    if not os.path.isfile(file_path):
+        _log(f"Could not find file for integrity check: {file_path}", level="error")
+        return False
+
+    timeout = 60
+    probe_cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", file_path]
+
+    _log(f"Running ffprobe integrity probe on {file_path}", level="debug")
+
+    try:
+        probe_result = subprocess.run(probe_cmd, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        _log(f"verify_download: ffprobe show_format/show_streams timed out on {file_path}", level="error")
+        return False
+
+    try:
+        probe_data = json.loads(probe_result.stdout)
+    except json.JSONDecodeError as decode_error:
+        _log(f"verify_download: ffprobe JSON decode error on {file_path}: {decode_error}", level="error")
+        return False
+
+    format_section = probe_data.get("format") or {}
+    raw_duration = format_section.get("duration")
+
+    if raw_duration is None:
+        _log(f"verify_download: container duration is missing for {file_path}", level="error")
+        return False
+
+    try:
+        container_duration = float(raw_duration)
+    except (TypeError, ValueError):
+        _log(f"verify_download: container duration is not a number for {file_path}: {raw_duration}", level="error")
+        return False
+
+    streams = probe_data.get("streams") or []
+    if not isinstance(streams, list) or streams == []:
+        _log(f"verify_download: no streams reported for {file_path}", level="error")
+        return False
+
+    # 2 second floor for normal encoder rounding and stream-end vs container-end mismatches.
+    # Anything past that is treated as truncation.
+    floor_seconds = 2.0
+
+    for stream in streams:
+        codec_type = stream.get("codec_type")
+        if codec_type not in ("video", "audio"):
+            continue
+
+        stream_index = stream.get("index")
+        if stream_index is None:
+            continue
+
+        last_pts = _get_last_packet_pts(file_path, stream_index)
+        if last_pts is None:
+            _log(f"Without packet PTS info, cannot verify integrity of stream {stream_index} ({codec_type}). Failing verification to be safe.", level="error")
+            return False
+
+        delta = container_duration - last_pts
+        if delta > floor_seconds:
+            _log(f"Stream {stream_index} ({codec_type}) ends at {last_pts:.2f}s but container claims {container_duration:.2f}s ({delta:.2f}s short). File is truncated.", level="error")
+            return False
+
+    _log(f"File {file_path} passed integrity check (container duration {container_duration:.2f}s, last packet PTS within {floor_seconds:.2f}s)", level="debug")
+    return True
