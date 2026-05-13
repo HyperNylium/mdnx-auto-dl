@@ -6,7 +6,7 @@ import threading
 from appdata.modules.Globals import queue_manager, log_manager
 from appdata.modules.API.ZLO7._shared import (
     ZLO_SERVICE_BIN_PATH,
-    normalize_zlo_dubs, normalize_zlo_subtitles, normalize_zlo_qualities
+    normalize_zlo_dubs, normalize_zlo_subtitles, normalize_zlo_qualities, verify_download
 )
 from appdata.modules.Vars import (
     config,
@@ -208,6 +208,10 @@ class ADN_ZLO_API:
 
         if not os.path.isfile(self.download_filename):
             log_manager.error(f"Download finished, but expected output file was not found: {self.download_filename}")
+            return False
+
+        if not verify_download(self.download_filename):
+            log_manager.error("Downloaded file failed integrity check. Treating as a failed download.")
             return False
 
         log_manager.info("Download finished successfully.")
