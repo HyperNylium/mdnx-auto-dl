@@ -96,20 +96,20 @@ LANG_MAP: dict[str, tuple[str, str | None]] = {
 
 # ISO 639-2/B to 639-2/T map
 ISO_B_TO_T: dict[str, str] = {
-    "fre": "fra",
-    "ger": "deu",
-    "chi": "zho",
-    "cze": "ces",
-    "dut": "nld",
-    "gre": "ell",
-    "per": "fas",
-    "slo": "slk",
-    "bur": "mya",
-    "ice": "isl",
-    "mac": "mkd",
-    "rum": "ron",
-    "baq": "eus",
-    "may": "msa",
+    "fre": LANG_MAP["French"][1],
+    "ger": LANG_MAP["German"][1],
+    "chi": LANG_MAP["Chinese (Mandarin, PRC)"][1],
+    "cze": LANG_MAP["Czech"][1],
+    "dut": LANG_MAP["Dutch"][1],
+    "gre": LANG_MAP["Greek"][1],
+    "per": LANG_MAP["Persian"][1],
+    "slo": LANG_MAP["Slovak"][1],
+    "bur": LANG_MAP["Burmese"][1],
+    "ice": LANG_MAP["Icelandic"][1],
+    "mac": LANG_MAP["Macedonian"][1],
+    "rum": LANG_MAP["Romanian"][1],
+    "baq": LANG_MAP["Basque"][1],
+    "may": LANG_MAP["Malay (Malaysia)"][1],
 }
 
 
@@ -405,7 +405,6 @@ def probe_streams(file_path: str) -> tuple[set, set]:
                 if mapped_code is not None:
                     audio_langs.add(mapped_code)
             case "subtitle":
-                # ZLO tags subs as "<Language> [Full]".
                 if mapped_code is not None:
                     sub_langs.add(mapped_code)
             case _:
@@ -418,13 +417,7 @@ def probe_streams(file_path: str) -> tuple[set, set]:
 
 def _get_last_packet_pts(file_path: str, stream_index: int) -> float | None:
     timeout = 180
-    packet_cmd = [
-        "ffprobe", "-v", "quiet",
-        "-select_streams", str(stream_index),
-        "-show_entries", "packet=pts_time",
-        "-of", "csv=p=0",
-        file_path,
-    ]
+    packet_cmd = ["ffprobe", "-v", "quiet", "-select_streams", str(stream_index), "-show_entries", "packet=pts_time", "-of", "csv=p=0", file_path]
 
     _log(f"Running ffprobe packet scan on stream {stream_index} of {file_path}", level="debug")
 
