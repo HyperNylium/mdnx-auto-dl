@@ -1,3 +1,3 @@
 bento4.zip=1.6.0-641@https://www.bento4.com/downloads/
 shaka_packager.zip=3.5.3@https://github.com/stratumadev/shaka-packager/releases/tag/v3.5.3
-mdnx.zip=5.7.2-beta@https://github.com/HyperNylium/multi-downloader-nx
+mdnx.zip=5.7.2-beta-2@https://github.com/HyperNylium/multi-downloader-nx/releases/tag/v5.7.2-beta-2
