@@ -330,7 +330,7 @@ class AMAZON_ZLO_API:
                 kept_episode_count += 1
                 episode_key = f"E{kept_episode_count}"
 
-                available_dubs = normalize_zlo_dubs(episode_data.get("dubs") or [])
+                available_dubs = normalize_zlo_dubs(episode_data.get("audios") or [])
                 available_subs = normalize_zlo_subtitles(episode_data.get("subtitles") or [])
                 available_qualities = normalize_zlo_qualities(episode_data.get("qualities") or [])
 
