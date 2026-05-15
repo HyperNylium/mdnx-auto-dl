@@ -54,7 +54,7 @@ class HIDIVE_MDNX_API:
 
         # Special markers
         self.special_season_flag = re.compile(r'\b(OVA|OAD|ONA|Specials?|Recap|Compilation|Summary|Movie|Film)\b', re.IGNORECASE)
-        self.special_episode_title_flag = re.compile(r'\b(recaps?|digest|compilation|summary|omake|extra|preview|prologue|specials?|ova|oad|ona)\b', re.IGNORECASE)
+        self.special_episode_title_flag = re.compile(r'\b(recaps?|digest|compilation|summary|omake|extra|preview|prologue|specials?|ova|oad|ona|bonus)\b', re.IGNORECASE)
 
         # Display name -> (audio_code, subtitle_locale), e.g., "English" -> ("eng", "en")
         self._lang_display_to_pair = {}
@@ -529,25 +529,29 @@ class HIDIVE_MDNX_API:
             else:
                 flat_order = []
 
-            flat_idx = 0  # consume only when we keep a hierarchical episode
+            flat_idx = 0
             filtered_episode_rows = []
 
             for local_tree_index, record in enumerate(episode_list, start=1):
                 title = record["title"]
 
-                # drop unreleased and special episodes based on title cues
-                if title and (self.special_episode_title_flag.search(title) or self.unreleased_title_flag.search(title)):
-                    log_manager.debug(f"Skipping unavailable/special at {season_key} idx={local_tree_index} title='{title}'.")
-                    continue
-
-                # choose the download number from flat mapping if available
+                # increment flat_idx even on drops so the next kept episode gets its real number
                 if flat_idx < len(flat_order):
                     download_num = flat_order[flat_idx]
                     flat_idx += 1
                 else:
-                    # otherwise assign sequentially among kept episodes
                     download_num = flat_idx + 1
                     flat_idx += 1
+
+                # drop E0 entries which are usually specials or extras that shouldnt be treated as regular episodes
+                if download_num == 0:
+                    log_manager.debug(f"Skipping E0 special at {season_key} idx={local_tree_index} title='{title}'.")
+                    continue
+
+                # drop unreleased and special episodes based on title flags
+                if title and (self.special_episode_title_flag.search(title) or self.unreleased_title_flag.search(title)):
+                    log_manager.debug(f"Skipping unavailable/special at {season_key} idx={local_tree_index} title='{title}'.")
+                    continue
 
                 # remote-specials override: drop using upstream [Sxx Eyy] download number
                 if remote_specials.is_remote_special("mdnx", "hidive", current_series_id, season_key, str(download_num)):
