@@ -165,8 +165,10 @@ appdata/logs/*
 !appdata/logs/.gitkeep
 
 # mdnx-auto-dl data
-appdata/data/*
-!appdata/data/.gitkeep
+appdata/data/Anime/*
+!appdata/data/Anime/.gitkeep
+appdata/data/TV Shows/*
+!appdata/data/TV Shows/.gitkeep
 
 # mdnx-auto-dl config
 appdata/mdnx/config/*
@@ -180,22 +182,6 @@ appdata/mdnx/widevine/*
 appdata/mdnx/playready/*
 !appdata/mdnx/playready/.gitkeep
 
-# zlo CDMs
-appdata/zlo/cdm/playready/SL2K/*
-!appdata/zlo/cdm/playready/SL2K/.gitkeep
-
-appdata/zlo/cdm/playready/SL3K/hisense/*
-!appdata/zlo/cdm/playready/SL3K/hisense/.gitkeep
-
-appdata/zlo/cdm/playready/SL3K/sharp/*
-!appdata/zlo/cdm/playready/SL3K/sharp/.gitkeep
-
-appdata/zlo/cdm/widevine/L1/*
-!appdata/zlo/cdm/widevine/L1/.gitkeep
-
-appdata/zlo/cdm/widevine/L3/*
-!appdata/zlo/cdm/widevine/L3/.gitkeep
-
 # zlo config which includes GUI settings, service auth, default dubs/subs, etc.
 appdata/zlo/config/*
 !appdata/zlo/config/.gitkeep
@@ -203,11 +189,10 @@ appdata/zlo/config/*
 # zlo binary
 appdata/zlo/zlo7
 
-
-notes.txt
-/__personal_helpers
-
 # mdnx-auto-dl runtime SQLite queue
 appdata/config/queue.db
 appdata/config/queue.db-wal
 appdata/config/queue.db-shm
+
+# my stuff
+notes.txt
