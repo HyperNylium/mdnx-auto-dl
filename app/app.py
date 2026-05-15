@@ -32,9 +32,10 @@ def app():
         sys.exit(1)
 
     # check if user has a widevine or playready CDM, and do checks to see if they are valid.
-    if config.app.skip_cdm_check is False:
+    if MDNX_ENABLED:
+        update_mdnx_config()
 
-        if MDNX_ENABLED:
+        if config.app.skip_cdm_check is False:
             mdnx_widevine_valid = validate_cdm(MDNX_SERVICE_WIDEVINE_PATH, "Widevine", required=False)
             mdnx_playready_valid = validate_cdm(MDNX_SERVICE_PLAYREADY_PATH, "PlayReady", required=False)
 
@@ -47,9 +48,8 @@ def app():
             if not mdnx_widevine_valid and not mdnx_playready_valid:
                 log_manager.critical("No valid CDMs found for multi-downloader-nx. Downloading will not work without resolving this issue.\nPlease ensure you have either a Widevine or PlayReady CDM mounted to the correct path.")
                 sys.exit(1)
-
-    else:
-        log_manager.warning("Skipping CDM checks because SKIP_CDM_CHECK is set to True. Make sure you have a valid Widevine or Playready CDM mounted to the correct path if you want downloading to work!")
+        else:
+            log_manager.warning("Skipping CDM checks because SKIP_CDM_CHECK is set to True. Make sure you have a valid Widevine or Playready CDM mounted to the correct path if you want downloading to work!")
 
     if ZLO_ENABLED:
         if not os.path.isfile(ZLO_SERVICE_BIN_PATH):
@@ -237,7 +237,6 @@ if __name__ == "__main__":
 
     log_manager.info(f"mdnx-auto-dl v{APP_VERSION} has started.")
     get_running_user()
-    update_mdnx_config()
     output_effective_config(config)
     validate_destinations()
     app()
