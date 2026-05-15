@@ -63,13 +63,13 @@ def upgrade():
     if app_section.get("CR_ENABLED") is True and "crunchyroll" not in destinations:
         destinations["crunchyroll"] = {
             "dir": legacy_dir,
-            "folder_structure": legacy_folder_structure,
+            "folder_structure": legacy_folder_structure
         }
 
     if app_section.get("HIDIVE_ENABLED") is True and "hidive" not in destinations:
         destinations["hidive"] = {
             "dir": legacy_dir,
-            "folder_structure": legacy_folder_structure,
+            "folder_structure": legacy_folder_structure
         }
 
     app_section.pop("DATA_DIR", None)
