@@ -194,7 +194,7 @@ class HIDIVE_ZLO_API:
             target=self._run_download,
             args=(cmd, result),
             name=f"{self.zlo_service}-download",
-            daemon=True,
+            daemon=True
         )
 
         with self.download_lock:
@@ -277,15 +277,12 @@ class HIDIVE_ZLO_API:
             series_id: Series(
                 series=SeriesInfo(
                     series_name=series_title,
-                    series_id=series_id,
-                    seasons_count="0",
-                    eps_count="0",
+                    series_id=series_id
                 ),
-                seasons={},
+                seasons={}
             )
         }
 
-        total_episode_count = 0
         candidate_seasons = []
 
         for json_index, season_data in enumerate(seasons_list):
@@ -358,10 +355,8 @@ class HIDIVE_ZLO_API:
                     episode_name=episode_title,
                     available_dubs=available_dubs,
                     available_subs=available_subs,
-                    available_qualities=available_qualities,
+                    available_qualities=available_qualities
                 )
-
-                total_episode_count += 1
 
             if episodes_dict == {}:
                 continue
@@ -399,11 +394,8 @@ class HIDIVE_ZLO_API:
                 season_id=candidate["season_id"],
                 season_number=stored_season_number,
                 season_name=candidate["season_title"],
-                episodes=candidate["episodes_dict"],
+                episodes=candidate["episodes_dict"]
             )
-
-        tmp_dict[series_id].series.seasons_count = str(len(tmp_dict[series_id].seasons))
-        tmp_dict[series_id].series.eps_count = str(total_episode_count)
 
         tmp_dict = apply_series_blacklist(tmp_dict, service=self.queue_service)
 

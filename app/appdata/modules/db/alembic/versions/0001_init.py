@@ -18,7 +18,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.create_table('queue_series',
+    op.create_table('series',
         sa.Column('service', sa.Text(), nullable=False),
         sa.Column('series_id', sa.Text(), nullable=False),
         sa.Column('series_name', sa.Text(), nullable=False),
@@ -27,18 +27,19 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('service', 'series_id'),
         sqlite_with_rowid=False
     )
-    op.create_table('queue_seasons',
+    op.create_table('seasons',
         sa.Column('service', sa.Text(), nullable=False),
         sa.Column('series_id', sa.Text(), nullable=False),
         sa.Column('season_key', sa.Text(), nullable=False),
         sa.Column('season_id', sa.Text(), nullable=False),
         sa.Column('season_number', sa.Text(), nullable=False),
         sa.Column('season_name', sa.Text(), nullable=False),
-        sa.ForeignKeyConstraint(['service', 'series_id'], ['queue_series.service', 'queue_series.series_id'], ondelete='CASCADE'),
+        sa.Column('eps_count', sa.Text(), nullable=True),
+        sa.ForeignKeyConstraint(['service', 'series_id'], ['series.service', 'series.series_id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('service', 'series_id', 'season_key'),
         sqlite_with_rowid=False
     )
-    op.create_table('queue_episodes',
+    op.create_table('episodes',
         sa.Column('service', sa.Text(), nullable=False),
         sa.Column('series_id', sa.Text(), nullable=False),
         sa.Column('season_key', sa.Text(), nullable=False),
@@ -53,13 +54,13 @@ def upgrade() -> None:
         sa.Column('episode_downloaded', sa.Integer(), server_default='0', nullable=False),
         sa.Column('episode_skip', sa.Integer(), server_default='0', nullable=False),
         sa.Column('has_all_dubs_subs', sa.Integer(), server_default='0', nullable=False),
-        sa.ForeignKeyConstraint(['service', 'series_id', 'season_key'], ['queue_seasons.service', 'queue_seasons.series_id', 'queue_seasons.season_key'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['service', 'series_id', 'season_key'], ['seasons.service', 'seasons.series_id', 'seasons.season_key'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('service', 'series_id', 'season_key', 'episode_key'),
         sqlite_with_rowid=False
     )
 
 
 def downgrade() -> None:
-    op.drop_table('queue_episodes')
-    op.drop_table('queue_seasons')
-    op.drop_table('queue_series')
+    op.drop_table('episodes')
+    op.drop_table('seasons')
+    op.drop_table('series')

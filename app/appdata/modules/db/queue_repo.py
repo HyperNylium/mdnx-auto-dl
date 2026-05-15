@@ -20,18 +20,18 @@ def load_queue(conn: sqlite3.Connection) -> Queue:
 
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM queue_series ORDER BY service, series_id")
+    cursor.execute("SELECT * FROM series ORDER BY service, series_id")
     series_rows = cursor.fetchall()
 
     cursor.execute(
-        "SELECT * FROM queue_seasons "
+        "SELECT * FROM seasons "
         "ORDER BY service, series_id, "
         "CAST(SUBSTR(season_key, 2) AS INTEGER)"
     )
     season_rows = cursor.fetchall()
 
     cursor.execute(
-        "SELECT * FROM queue_episodes "
+        "SELECT * FROM episodes "
         "ORDER BY service, series_id, "
         "CAST(SUBSTR(season_key, 2) AS INTEGER), "
         "SUBSTR(episode_key, 1, 1), "
@@ -52,9 +52,9 @@ def load_queue(conn: sqlite3.Connection) -> Queue:
                 series_name=series_row["series_name"],
                 series_id=series_id,
                 seasons_count=series_row["seasons_count"],
-                eps_count=series_row["eps_count"],
+                eps_count=series_row["eps_count"]
             ),
-            seasons={},
+            seasons={}
         )
 
     for season_row in season_rows:
@@ -73,7 +73,8 @@ def load_queue(conn: sqlite3.Connection) -> Queue:
             season_id=season_row["season_id"],
             season_number=season_row["season_number"],
             season_name=season_row["season_name"],
-            episodes={},
+            eps_count=season_row["eps_count"],
+            episodes={}
         )
 
     for episode_row in episode_rows:
@@ -103,7 +104,7 @@ def load_queue(conn: sqlite3.Connection) -> Queue:
             available_qualities=json.loads(episode_row["available_qualities"]),
             episode_downloaded=bool(episode_row["episode_downloaded"]),
             episode_skip=bool(episode_row["episode_skip"]),
-            has_all_dubs_subs=bool(episode_row["has_all_dubs_subs"]),
+            has_all_dubs_subs=bool(episode_row["has_all_dubs_subs"])
         )
 
     return Queue(buckets=buckets)
@@ -114,16 +115,26 @@ def clear_queue(conn: sqlite3.Connection) -> None:
 
     with _write_lock:
         with conn:
-            conn.execute("DELETE FROM queue_series")
+            conn.execute("DELETE FROM series")
 
 
 def upsert_series(conn: sqlite3.Connection, service: str, series_id: str, series: Series) -> None:
     """Insert or replace one series row, and all its seasons/episodes."""
 
+    series.series.seasons_count = str(len(series.seasons))
+
+    total_episodes = 0
+    for season in series.seasons.values():
+        total_episodes += len(season.episodes)
+    series.series.eps_count = str(total_episodes)
+
+    for season in series.seasons.values():
+        season.eps_count = str(len(season.episodes))
+
     with _write_lock:
         with conn:
             conn.execute(
-                "INSERT OR REPLACE INTO queue_series "
+                "INSERT OR REPLACE INTO series "
                 "(service, series_id, series_name, seasons_count, eps_count) "
                 "VALUES (?, ?, ?, ?, ?)",
                 (
@@ -132,32 +143,33 @@ def upsert_series(conn: sqlite3.Connection, service: str, series_id: str, series
                     series.series.series_name,
                     series.series.seasons_count,
                     series.series.eps_count
-                ),
+                )
             )
 
             conn.execute(
-                "DELETE FROM queue_seasons WHERE service = ? AND series_id = ?",
-                (service, series_id),
+                "DELETE FROM seasons WHERE service = ? AND series_id = ?",
+                (service, series_id)
             )
 
             for season_key, season in series.seasons.items():
                 conn.execute(
-                    "INSERT INTO queue_seasons "
-                    "(service, series_id, season_key, season_id, season_number, season_name) "
-                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO seasons "
+                    "(service, series_id, season_key, season_id, season_number, season_name, eps_count) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?)",
                     (
                         service,
                         series_id,
                         season_key,
                         season.season_id,
                         season.season_number,
-                        season.season_name
-                    ),
+                        season.season_name,
+                        season.eps_count
+                    )
                 )
 
                 for episode_key, episode in season.episodes.items():
                     conn.execute(
-                        "INSERT INTO queue_episodes "
+                        "INSERT INTO episodes "
                         "(service, series_id, season_key, episode_key, episode_id, "
                         "episode_number, episode_number_download, episode_name, "
                         "available_dubs, available_subs, available_qualities, "
@@ -178,7 +190,7 @@ def upsert_series(conn: sqlite3.Connection, service: str, series_id: str, series
                             int(episode.episode_downloaded),
                             int(episode.episode_skip),
                             int(episode.has_all_dubs_subs)
-                        ),
+                        )
                     )
 
 
@@ -188,8 +200,8 @@ def delete_series(conn: sqlite3.Connection, service: str, series_id: str) -> Non
     with _write_lock:
         with conn:
             conn.execute(
-                "DELETE FROM queue_series WHERE service = ? AND series_id = ?",
-                (service, series_id),
+                "DELETE FROM series WHERE service = ? AND series_id = ?",
+                (service, series_id)
             )
 
 
@@ -202,6 +214,6 @@ def set_episode_field(conn: sqlite3.Connection, service: str, series_id: str, se
     with _write_lock:
         with conn:
             conn.execute(
-                f"UPDATE queue_episodes SET {field} = ? WHERE service = ? AND series_id = ? AND season_key = ? AND episode_key = ?",
-                (int(value), service, series_id, season_key, episode_key),
+                f"UPDATE episodes SET {field} = ? WHERE service = ? AND series_id = ? AND season_key = ? AND episode_key = ?",
+                (int(value), service, series_id, season_key, episode_key)
             )

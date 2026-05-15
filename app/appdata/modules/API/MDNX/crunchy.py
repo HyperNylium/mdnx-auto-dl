@@ -46,7 +46,7 @@ class CR_MDNX_API:
         # Special seasons: we want to filter out OVAs, movies, compilations, etc
         self.special_season_pattern = re.compile(
             r'\b(OVA|OAD|ONA|Specials?|Recap|Compilation|Summary|Movie|Film)\b',
-            re.IGNORECASE,
+            re.IGNORECASE
         )
 
         # Versions (dubs): lines starting with "- Versions: "
@@ -235,7 +235,7 @@ class CR_MDNX_API:
             target=self._run_download,
             args=(cmd, result),
             name=f"{self.mdnx_service}-download",
-            daemon=True,
+            daemon=True
         )
 
         with self.download_lock:
@@ -332,7 +332,7 @@ class CR_MDNX_API:
                     season_id="",
                     season_number=s_key[1:],
                     season_name="",
-                    episodes={},
+                    episodes={}
                 )
                 series_obj.seasons[s_key] = season_obj
 
@@ -342,7 +342,7 @@ class CR_MDNX_API:
                 episode_number_download=staged_episode["episode_number_download"],
                 episode_name=staged_episode["episode_title_clean"],
                 available_dubs=staged_episode["available_dubs"],
-                available_subs=staged_episode["available_subs"],
+                available_subs=staged_episode["available_subs"]
             )
 
             log_manager.debug(f"Committed episode {s_id}/{s_key}/{e_key} to tmp_dict.")
@@ -370,9 +370,9 @@ class CR_MDNX_API:
                 tmp_dict[current_series_id] = Series(
                     series=SeriesInfo(
                         series_name=info["series_name"],
-                        series_id=info["series_id"],
+                        series_id=info["series_id"]
                     ),
-                    seasons={},
+                    seasons={}
                 )
                 season_num_map.clear()
                 season_id_to_key.clear()
@@ -427,7 +427,7 @@ class CR_MDNX_API:
                     season_id=info["season_id"],
                     season_number=info["season_number"],
                     season_name=info["season_name"],
-                    episodes={},
+                    episodes={}
                 )
                 episode_counters[season_key] = 1
 
@@ -508,7 +508,7 @@ class CR_MDNX_API:
                             season_id="",
                             season_number=str(mapped_num),
                             season_name="",
-                            episodes={},
+                            episodes={}
                         )
                         episode_counters[season_key] = 1
 
@@ -627,13 +627,6 @@ class CR_MDNX_API:
                 new_idx += 1
 
             series.seasons = new_seasons
-
-        # calculate seasons_count and eps_count for each series based on the final processed data,
-        # so they reflect any filtering or restructuring we did above
-        for _series_id, series in tmp_dict.items():
-            total_episode_count = sum(len(season.episodes) for season in series.seasons.values())
-            series.series.seasons_count = str(len(series.seasons))
-            series.series.eps_count = str(total_episode_count)
 
         log_manager.debug("Console output processed.")
 
