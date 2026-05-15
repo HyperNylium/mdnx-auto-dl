@@ -327,9 +327,8 @@ class MainLoop:
             sub_override = select_subs(service, episode, sub_overrides)
 
             dl_start = time.perf_counter()
-            download_episode_number = episode.episode_number_download or episode.episode_number
             download_successful = mdnx_api.download_episode(
-                series_id, season.season_id, download_episode_number, dub_override, sub_override
+                series_id, season.season_id, episode.episode_number_download, dub_override, sub_override
             )
             dl_end = time.perf_counter()
             dl_elapsed = dl_end - dl_start
@@ -474,9 +473,8 @@ class MainLoop:
             sub_override = select_subs(service, episode, sub_overrides)
 
             dl_start = time.perf_counter()
-            download_episode_number = episode.episode_number_download or episode.episode_number
             download_successful = mdnx_api.download_episode(
-                series_id, season.season_id, download_episode_number, dub_override, sub_override
+                series_id, season.season_id, episode.episode_number_download, dub_override, sub_override
             )
             dl_end = time.perf_counter()
             dl_elapsed = dl_end - dl_start
