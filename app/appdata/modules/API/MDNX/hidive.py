@@ -242,7 +242,7 @@ class HIDIVE_MDNX_API:
             target=self._run_download,
             args=(cmd, result),
             name=f"{self.mdnx_service}-download",
-            daemon=True,
+            daemon=True
         )
 
         with self.download_lock:
@@ -341,9 +341,9 @@ class HIDIVE_MDNX_API:
                 tmp_dict[current_series_id] = Series(
                     series=SeriesInfo(
                         series_name=sanitize(gd["series_name"]),
-                        series_id=gd["series_id"],
+                        series_id=gd["series_id"]
                     ),
-                    seasons={},
+                    seasons={}
                 )
                 seasons_meta.clear()
                 episodes_by_season.clear()
@@ -492,9 +492,6 @@ class HIDIVE_MDNX_API:
         # pointer into flat_groups
         flat_ptr = 0
 
-        # total count of kept episodes across all seasons
-        total_episodes = 0
-
         for _season_idx, (season_key, meta) in enumerate(ordered_seasons, start=1):
             season_id = meta["season_id"]
             season_number = int(meta["season_number"])
@@ -573,9 +570,8 @@ class HIDIVE_MDNX_API:
                     episode_number_download=str(download_num),
                     episode_name=episode_name,
                     available_dubs=dubs_list,
-                    available_subs=subs_list,
+                    available_subs=subs_list
                 )
-                total_episodes += 1
 
             stored_season_number = meta["season_number"]
             season_monitor = get_season_monitor_config("hidive", current_series_id, season_id)
@@ -587,16 +583,11 @@ class HIDIVE_MDNX_API:
                 season_id=season_id,
                 season_name=sanitize(meta["season_name"]),
                 season_number=stored_season_number,
-                episodes=episodes_dict,
+                episodes=episodes_dict
             )
 
         # apply per-series blacklist to mark episodes to skip
         tmp_dict = apply_series_blacklist(tmp_dict, service="hidive")
-
-        # calculate seasons_count and eps_count for each series based on the final processed data,
-        # so they reflect any filtering or restructuring we did above
-        tmp_dict[current_series_id].series.eps_count = str(total_episodes)
-        tmp_dict[current_series_id].series.seasons_count = str(len(tmp_dict[current_series_id].seasons))
 
         log_manager.debug("Console output processed.")
         if add2queue:

@@ -168,7 +168,7 @@ class PLEX_API:
             f"{self.api_base}/pins",
             headers=self._headers(include_token=False),
             data={"strong": "true"},
-            timeout=15,
+            timeout=15
         )
         resp.raise_for_status()
         data = resp.json()
@@ -193,7 +193,7 @@ class PLEX_API:
                 f"{self.api_base}/pins/{pin_id}",
                 headers=self._headers(include_token=False),
                 params={"code": code},
-                timeout=10,
+                timeout=10
             )
             resp.raise_for_status()
             return resp.json().get("authToken")

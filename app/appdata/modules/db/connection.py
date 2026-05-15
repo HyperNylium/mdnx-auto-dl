@@ -13,7 +13,7 @@ def open_connection(db_path: str = QUEUE_DB_FILE) -> sqlite3.Connection:
     conn = sqlite3.connect(
         db_path,
         check_same_thread=False,
-        isolation_level=None,
+        isolation_level=None
     )
     conn.row_factory = sqlite3.Row
 
