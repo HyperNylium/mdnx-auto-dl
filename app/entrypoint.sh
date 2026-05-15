@@ -38,7 +38,7 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
   exit 1
 fi
 
-read_config_app_value() {
+read_config() {
   local config_key="$1"
   local default_value="$2"
 
@@ -115,7 +115,7 @@ setup_dep() {
 }
 
 # Extract BIN_DIR (falls back to /app/appdata/bin if the key is null/absent)
-BIN_DIR="$(read_config_app_value "BIN_DIR" "/app/appdata/bin")"
+BIN_DIR="$(read_config "BIN_DIR" "/app/appdata/bin")"
 
 echo "[entrypoint] Using CONFIG_FILE=$CONFIG_FILE"
 echo "[entrypoint] Using BIN_DIR=$BIN_DIR"
@@ -153,10 +153,37 @@ ln -sfn "/usr/local/bin/ffmpeg" "/app/appdata/bin/zlo/static/ffmpeg/ffmpeg"
 ln -sfn "/usr/bin/mkvmerge" "/app/appdata/bin/zlo/static/mkvmerge/mkvmerge"
 ln -sfn "/usr/bin/mkvpropedit" "/app/appdata/bin/zlo/static/mkvmerge/mkvpropedit"
 
+# Check if any ZLO services are enabled in the config to determine if we need to fix permissions on ZLO paths
+ZLO_ENABLED=false
+for zlo_flag in ZLO_CR_ENABLED ZLO_HIDIVE_ENABLED ZLO_ADN_ENABLED ZLO_DISNEYPLUS_ENABLED ZLO_AMAZON_ENABLED; do
+  flag_value="$(read_config "$zlo_flag" "false")"
+  if [[ "${flag_value,,}" == "true" ]]; then
+    ZLO_ENABLED=true
+    break
+  fi
+done
+
+if [[ "$ZLO_ENABLED" == "true" ]]; then
+  ZLO_BIN_PATH="$BIN_DIR/zlo/zlo7"
+  ZLO_USER_CONFIG_DIR="/home/$USERNAME/Documents/zlo7"
+
+  echo "[entrypoint] ZLO enabled. Fixing ownership/permissions on ZLO paths..."
+
+  if [[ -f "$ZLO_BIN_PATH" ]]; then
+    chown "$USER_ID:$GROUP_ID" "$ZLO_BIN_PATH"
+    chmod 775 "$ZLO_BIN_PATH"
+  fi
+
+  if [[ -d "$ZLO_USER_CONFIG_DIR" ]]; then
+    chown -R "$USER_ID:$GROUP_ID" "$ZLO_USER_CONFIG_DIR"
+    chmod -R 775 "$ZLO_USER_CONFIG_DIR"
+  fi
+fi
+
 echo "[entrypoint] Running database migrations via Alembic..."
 gosu "$USER_ID:$GROUP_ID" bash -c "alembic -c appdata/modules/db/alembic/alembic.ini upgrade head"
 
-NTFY_SCRIPT_PATH="$(read_config_app_value "NTFY_SCRIPT_PATH" "")"
+NTFY_SCRIPT_PATH="$(read_config "NTFY_SCRIPT_PATH" "")"
 
 if [[ -n "$NTFY_SCRIPT_PATH" && -f "$NTFY_SCRIPT_PATH" ]]; then
   echo "[entrypoint] Found ntfy script at $NTFY_SCRIPT_PATH. Making it executable..."
