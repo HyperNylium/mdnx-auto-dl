@@ -192,7 +192,7 @@ class ADN_MDNX_API:
             target=self._run_download,
             args=(cmd, result),
             name=f"{self.mdnx_service}-download",
-            daemon=True,
+            daemon=True
         )
 
         with self.download_lock:
@@ -262,12 +262,11 @@ class ADN_MDNX_API:
         current_season_episodes = []
         prev_episode_n = None
         current_episode_record = None
-        total_episodes_for_series = 0
 
         def _flush_season():
             """Flush the in-flight episode list as a Season under the current season index."""
 
-            nonlocal current_season_episodes, total_episodes_for_series
+            nonlocal current_season_episodes
 
             if not current_season_episodes:
                 return
@@ -290,9 +289,8 @@ class ADN_MDNX_API:
                     episode_number_download=str(record["download_number"]),
                     episode_name=episode_name,
                     available_dubs=record["available_dubs"],
-                    available_subs=record["available_subs"],
+                    available_subs=record["available_subs"]
                 )
-                total_episodes_for_series += 1
 
             # honor user season_override from adn_monitor_series_id if set.
             stored_season_number = str(current_season_index)
@@ -304,22 +302,10 @@ class ADN_MDNX_API:
                 season_id=season_id,
                 season_name=sanitize(f"Season {current_season_index}"),
                 season_number=stored_season_number,
-                episodes=episodes_dict,
+                episodes=episodes_dict
             )
 
             current_season_episodes = []
-
-        def _finalize_series():
-            """Fill in seasons_count and eps_count on the current series."""
-
-            if current_series_id is None:
-                return
-            if current_series_id not in tmp_dict:
-                return
-
-            series_obj = tmp_dict[current_series_id]
-            series_obj.series.seasons_count = str(len(series_obj.seasons))
-            series_obj.series.eps_count = str(total_episodes_for_series)
 
         for raw_line in output.splitlines():
             line = raw_line.strip()
@@ -337,23 +323,21 @@ class ADN_MDNX_API:
             if series_match:
                 # finish the previous series before switching
                 _flush_season()
-                _finalize_series()
 
                 groupdict = series_match.groupdict()
                 current_series_id = groupdict["series_id"]
                 tmp_dict[current_series_id] = Series(
                     series=SeriesInfo(
                         series_name=sanitize(groupdict["series_name"]),
-                        series_id=groupdict["series_id"],
+                        series_id=groupdict["series_id"]
                     ),
-                    seasons={},
+                    seasons={}
                 )
 
                 current_season_index = 1
                 current_season_episodes = []
                 prev_episode_n = None
                 current_episode_record = None
-                total_episodes_for_series = 0
                 continue
 
             if not current_series_id:
@@ -437,9 +421,8 @@ class ADN_MDNX_API:
                 current_episode_record["available_subs"] = dedupe_casefold(sub_locales)
                 continue
 
-        # Flush the in-flight season and finalize the in-flight series.
+        # Flush the in-flight season.
         _flush_season()
-        _finalize_series()
 
         if current_series_id is None:
             log_manager.warning("No ADN series detected in output.")
