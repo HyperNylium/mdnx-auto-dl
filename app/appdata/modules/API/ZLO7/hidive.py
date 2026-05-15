@@ -328,14 +328,14 @@ class HIDIVE_ZLO_API:
 
                 episode_title = str(episode_data.get("title") or f"Episode {kept_episode_count + 1}")
                 episode_title = sanitize(episode_title)
+                episode_title = self.episode_prefix_strip.sub("", episode_title).strip()
 
                 if episode_title.lstrip().lower().startswith("pv"):
                     log_manager.debug(f"Skipping PV entry in ZLO JSON: {episode_title}")
                     continue
 
                 # drop unreleased episodes whose title is a placeholder like "Coming 5/19/26 13:30 UTC"
-                title_for_match = self.episode_prefix_strip.sub("", episode_title)
-                if self.unreleased_title_flag.match(title_for_match):
+                if self.unreleased_title_flag.match(episode_title):
                     log_manager.debug(f"Skipping unreleased episode (title='{episode_title}', season_id={season_id})")
                     continue
 
