@@ -238,8 +238,6 @@ class MainLoop:
                 log_manager.info(f"{service.display_name} queue refresh skipped because the service wasnt enabled.")
                 continue
 
-            monitor_ids = set(service.monitor_series_id.keys())
-
             # only look at the correct bucket inside queue.json for this service
             bucket = queue_manager.output(service.service_name)
             if bucket is None:
@@ -248,12 +246,12 @@ class MainLoop:
             queue_ids = set(bucket.series.keys())
 
             # if both lists are empty, nothing to do, exit early
-            if not monitor_ids and not queue_ids:
+            if not service.monitor_series_id and not queue_ids:
                 log_manager.info(f"Your '{service.monitor_config_key}' list is empty. Skipped refreshing empty list.")
                 continue
 
             log_manager.info(f"Checking {service.display_name} monitors...")
-            for series_id in monitor_ids:
+            for series_id in service.monitor_series_id:
                 if series_id not in queue_ids:
                     log_manager.info(f"[{service.display_name}] Starting monitor for {series_id}")
                     service.api.start_monitor(series_id)
@@ -264,7 +262,7 @@ class MainLoop:
             # stop monitors for series removed from config so they are no longer monitored
             log_manager.info(f"Checking {service.display_name} monitors to stop...")
             for series_id in queue_ids:
-                if series_id not in monitor_ids:
+                if series_id not in service.monitor_series_id:
                     log_manager.info(f"[{service.display_name}] Stopping monitor for {series_id}")
                     service.api.stop_monitor(series_id)
 
