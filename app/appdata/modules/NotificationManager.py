@@ -14,7 +14,7 @@ class ntfy:
         """Send notification using ntfy script."""
         try:
             log_manager.info("Sending ntfy notification...")
-            subprocess.run([self.ntfy_script_path, subject, message], check=True)
+            subprocess.run([self.ntfy_script_path, subject, message], check=True, timeout=30)
         except Exception as e:
             log_manager.error(f"Error sending notification: {e}")
             return False
@@ -41,7 +41,7 @@ class SMTP:
             msg["To"] = self.SMTP_TO
             msg.set_content(message, charset="utf-8")
 
-            with smtplib.SMTP(self.SMTP_HOST, self.SMTP_PORT) as server:
+            with smtplib.SMTP(self.SMTP_HOST, self.SMTP_PORT, timeout=30) as server:
                 if self.SMTP_STARTTLS:
                     server.starttls()
                 server.login(self.SMTP_USERNAME, self.SMTP_PASSWORD)
