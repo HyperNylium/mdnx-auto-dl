@@ -3,7 +3,7 @@ import sys
 import signal
 
 from appdata.modules.MainLoop import MainLoop
-from appdata.modules.Globals import file_manager, log_manager
+from appdata.modules.Globals import file_manager, log_manager, queue_manager
 from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
 from appdata.modules.API.MDNX._shared import (
     MDNX_SERVICE_CR_TOKEN_PATH, MDNX_SERVICE_HIDIVE_TOKEN_PATH, MDNX_SERVICE_ADN_TOKEN_PATH,
@@ -228,7 +228,10 @@ def app():
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
-    mainloop.mainloop()
+    try:
+        mainloop.mainloop()
+    finally:
+        queue_manager.close()
 
 
 if __name__ == "__main__":

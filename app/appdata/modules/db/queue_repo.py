@@ -132,7 +132,8 @@ def upsert_series(conn: sqlite3.Connection, service: str, series_id: str, series
         season.eps_count = str(len(season.episodes))
 
     with _write_lock:
-        with conn:
+        conn.execute("BEGIN IMMEDIATE")
+        try:
             conn.execute(
                 "INSERT OR REPLACE INTO series "
                 "(service, series_id, series_name, seasons_count, eps_count) "
@@ -192,6 +193,11 @@ def upsert_series(conn: sqlite3.Connection, service: str, series_id: str, series
                             int(episode.has_all_dubs_subs)
                         )
                     )
+        except Exception:
+            conn.execute("ROLLBACK")
+            raise
+        else:
+            conn.execute("COMMIT")
 
 
 def delete_series(conn: sqlite3.Connection, service: str, series_id: str) -> None:

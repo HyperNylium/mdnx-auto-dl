@@ -170,7 +170,18 @@ class QueueManager:
 
         return self.queue.buckets.setdefault(bucket_name, ServiceBucket())
 
+    def close(self) -> None:
+        """Close the database connection."""
+
+        try:
+            self.conn.close()
+            log_manager.info("Queue DB connection closed.")
+        except Exception as e:
+            log_manager.error(f"Error closing queue DB connection: {e}")
+
     def _set_flag(self, series_id: str, season_key: str, episode_key: str, field: str, status: bool, service: str) -> None:
+        """Helper method to set a boolean flag on an episode and persist the change."""
+
         bucket_name = self._normalize_service(service)
         if bucket_name is None:
             return
