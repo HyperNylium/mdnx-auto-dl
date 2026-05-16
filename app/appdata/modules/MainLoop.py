@@ -233,6 +233,10 @@ class MainLoop:
         log_manager.info("Getting the current queue IDs...")
 
         for service in SERVICES.all():
+            if self.stop_requested:
+                log_manager.info("Stop requested. Aborting queue refresh.")
+                return
+
             # if service not configured, dont refresh queue for said service.
             if not service.configured:
                 log_manager.info(f"{service.display_name} queue refresh skipped because the service wasnt enabled.")
@@ -252,6 +256,9 @@ class MainLoop:
 
             log_manager.info(f"Checking {service.display_name} monitors...")
             for series_id in service.monitor_series_id:
+                if self.stop_requested:
+                    log_manager.info(f"Stop requested. Aborting {service.display_name} monitor refresh.")
+                    return
                 if series_id not in queue_ids:
                     log_manager.info(f"[{service.display_name}] Starting monitor for {series_id}")
                     service.api.start_monitor(series_id)
@@ -262,6 +269,9 @@ class MainLoop:
             # stop monitors for series removed from config so they are no longer monitored
             log_manager.info(f"Checking {service.display_name} monitors to stop...")
             for series_id in queue_ids:
+                if self.stop_requested:
+                    log_manager.info(f"Stop requested. Aborting {service.display_name} monitor cleanup.")
+                    return
                 if series_id not in service.monitor_series_id:
                     log_manager.info(f"[{service.display_name}] Stopping monitor for {series_id}")
                     service.api.stop_monitor(series_id)
