@@ -1,6 +1,6 @@
 import os
 import time
-from shutil import copyfile as shcopy
+from shutil import copyfile as shcopy, disk_usage
 
 from .Globals import log_manager
 from .Vars import (
@@ -113,13 +113,45 @@ class FileManager:
             log_manager.error(f"Could not create directory {parent}: {e}")
             return False
 
+        try:
+            needed = os.path.getsize(src_path)
+            free = disk_usage(parent).free
+        except OSError as e:
+            log_manager.error(f"Could not check free space for '{parent}': {e}")
+            return False
+
+        effective_free = free
+
         if overwrite == True and os.path.exists(final_dst):
+            try:
+                existing_size = os.path.getsize(final_dst)
+            except OSError as e:
+                log_manager.error(f"Could not get size of existing destination file '{final_dst}': {e}")
+                return False
+            effective_free = free + existing_size
+            log_manager.debug(f"Overwrite mode: simulating removal of '{final_dst}' ({existing_size} bytes); effective free would be {effective_free} bytes.")
+
+            if effective_free < needed:
+                log_manager.error(
+                    f"Not enough space at '{parent}' to transfer '{src_basename}' even after removing existing file: "
+                    f"need {needed / (1024**3):.2f} GiB ({needed} bytes), have {effective_free / (1024**3):.2f} GiB ({effective_free} bytes) free. Skipping."
+                )
+                return False
+
             try:
                 os.remove(final_dst)
                 log_manager.info(f"Removed existing file at destination: {final_dst}")
             except Exception as e:
                 log_manager.error(f"Could not remove existing file {final_dst}: {e}")
                 return False
+        elif effective_free < needed:
+            log_manager.error(
+                f"Not enough space at '{parent}' to transfer '{src_basename}': "
+                f"need {needed / (1024**3):.2f} GiB ({needed} bytes), have {effective_free / (1024**3):.2f} GiB ({effective_free} bytes) free. Skipping."
+            )
+            return False
+
+        log_manager.debug(f"Space check OK: need {needed} bytes, have {effective_free} bytes free at '{parent}'.")
 
         log_manager.info(f"Moving '{src_basename}' to '{final_dst}'")
 
