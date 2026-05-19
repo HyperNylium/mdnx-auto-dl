@@ -129,7 +129,7 @@ class FileManager:
                 log_manager.error(f"Could not get size of existing destination file '{final_dst}': {e}")
                 return False
             effective_free = free + existing_size
-            log_manager.debug(f"Overwrite mode: simulating removal of '{final_dst}' ({existing_size} bytes); effective free would be {effective_free} bytes.")
+            log_manager.debug(f"Overwrite mode: simulating removal of '{final_dst}' ({existing_size} bytes): effective free would be {effective_free} bytes.")
 
             if effective_free < needed:
                 log_manager.error(
