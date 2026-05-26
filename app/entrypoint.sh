@@ -10,7 +10,6 @@ FREEZE="${FREEZE:-false}"
 
 BENTO4_URL="${BENTO4_URL:-https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/bento4.zip}"
 SHAKA_URL="${SHAKA_URL:-https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/shaka_packager.zip}"
-MDNX_URL="${MDNX_URL:-https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/mdnx.zip}"
 
 if [[ -z "$CONFIG_FILE" ]]; then
   CONFIG_CANDIDATES=(
@@ -126,9 +125,6 @@ setup_dep "Bento4" "bento4.zip" "bento4" "$BENTO4_URL"
 
 # Shaka Packager / shaka
 setup_dep "Shaka Packager" "shaka_packager.zip" "shaka_packager" "$SHAKA_URL"
-
-# multi-downloader-nx / aniDL
-setup_dep "MDNX CLI" "mdnx.zip" "mdnx/aniDL" "$MDNX_URL"
 
 # Create non-root user and start app with said user
 if ! getent group "$GROUP_ID" >/dev/null; then

@@ -1919,18 +1919,6 @@ environment:
     - BENTO4_URL=https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/bento4.zip
 ```
 
-### <a id="MDNX_URL"></a>MDNX_URL
-
-| Default | Description |
-| :--- | :--- |
-| `https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/mdnx.zip` | URL for downloading `mdnx.zip` if neither the file itself nor the extracted folder already exists. |
-
-YAML:
-```yaml
-environment:
-    - MDNX_URL=https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/mdnx.zip
-```
-
 ### <a id="SHAKA_URL"></a>SHAKA_URL
 
 | Default | Description |
