@@ -1,8 +1,31 @@
+[project]
+name = "mdnx-auto-dl"
+version = "3.0.0"
+description = "Automated downloader for MDNX and ZLO tools."
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "requests>=2.33.1",
+    "pydantic>=2.13.3",
+    "PyYAML>=6.0.3",
+    "alembic>=1.18.4",
+    "SQLAlchemy>=2.0.19",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.12",
+]
+
+[tool.uv]
+package = false
+
 [tool.ruff]
 line-length = 100
 target-version = "py313"
-
 preview = true
+extend-exclude = [
+  "app/appdata/modules/db/alembic/versions"  # auto generated alembic migration files
+]
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "B", "UP", "RUF"]

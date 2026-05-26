@@ -1,13 +1,19 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class DestinationConfig(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    dir: str = Field(min_length=1)
+    folder_structure: str = Field(min_length=1)
+
+
 class AppConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
     temp_dir: str = Field("/app/appdata/temp", alias="TEMP_DIR")
     bin_dir: str = Field("/app/appdata/bin", alias="BIN_DIR")
     log_dir: str = Field("/app/appdata/logs", alias="LOG_DIR")
-    data_dir: str = Field("/data", alias="DATA_DIR")
 
     cr_enabled: bool = Field(False, alias="CR_ENABLED")
     cr_username: str = Field("", alias="CR_USERNAME")
@@ -17,11 +23,15 @@ class AppConfig(BaseModel):
     hidive_username: str = Field("", alias="HIDIVE_USERNAME")
     hidive_password: str = Field("", alias="HIDIVE_PASSWORD")
 
+    adn_enabled: bool = Field(False, alias="ADN_ENABLED")
+    adn_username: str = Field("", alias="ADN_USERNAME")
+    adn_password: str = Field("", alias="ADN_PASSWORD")
+
+    zlo_cr_enabled: bool = Field(False, alias="ZLO_CR_ENABLED")
+    zlo_hidive_enabled: bool = Field(False, alias="ZLO_HIDIVE_ENABLED")
+    zlo_adn_enabled: bool = Field(False, alias="ZLO_ADN_ENABLED")
+
     backup_dubs: list[str] = Field(["zho"], alias="BACKUP_DUBS")
-    folder_structure: str = Field(
-        "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
-        alias="FOLDER_STRUCTURE",
-    )
 
     check_missing_dub_sub: bool = Field(True, alias="CHECK_MISSING_DUB_SUB")
     check_for_updates_interval: int = Field(3600, alias="CHECK_FOR_UPDATES_INTERVAL")
@@ -31,6 +41,8 @@ class AppConfig(BaseModel):
     cr_skip_api_test: bool = Field(False, alias="CR_SKIP_API_TEST")
     hidive_force_reauth: bool = Field(False, alias="HIDIVE_FORCE_REAUTH")
     hidive_skip_api_test: bool = Field(False, alias="HIDIVE_SKIP_API_TEST")
+    adn_force_reauth: bool = Field(False, alias="ADN_FORCE_REAUTH")
+    clear_queue: bool = Field(False, alias="CLEAR_QUEUE")
 
     only_create_queue: bool = Field(False, alias="ONLY_CREATE_QUEUE")
     skip_queue_refresh: bool = Field(False, alias="SKIP_QUEUE_REFRESH")
@@ -75,7 +87,7 @@ class MdnxBinPath(BaseModel):
     ffmpeg: str = "ffmpeg"
     ffprobe: str = "ffprobe"
     mkvmerge: str = "mkvmerge"
-    mp4decrypt: str = "/app/appdata/bin/Bento4-SDK/mp4decrypt"
+    mp4decrypt: str = "/app/appdata/bin/bento4/mp4decrypt"
 
 
 class MdnxCliDefaults(BaseModel):
@@ -104,11 +116,39 @@ class MdnxConfig(BaseModel):
     dir_path: MdnxDirPath = Field(default_factory=MdnxDirPath, alias="dir-path")
 
 
+class ZloServiceConfig(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    q: str = "1080p@avc"
+    qf: bool = True
+    dubLang: list[str] = ["JP", "EN"]
+    dlsubs: list[str] = ["EN"]
+    backup_dubs: list[str] = Field(default_factory=list)
+    dlpath: str = "/app/appdata/temp"
+    tempPath: str = "/tmp"
+
+
+class ZloConfig(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    crunchyroll: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
+    hidive: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
+    adn: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
+
+
 class Config(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
     hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    adn_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+
+    zlo_cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    zlo_hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    zlo_adn_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+
+    destinations: dict[str, DestinationConfig] = Field(default_factory=dict)
 
     app: AppConfig = Field(default_factory=AppConfig)
     mdnx: MdnxConfig = Field(default_factory=MdnxConfig)
+    zlo: ZloConfig = Field(default_factory=ZloConfig)
