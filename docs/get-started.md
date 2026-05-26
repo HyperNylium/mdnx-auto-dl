@@ -35,9 +35,8 @@ Please do not open issues asking for these files. I can not give, nor instruct y
 ### 4) Provide the aniDL binary (multi-downloader-nx)
 You must provide your own aniDL binary if you plan to enable any MDNX service (Crunchyroll, HiDive, or ADN through multi-downloader-nx). Skip this step if you only use ZLO services.
 
-- Download `multi-downloader-nx-linux-x64-cli.7z` from [multi-downloader-nx releases](https://github.com/anidl/multi-downloader-nx/releases).
-- Extract and ONLY place the `aniDL` binary at `./appdata/mdnx/aniDL` on your host.
-- Make it executable: `chmod +x ./appdata/mdnx/aniDL`
+- Download `multi-downloader-nx-linux-x64-cli.7z` from [multi-downloader-nx releases](https://github.com/anidl/multi-downloader-nx/releases/latest).
+- Extract and place ONLY the `aniDL` binary at `./appdata/mdnx/aniDL` on your host.
 - Uncomment the **multi-downloader-nx aniDL binary** bind-mount in `docker-compose.yaml`:
   ```yaml
   - ./appdata/mdnx/aniDL:/app/appdata/bin/mdnx/aniDL:rw
