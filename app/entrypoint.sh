@@ -155,7 +155,7 @@ ln -sfn "/usr/bin/mkvpropedit" "/app/appdata/bin/zlo/static/mkvmerge/mkvpropedit
 
 # Check if any ZLO services are enabled in the config to determine if we need to fix permissions on ZLO paths
 ZLO_ENABLED=false
-for zlo_flag in ZLO_CR_ENABLED ZLO_HIDIVE_ENABLED ZLO_ADN_ENABLED ZLO_DISNEYPLUS_ENABLED ZLO_AMAZON_ENABLED; do
+for zlo_flag in ZLO_CR_ENABLED ZLO_HIDIVE_ENABLED ZLO_ADN_ENABLED; do
   flag_value="$(read_config "$zlo_flag" "false")"
   if [[ "${flag_value,,}" == "true" ]]; then
     ZLO_ENABLED=true

@@ -30,8 +30,6 @@ class AppConfig(BaseModel):
     zlo_cr_enabled: bool = Field(False, alias="ZLO_CR_ENABLED")
     zlo_hidive_enabled: bool = Field(False, alias="ZLO_HIDIVE_ENABLED")
     zlo_adn_enabled: bool = Field(False, alias="ZLO_ADN_ENABLED")
-    zlo_disneyplus_enabled: bool = Field(False, alias="ZLO_DISNEYPLUS_ENABLED")
-    zlo_amazon_enabled: bool = Field(False, alias="ZLO_AMAZON_ENABLED")
 
     backup_dubs: list[str] = Field(["zho"], alias="BACKUP_DUBS")
 
@@ -136,8 +134,6 @@ class ZloConfig(BaseModel):
     crunchyroll: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
     hidive: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
     adn: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
-    disneyplus: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
-    amazon: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
 
 
 class Config(BaseModel):
@@ -150,8 +146,6 @@ class Config(BaseModel):
     zlo_cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
     zlo_hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
     zlo_adn_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    zlo_disneyplus_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    zlo_amazon_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
 
     destinations: dict[str, DestinationConfig] = Field(default_factory=dict)
 

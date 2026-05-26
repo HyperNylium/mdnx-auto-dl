@@ -11,7 +11,7 @@
 # Where:
 #   downloader  -> "mdnx" or "zlo"
 #   service     -> mdnx: crunchyroll | hidive | adn
-#                  zlo : crunchyroll | hidive | adn | disneyplus | amazon
+#                  zlo : crunchyroll | hidive | adn
 #   series_id   -> the series id the parser already returns
 #   season_key  -> "S<n>" using the service's season number (NOT the post-renumber S1/S2/S3 the parser may map to).
 #   entry       -> for MDNX:  a number ("7") or a range ("3-5")
@@ -40,5 +40,3 @@ zlo:
       S3: ["1"]  # skip "Hoshina's Day Off"
   hidive: {}
   adn: {}
-  disneyplus: {}
-  amazon: {}

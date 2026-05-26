@@ -206,16 +206,6 @@ def app():
                 from appdata.modules.API.ZLO7.adn import ADN_ZLO_API
                 zlo_service.api = ADN_ZLO_API()
 
-            case "zlo-disneyplus":
-                log_manager.info("Starting DISNEY_ZLO_API...")
-                from appdata.modules.API.ZLO7.disney import DISNEY_ZLO_API
-                zlo_service.api = DISNEY_ZLO_API()
-
-            case "zlo-amazon":
-                log_manager.info("Starting AMAZON_ZLO_API...")
-                from appdata.modules.API.ZLO7.amazon import AMAZON_ZLO_API
-                zlo_service.api = AMAZON_ZLO_API()
-
     mainloop = MainLoop(notifier=notifier)
 
     def shutdown(signum, frame):

@@ -111,8 +111,6 @@ def output_effective_config(config: Config, max_chunk: int = 8000):
         "zlo_cr_monitor_series_id",
         "zlo_hidive_monitor_series_id",
         "zlo_adn_monitor_series_id",
-        "zlo_disneyplus_monitor_series_id",
-        "zlo_amazon_monitor_series_id",
         "mdnx",
         "zlo"
     }
@@ -230,26 +228,6 @@ SERVICES = Services(
             monitor_series_id=config.zlo_adn_monitor_series_id,
             monitor_config_key="zlo_adn_monitor_series_id",
             enabled=config.app.zlo_adn_enabled
-        ),
-        disneyplus=Service(
-            service_name="zlo-disneyplus",
-            queue_bucket="ZLO-DisneyPlus",
-            display_name="ZLO DisneyPlus",
-            tool="zlo",
-            config=config.zlo.disneyplus,
-            monitor_series_id=config.zlo_disneyplus_monitor_series_id,
-            monitor_config_key="zlo_disneyplus_monitor_series_id",
-            enabled=config.app.zlo_disneyplus_enabled
-        ),
-        amazon=Service(
-            service_name="zlo-amazon",
-            queue_bucket="ZLO-Amazon",
-            display_name="ZLO Amazon",
-            tool="zlo",
-            config=config.zlo.amazon,
-            monitor_series_id=config.zlo_amazon_monitor_series_id,
-            monitor_config_key="zlo_amazon_monitor_series_id",
-            enabled=config.app.zlo_amazon_enabled
         )
     )
 )
@@ -522,9 +500,7 @@ def validate_destinations() -> None:
         "adn": config.app.adn_enabled,
         "zlo-crunchyroll": config.app.zlo_cr_enabled,
         "zlo-hidive": config.app.zlo_hidive_enabled,
-        "zlo-adn": config.app.zlo_adn_enabled,
-        "zlo-disneyplus": config.app.zlo_disneyplus_enabled,
-        "zlo-amazon": config.app.zlo_amazon_enabled
+        "zlo-adn": config.app.zlo_adn_enabled
     }
 
     missing_destinations = []
