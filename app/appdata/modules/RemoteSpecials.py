@@ -37,7 +37,7 @@ def _expand_range(range_match: re.Match) -> set[str]:
 
 class RemoteSpecials:
     def __init__(self) -> None:
-        self._url = os.getenv("REMOTE_SPECIALS_URL", "https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/dev/remote-specials.yaml").strip()
+        self._url = os.getenv("REMOTE_SPECIALS_URL", "https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/remote-specials.yaml").strip()
 
         # (downloader, service, series_id, season_id) -> (numbers_set, ids_set)
         self._overrides: dict[tuple[str, str, str, str], tuple[set[str], set[str]]] = {}
