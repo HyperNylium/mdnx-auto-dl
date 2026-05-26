@@ -32,7 +32,20 @@ You must provide your own CDM. This is only required for multi-downloader-nx.
 For legal reasons we do not include the CDM with the software, and you will have to source one yourself.  
 Please do not open issues asking for these files. I can not give, nor instruct you on how to get these. Please Google around.
 
-### 4) Download a config file into `./appdata/config`
+### 4) Provide the aniDL binary (multi-downloader-nx)
+You must provide your own aniDL binary if you plan to enable any MDNX service (Crunchyroll, HiDive, or ADN through multi-downloader-nx). Skip this step if you only use ZLO services.
+
+- Download `multi-downloader-nx-linux-x64-cli.7z` from [multi-downloader-nx releases](https://github.com/anidl/multi-downloader-nx/releases).
+- Extract and ONLY place the `aniDL` binary at `./appdata/mdnx/aniDL` on your host.
+- Make it executable: `chmod +x ./appdata/mdnx/aniDL`
+- Uncomment the **multi-downloader-nx aniDL binary** bind-mount in `docker-compose.yaml`:
+  ```yaml
+  - ./appdata/mdnx/aniDL:/app/appdata/bin/mdnx/aniDL:rw
+  ```
+
+If MDNX is enabled in your config but this binary is missing at startup, the container will exit with a critical log line telling you where the binary is expected.
+
+### 5) Download a config file into `./appdata/config`
 You can use either JSON or YAML. Pick one.
 
 [`config.json`](https://github.com/HyperNylium/mdnx-auto-dl/blob/master/appdata/config/config.json):
@@ -49,7 +62,7 @@ wget https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/maste
 
 Both formats accept the same keys. The rest of this guide shows examples in JSON, but YAML works the same way (see [config-options.md](config-options.md) for side-by-side examples).
 
-### 5) Set where each provider saves its files
+### 6) Set where each provider saves its files
 The config file has a top-level `destinations` section. Each provider you enable needs an entry that tells the app where to put finished files inside the container, and how to name the folders.
 
 The shipped config already has one entry per provider, pointing at `/data/Anime` or `/data/TV Shows`. Both of those paths are mounted by the default `docker-compose.yaml`. If you only enable a few providers, you can delete the entries for the ones you do not use.

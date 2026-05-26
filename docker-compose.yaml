@@ -4,14 +4,16 @@ services:
     container_name: mdnx-auto-dl
     restart: unless-stopped
     volumes:
-      # log file location
-      - ./appdata/logs:/app/appdata/logs:rw
+
+      ##########################
+      ### mdnx-auto-dl stuff ###
+      ##########################
 
       # mdnx-auto-dl config location.
       - ./appdata/config:/app/appdata/config:rw
 
-      # multi-download-nx config location
-      - ./appdata/mdnx/config:/app/appdata/bin/mdnx/config:rw
+      # log file location
+      - ./appdata/logs:/app/appdata/logs:rw
 
       # plex/jellyfin library storage location(s).
       # Make sure you add the container path (e.g, "/data/Anime" part) to your config's destinations.<service>.dir
@@ -22,9 +24,16 @@ services:
       - ./appdata/data/Anime:/data/Anime:rw
       - ./appdata/data/TV Shows:/data/TV Shows:rw
 
-      ### This is the CDM section that is required in order to run.
-      ### Please choose what CDM you have (widevine or playready)
-      ### and uncomment the correct bind-mount with your .bin/.pem files or .prd file inside.
+
+      ###########################
+      ### multi-downloader-nx ###
+      ###########################
+
+      # multi-downloader-nx linux x64 CLI binary ("aniDL" is the binary)
+      - ./appdata/mdnx/aniDL:/app/appdata/bin/mdnx/aniDL:rw
+
+      # multi-download-nx config location
+      - ./appdata/mdnx/config:/app/appdata/bin/mdnx/config:rw
 
       ## Widevine
       #- ./appdata/mdnx/widevine:/app/appdata/bin/mdnx/widevine:rw
@@ -33,7 +42,9 @@ services:
       #- ./appdata/mdnx/playready:/app/appdata/bin/mdnx/playready:rw
 
 
-      ### ZLO config (do not uncomment/use yet) ###
+      ############
+      ### ZLO7 ###
+      ############
 
       # ZLO CLI binary
       #- ./appdata/zlo/zlo7:/app/appdata/bin/zlo/zlo7:rw

@@ -6,6 +6,7 @@ from appdata.modules.MainLoop import MainLoop
 from appdata.modules.Globals import file_manager, log_manager, queue_manager
 from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
 from appdata.modules.API.MDNX._shared import (
+    MDNX_SERVICE_BIN_PATH,
     MDNX_SERVICE_CR_TOKEN_PATH, MDNX_SERVICE_HIDIVE_TOKEN_PATH, MDNX_SERVICE_ADN_TOKEN_PATH,
     MDNX_SERVICE_PLAYREADY_PATH, MDNX_SERVICE_WIDEVINE_PATH,
     update_mdnx_config
@@ -33,6 +34,10 @@ def app():
 
     # check if user has a widevine or playready CDM, and do checks to see if they are valid.
     if MDNX_ENABLED:
+        if not os.path.isfile(MDNX_SERVICE_BIN_PATH):
+            log_manager.critical(f"MDNX is enabled, but the aniDL binary was not found at: {MDNX_SERVICE_BIN_PATH}\nPlease mount the aniDL binary and restart the application.")
+            sys.exit(1)
+
         update_mdnx_config()
 
         if config.app.skip_cdm_check is False:
