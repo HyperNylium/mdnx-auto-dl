@@ -44,7 +44,7 @@ class ADN_ZLO_API:
 
         log_manager.debug(f"Monitoring series with ID: {series_id}")
 
-        tmp_cmd = [self.zlo_path, "--service", self.zlo_service, "--srz", series_id, "--full", "--jsonOutput", self.json_path]
+        tmp_cmd = [self.zlo_path, "--service", self.zlo_service, "--srz", series_id, "--full", "--workers", "1", "--jsonOutput", self.json_path]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8", cwd=self.zlo_working_dir)
         log_manager.debug(f"Console output for start_monitor process:\n{result.stdout}")
 
@@ -79,7 +79,7 @@ class ADN_ZLO_API:
 
         log_manager.debug(f"Updating monitor for series with ID: {series_id}")
 
-        tmp_cmd = [self.zlo_path, "--service", self.zlo_service, "--srz", series_id, "--full", "--jsonOutput", self.json_path]
+        tmp_cmd = [self.zlo_path, "--service", self.zlo_service, "--srz", series_id, "--full", "--workers", "1", "--jsonOutput", self.json_path]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8", cwd=self.zlo_working_dir)
         log_manager.debug(f"Console output for update_monitor process:\n{result.stdout}")
 
