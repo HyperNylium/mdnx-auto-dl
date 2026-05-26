@@ -165,36 +165,25 @@ appdata/logs/*
 !appdata/logs/.gitkeep
 
 # mdnx-auto-dl data
-appdata/data/*
-!appdata/data/.gitkeep
+appdata/data/Anime/*
+!appdata/data/Anime/.gitkeep
+appdata/data/TV Shows/*
+!appdata/data/TV Shows/.gitkeep
 
-# mdnx-auto-dl config
+# multi-downloader-nx config
 appdata/mdnx/config/*
 !appdata/mdnx/config/.gitkeep
 
-# mdnx-auto-dl widevine CDM location
+# multi-downloader-nx widevine CDM location
 appdata/mdnx/widevine/*
 !appdata/mdnx/widevine/.gitkeep
 
-# mdnx-auto-dl playready CDM location
+# multi-downloader-nx playready CDM location
 appdata/mdnx/playready/*
 !appdata/mdnx/playready/.gitkeep
 
-# zlo CDMs
-appdata/zlo/cdm/playready/SL2K/*
-!appdata/zlo/cdm/playready/SL2K/.gitkeep
-
-appdata/zlo/cdm/playready/SL3K/hisense/*
-!appdata/zlo/cdm/playready/SL3K/hisense/.gitkeep
-
-appdata/zlo/cdm/playready/SL3K/sharp/*
-!appdata/zlo/cdm/playready/SL3K/sharp/.gitkeep
-
-appdata/zlo/cdm/widevine/L1/*
-!appdata/zlo/cdm/widevine/L1/.gitkeep
-
-appdata/zlo/cdm/widevine/L3/*
-!appdata/zlo/cdm/widevine/L3/.gitkeep
+# multi-downloader-nx linux CLI binary
+appdata/mdnx/aniDL
 
 # zlo config which includes GUI settings, service auth, default dubs/subs, etc.
 appdata/zlo/config/*
@@ -203,6 +192,10 @@ appdata/zlo/config/*
 # zlo binary
 appdata/zlo/zlo7
 
+# mdnx-auto-dl runtime SQLite queue
+appdata/config/queue.db
+appdata/config/queue.db-wal
+appdata/config/queue.db-shm
 
+# my stuff
 notes.txt
-/__personal_helpers

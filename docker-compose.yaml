@@ -4,30 +4,53 @@ services:
     container_name: mdnx-auto-dl
     restart: unless-stopped
     volumes:
-      # log file location
-      - ./appdata/logs:/app/appdata/logs:rw
+
+      ####################
+      ### mdnx-auto-dl ###
+      ####################
 
       # mdnx-auto-dl config location.
       - ./appdata/config:/app/appdata/config:rw
 
+      # log file location
+      - ./appdata/logs:/app/appdata/logs:rw
+
+      # plex/jellyfin library storage location(s).
+      # Make sure you add the container path (e.g, "/data/Anime" part) to your config's destinations.<service>.dir
+      # and set a folder structure that matches what you have in your media server library
+      # Examples:
+      #- /mnt/plexdata/Anime:/data/Anime:rw 
+      #- /mnt/plexdata/TV Shows:/data/TV Shows:rw
+      - ./appdata/data/Anime:/data/Anime:rw
+      - ./appdata/data/TV Shows:/data/TV Shows:rw
+
+
+      ###########################
+      ### multi-downloader-nx ###
+      ###########################
+
+      # multi-downloader-nx linux x64 CLI binary ("aniDL" is the binary)
+      #- ./appdata/mdnx/aniDL:/app/appdata/bin/mdnx/aniDL:rw
+
       # multi-download-nx config location
-      - ./appdata/mdnx/config:/app/appdata/bin/mdnx/config:rw
-
-      # plex/jellyfin/emby anime storage location.
-      # Only modify the left side, not the right.
-      # Example:
-      #- /mnt/plexdata/Anime:/data:rw
-      - ./appdata/data:/data:rw
-
-      ### This is the CDM section that is required in order to run.
-      ### Please choose what CDM you have (widevine or playready)
-      ### and uncomment the correct bind-mount with your .bin/.pem files or .prd file inside.
+      #- ./appdata/mdnx/config:/app/appdata/bin/mdnx/config:rw
 
       ## Widevine
       #- ./appdata/mdnx/widevine:/app/appdata/bin/mdnx/widevine:rw
 
       ## Playready
       #- ./appdata/mdnx/playready:/app/appdata/bin/mdnx/playready:rw
+
+
+      ############
+      ### ZLO7 ###
+      ############
+
+      # ZLO linux x64 CLI binary ("zlo7" is the binary)
+      #- ./appdata/zlo/zlo7:/app/appdata/bin/zlo/zlo7:rw
+
+      # ZLO config dir (C:/Users/[user]/Documents/zlo7/*)
+      #- ./appdata/zlo/config:/home/mdnx-auto-dl/Documents/zlo7:rw
 
     environment:
       - UID=1000

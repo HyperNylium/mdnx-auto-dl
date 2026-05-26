@@ -1,0 +1,86 @@
+cr_monitor_series_id: {}
+hidive_monitor_series_id: {}
+adn_monitor_series_id: {}
+zlo_cr_monitor_series_id: {}
+zlo_hidive_monitor_series_id: {}
+zlo_adn_monitor_series_id: {}
+
+destinations:
+    crunchyroll:
+        dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    hidive:
+        dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    adn:
+        dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    zlo-crunchyroll:
+        dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    zlo-hidive:
+        dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    zlo-adn:
+        dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+
+app:
+    CR_ENABLED: false
+    CR_USERNAME: ""
+    CR_PASSWORD: ""
+    HIDIVE_ENABLED: false
+    HIDIVE_USERNAME: ""
+    HIDIVE_PASSWORD: ""
+    ADN_ENABLED: false
+    ADN_USERNAME: ""
+    ADN_PASSWORD: ""
+    BACKUP_DUBS:
+        - "zho"
+    CHECK_MISSING_DUB_SUB: true
+    CHECK_FOR_UPDATES_INTERVAL: 3600
+    EPISODE_DL_DELAY: 30
+    LOG_LEVEL: "info"
+
+mdnx:
+    cli-defaults:
+        q: 0
+        partsize: 3
+        dubLang:
+            - "jpn"
+            - "eng"
+        dlsubs:
+            - "en"
+        defaultAudio: "jpn"
+        defaultSub: "eng"
+        vstream: "androidtv"
+        astream: "androidtv"
+        tsd: false
+
+zlo:
+    crunchyroll:
+        q: "1080p@avc"
+        qf: true
+        dubLang:
+            - "JP"
+            - "EN"
+        dlsubs:
+            - "EN"
+
+    hidive:
+        q: "1080p@avc"
+        qf: true
+        dubLang:
+            - "JP"
+            - "EN"
+        dlsubs:
+            - "EN"
+
+    adn:
+        q: "1080p@avc"
+        qf: true
+        dubLang:
+            - "JP"
+            - "EN"
+        dlsubs:
+            - "EN"

@@ -15,7 +15,7 @@ LEVEL_VALUES = {
     "INFO": 20,
     "WARNING": 30,
     "ERROR": 40,
-    "CRITICAL": 50,
+    "CRITICAL": 50
 }
 
 
@@ -24,12 +24,11 @@ class LogManager:
         self.log_dir = LOG_DIR
         self.log_file = os.path.join(self.log_dir, "mdnx-auto-dl.log")
 
-        # make sure log directory exists
         os.makedirs(self.log_dir, exist_ok=True)
 
         # normalize log level from config (defaults to INFO)
         self.min_level = LEVEL_VALUES.get(
-            str(config.app.log_level).upper(),
+            config.app.log_level.upper(),
             LEVEL_VALUES["INFO"]
         )
 
@@ -75,8 +74,8 @@ class LogManager:
             if os.path.getsize(self.log_file) == 0:
                 return
 
-            self._archive_current_log_locked()
-            self._prune_archives_locked()
+            self._archive_current_log()
+            self._prune_archives()
 
         return
 
@@ -91,14 +90,11 @@ class LogManager:
             level_name = "INFO"
             level_value = LEVEL_VALUES["INFO"]
 
-        # level filtering
         if level_value < self.min_level:
             return
 
-        # get caller module and function
         filename, funcname = self._get_caller()
 
-        # timestamp
         # time_str: 6:00:00 AM
         # date_str: 11/19/2025
         now = datetime.now(ZoneInfo(TZ))
@@ -142,7 +138,7 @@ class LogManager:
 
         return None
 
-    def _archive_current_log_locked(self) -> None:
+    def _archive_current_log(self) -> None:
         """Archives the current log file into a zip with a timestamped name."""
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -162,7 +158,7 @@ class LogManager:
                 pass
         return
 
-    def _prune_archives_locked(self) -> None:
+    def _prune_archives(self) -> None:
         """Deletes oldest log archives if exceeding max_archives limit."""
 
         log_basename = os.path.basename(self.log_file)

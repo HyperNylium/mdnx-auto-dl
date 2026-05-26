@@ -6,3 +6,6 @@ file_manager = FileManager()
 
 from .QueueManager import QueueManager  # noqa: E402
 queue_manager = QueueManager()
+
+from .RemoteSpecials import RemoteSpecials  # noqa: E402
+remote_specials = RemoteSpecials()
