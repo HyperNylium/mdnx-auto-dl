@@ -69,8 +69,6 @@ class ZloServices(BaseModel):
     crunchyroll: Service
     hidive: Service
     adn: Service
-    disneyplus: Service
-    amazon: Service
 
     def all(self) -> list[Service]:
         """Return every ZLO service as a flat list for iteration."""
@@ -78,9 +76,7 @@ class ZloServices(BaseModel):
         return [
             self.crunchyroll,
             self.hidive,
-            self.adn,
-            self.disneyplus,
-            self.amazon
+            self.adn
         ]
 
 

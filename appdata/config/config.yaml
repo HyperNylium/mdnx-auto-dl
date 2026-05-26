@@ -4,8 +4,6 @@ adn_monitor_series_id: {}
 zlo_cr_monitor_series_id: {}
 zlo_hidive_monitor_series_id: {}
 zlo_adn_monitor_series_id: {}
-zlo_disneyplus_monitor_series_id: {}
-zlo_amazon_monitor_series_id: {}
 
 destinations:
     crunchyroll:
@@ -25,12 +23,6 @@ destinations:
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
     zlo-adn:
         dir: "/data/Anime"
-        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
-    zlo-disneyplus:
-        dir: "/data/TV Shows"
-        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
-    zlo-amazon:
-        dir: "/data/TV Shows"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
 
 app:
@@ -89,22 +81,6 @@ zlo:
         qf: true
         dubLang:
             - "JP"
-            - "EN"
-        dlsubs:
-            - "EN"
-
-    disneyplus:
-        q: "1080p@avc"
-        qf: true
-        dubLang:
-            - "EN"
-        dlsubs:
-            - "EN"
-
-    amazon:
-        q: "1080p@avc"
-        qf: true
-        dubLang:
             - "EN"
         dlsubs:
             - "EN"
