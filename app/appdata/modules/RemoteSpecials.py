@@ -163,8 +163,6 @@ class RemoteSpecials:
         total += self._ingest_service("zlo", "crunchyroll", cfg.zlo.crunchyroll, self._classify_zlo_entry)
         total += self._ingest_service("zlo", "hidive", cfg.zlo.hidive, self._classify_zlo_entry)
         total += self._ingest_service("zlo", "adn", cfg.zlo.adn, self._classify_zlo_entry)
-        total += self._ingest_service("zlo", "disneyplus", cfg.zlo.disneyplus, self._classify_zlo_entry)
-        total += self._ingest_service("zlo", "amazon", cfg.zlo.amazon, self._classify_zlo_entry)
 
         log_manager.info(f"loaded {total} entries across {len(self._overrides)} season slots.")
 

@@ -19,8 +19,6 @@ class ZloRemoteSpecials(BaseModel):
     crunchyroll: SeriesMap = Field(default_factory=dict)
     hidive: SeriesMap = Field(default_factory=dict)
     adn: SeriesMap = Field(default_factory=dict)
-    disneyplus: SeriesMap = Field(default_factory=dict)
-    amazon: SeriesMap = Field(default_factory=dict)
 
 
 class RemoteSpecialsConfig(BaseModel):

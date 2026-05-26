@@ -9,9 +9,9 @@ Both formats accept the exact same keys and values. Every option in this doc sho
 The config file has a few top-level sections:
 - `app`: every UPPER_CASE option in this doc lives here.
 - `destinations`: where each service saves its files. One entry per service. Each entry has a `dir` and a `folder_structure`.
-- `cr_monitor_series_id`, `hidive_monitor_series_id`, `adn_monitor_series_id`, `zlo_cr_monitor_series_id`, `zlo_hidive_monitor_series_id`, `zlo_adn_monitor_series_id`, `zlo_disneyplus_monitor_series_id`, `zlo_amazon_monitor_series_id`: top-level (not under `app`). These hold the series IDs you want to watch per service.
+- `cr_monitor_series_id`, `hidive_monitor_series_id`, `adn_monitor_series_id`, `zlo_cr_monitor_series_id`, `zlo_hidive_monitor_series_id`, `zlo_adn_monitor_series_id`: top-level (not under `app`). These hold the series IDs you want to watch per service.
 - `mdnx`: passthrough config for [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx). Anything valid in `cli-defaults.yml` is valid here, as long as the option's `cli-default Entry` in [multi-downloader-nx's documentation](https://github.com/anidl/multi-downloader-nx/blob/master/docs/DOCUMENTATION.md) is not `NaN`.
-- `zlo`: per-service config for the ZLO downloader. Has subsections `crunchyroll`, `hidive`, `adn`, `disneyplus`, and `amazon`.
+- `zlo`: per-service config for the ZLO downloader. Has subsections `crunchyroll`, `hidive`, and `adn`.
 
 If you leave an option out of your config file, the application will use the default value listed in this doc.  
 The only config that doesnt have defaults is the `destinations` section. Every service you enable needs an entry in `destinations` or the app will exit with an error on startup. This is intentional to not make assumptions about where/how you want to save files.
@@ -60,8 +60,6 @@ Standard YAML formatting still applies:
     - [`ZLO_CR_ENABLED`](#ZLO_CR_ENABLED)
     - [`ZLO_HIDIVE_ENABLED`](#ZLO_HIDIVE_ENABLED)
     - [`ZLO_ADN_ENABLED`](#ZLO_ADN_ENABLED)
-    - [`ZLO_DISNEYPLUS_ENABLED`](#ZLO_DISNEYPLUS_ENABLED)
-    - [`ZLO_AMAZON_ENABLED`](#ZLO_AMAZON_ENABLED)
 - [Library and downloads](#library-and-downloads)
     - [`BACKUP_DUBS`](#BACKUP_DUBS)
     - [`CHECK_MISSING_DUB_SUB`](#CHECK_MISSING_DUB_SUB)
@@ -102,8 +100,6 @@ Standard YAML formatting still applies:
     - [`zlo_cr_monitor_series_id`](#zlo_cr_monitor_series_id)
     - [`zlo_hidive_monitor_series_id`](#zlo_hidive_monitor_series_id)
     - [`zlo_adn_monitor_series_id`](#zlo_adn_monitor_series_id)
-    - [`zlo_disneyplus_monitor_series_id`](#zlo_disneyplus_monitor_series_id)
-    - [`zlo_amazon_monitor_series_id`](#zlo_amazon_monitor_series_id)
 - [ZLO per-service options](#zlo-per-service-options)
     - [`q`](#zlo.q)
     - [`qf`](#zlo.qf)
@@ -134,7 +130,6 @@ Standard YAML formatting still applies:
     - [`CONFIG_FILE`](#CONFIG_FILE)
     - [`QUEUE_DB_FILE`](#QUEUE_DB_FILE)
     - [`BENTO4_URL`](#BENTO4_URL)
-    - [`MDNX_URL`](#MDNX_URL)
     - [`SHAKA_URL`](#SHAKA_URL)
     - [`FREEZE`](#FREEZE)
     - [`REMOTE_SPECIALS_URL`](#REMOTE_SPECIALS_URL)
@@ -209,7 +204,7 @@ Each entry has two keys:
 - `folder_structure`: the layout for series, seasons, and episodes under `dir`.  
  See [Options for `folder_structure`](#options-for-folder_structure) for the variables you can use.
 
-Valid keys are: `crunchyroll`, `hidive`, `adn`, `zlo-crunchyroll`, `zlo-hidive`, `zlo-adn`, `zlo-disneyplus`, `zlo-amazon`.
+Valid keys are: `crunchyroll`, `hidive`, `adn`, `zlo-crunchyroll`, `zlo-hidive`, `zlo-adn`.
 
 JSON:
 ```json
@@ -237,14 +232,6 @@ JSON:
     "zlo-adn": {
         "dir": "/data/Anime",
         "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
-    },
-    "zlo-disneyplus": {
-        "dir": "/data/TV Shows",
-        "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
-    },
-    "zlo-amazon": {
-        "dir": "/data/TV Shows",
-        "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
     }
 }
 ```
@@ -269,12 +256,6 @@ destinations:
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
     zlo-adn:
         dir: "/data/Anime"
-        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
-    zlo-disneyplus:
-        dir: "/data/TV Shows"
-        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
-    zlo-amazon:
-        dir: "/data/TV Shows"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
 ```
 
@@ -548,7 +529,7 @@ app:
 
 ## ZLO services
 
-The five `ZLO_*_ENABLED` flags turn on the matching ZLO service. They all need a working `zlo7` linux CLI binary and an already-logged-in `settings` folder. See the ZLO sections in [get-started.md](get-started.md) for setup steps.
+The three `ZLO_*_ENABLED` flags turn on the matching ZLO service. They all need a working `zlo7` linux CLI binary and an already-logged-in `settings` folder. See the ZLO sections in [get-started.md](get-started.md) for setup steps.
 
 ZLO expects the user to handle auth from the GUI. So in order to use mdnx-auto-dl with ZLO, you need to do a manual login for each service you want to use, then copy your `settings` folder to whatever folder you mounted `/home/mdnx-auto-dl/Documents/zlo7` to.  
 mdnx-auto-dl **does NOT** handle auth/auth checking for ZLO.
@@ -605,42 +586,6 @@ YAML:
 ```yaml
 app:
     ZLO_ADN_ENABLED: true
-```
-
-### <a id="ZLO_DISNEYPLUS_ENABLED"></a>ZLO_DISNEYPLUS_ENABLED
-
-| Default | Type | Description |
-| :--- | :--- | :--- |
-| `false` | boolean | When `true`, enable the ZLO Disney+ service and monitor any series IDs in `zlo_disneyplus_monitor_series_id`. |
-
-JSON:
-```json
-"app": {
-    "ZLO_DISNEYPLUS_ENABLED": true
-}
-```
-YAML:
-```yaml
-app:
-    ZLO_DISNEYPLUS_ENABLED: true
-```
-
-### <a id="ZLO_AMAZON_ENABLED"></a>ZLO_AMAZON_ENABLED
-
-| Default | Type | Description |
-| :--- | :--- | :--- |
-| `false` | boolean | When `true`, enable the ZLO Amazon Prime Video service and monitor any series IDs in `zlo_amazon_monitor_series_id`. |
-
-JSON:
-```json
-"app": {
-    "ZLO_AMAZON_ENABLED": true
-}
-```
-YAML:
-```yaml
-app:
-    ZLO_AMAZON_ENABLED: true
 ```
 
 ---
@@ -1298,51 +1243,11 @@ zlo_adn_monitor_series_id:
     your-adn-series-id: {}
 ```
 
-### <a id="zlo_disneyplus_monitor_series_id"></a>zlo_disneyplus_monitor_series_id
-
-| Default | Type | Description |
-| :--- | :--- | :--- |
-| `{}` | object | Disney+ (ZLO) series IDs to monitor. Used when [`ZLO_DISNEYPLUS_ENABLED`](#ZLO_DISNEYPLUS_ENABLED) is `true`. |
-
-JSON:
-```json
-{
-    "zlo_disneyplus_monitor_series_id": {
-        "your-disney-series-id": {}
-    }
-}
-```
-YAML:
-```yaml
-zlo_disneyplus_monitor_series_id:
-    your-disney-series-id: {}
-```
-
-### <a id="zlo_amazon_monitor_series_id"></a>zlo_amazon_monitor_series_id
-
-| Default | Type | Description |
-| :--- | :--- | :--- |
-| `{}` | object | Amazon (ZLO) series IDs to monitor. Used when [`ZLO_AMAZON_ENABLED`](#ZLO_AMAZON_ENABLED) is `true`. |
-
-JSON:
-```json
-{
-    "zlo_amazon_monitor_series_id": {
-        "your-amazon-series-id": {}
-    }
-}
-```
-YAML:
-```yaml
-zlo_amazon_monitor_series_id:
-    your-amazon-series-id: {}
-```
-
 ---
 
 ## ZLO per-service options
 
-The `zlo` section in the config file has one subsection per ZLO service: `crunchyroll`, `hidive`, `adn`, `disneyplus`, and `amazon`. Each subsection takes the same keys, listed below.
+The `zlo` section in the config file has one subsection per ZLO service: `crunchyroll`, `hidive`, and `adn`. Each subsection takes the same keys, listed below.
 
 ### <a id="zlo.q"></a>q
 
@@ -1802,7 +1707,7 @@ Where `123456abcdef` in `/Items/123456abcdef/Refresh?Recursive=true` is the ID o
 
 This is great for when you want to skip downloading certain seasons or episodes from a series you are watching. An example use case is that you only want the simulcast season of One Piece and want to skip all the other seasons.
 
-The examples below use [`cr_monitor_series_id`](#cr_monitor_series_id), but the same rules apply to all other monitor maps ([`hidive_monitor_series_id`](#hidive_monitor_series_id), [`adn_monitor_series_id`](#adn_monitor_series_id), [`zlo_cr_monitor_series_id`](#zlo_cr_monitor_series_id), [`zlo_hidive_monitor_series_id`](#zlo_hidive_monitor_series_id), [`zlo_adn_monitor_series_id`](#zlo_adn_monitor_series_id), [`zlo_disneyplus_monitor_series_id`](#zlo_disneyplus_monitor_series_id), [`zlo_amazon_monitor_series_id`](#zlo_amazon_monitor_series_id)).
+The examples below use [`cr_monitor_series_id`](#cr_monitor_series_id), but the same rules apply to all other monitor maps ([`hidive_monitor_series_id`](#hidive_monitor_series_id), [`adn_monitor_series_id`](#adn_monitor_series_id), [`zlo_cr_monitor_series_id`](#zlo_cr_monitor_series_id), [`zlo_hidive_monitor_series_id`](#zlo_hidive_monitor_series_id), [`zlo_adn_monitor_series_id`](#zlo_adn_monitor_series_id)).
 
 The general format (JSON):
 ```json
