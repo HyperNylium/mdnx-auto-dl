@@ -170,17 +170,20 @@ appdata/data/Anime/*
 appdata/data/TV Shows/*
 !appdata/data/TV Shows/.gitkeep
 
-# mdnx-auto-dl config
+# multi-downloader-nx config
 appdata/mdnx/config/*
 !appdata/mdnx/config/.gitkeep
 
-# mdnx-auto-dl widevine CDM location
+# multi-downloader-nx widevine CDM location
 appdata/mdnx/widevine/*
 !appdata/mdnx/widevine/.gitkeep
 
-# mdnx-auto-dl playready CDM location
+# multi-downloader-nx playready CDM location
 appdata/mdnx/playready/*
 !appdata/mdnx/playready/.gitkeep
+
+# multi-downloader-nx linux CLI binary
+appdata/mdnx/aniDL
 
 # zlo config which includes GUI settings, service auth, default dubs/subs, etc.
 appdata/zlo/config/*
