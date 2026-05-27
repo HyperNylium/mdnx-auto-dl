@@ -1947,10 +1947,10 @@ environment:
 
 | Default | Description |
 | :--- | :--- |
-| `https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/dev/remote-specials.yaml` | HTTPS URL to a YAML file listing episodes that the per-service special episode detection misses. Fetched once per main loop pass. Each matched episode is dropped at parse time, just like a real special, so the rest of the episode numbers shift up. Set to `false` to turn the feature off with no network calls. The file format is documented inside `remote-specials.yaml` at the repo root, and the [get-started guide](get-started.md#remote-specials-override) walks through how to add an entry. |
+| `https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/remote-specials.yaml` | HTTPS URL to a YAML file listing episodes that the per-service special episode detection misses. Fetched once per main loop pass. Each matched episode is dropped at parse time, just like a real special, so the rest of the episode numbers shift up. Set to `false` to turn the feature off with no network calls. The file format is documented inside `remote-specials.yaml` at the repo root, and the [get-started guide](get-started.md#remote-specials-override) walks through how to add an entry. |
 
 YAML:
 ```yaml
 environment:
-    - REMOTE_SPECIALS_URL=https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/dev/remote-specials.yaml
+    - REMOTE_SPECIALS_URL=https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/remote-specials.yaml
 ```
