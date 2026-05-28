@@ -129,8 +129,6 @@ Standard YAML formatting still applies:
     - [`TZ`](#TZ)
     - [`CONFIG_FILE`](#CONFIG_FILE)
     - [`QUEUE_DB_FILE`](#QUEUE_DB_FILE)
-    - [`BENTO4_URL`](#BENTO4_URL)
-    - [`SHAKA_URL`](#SHAKA_URL)
     - [`FREEZE`](#FREEZE)
     - [`REMOTE_SPECIALS_URL`](#REMOTE_SPECIALS_URL)
 
@@ -1905,30 +1903,6 @@ YAML:
 ```yaml
 environment:
     - QUEUE_DB_FILE=appdata/config/queue.db
-```
-
-### <a id="BENTO4_URL"></a>BENTO4_URL
-
-| Default | Description |
-| :--- | :--- |
-| `https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/bento4.zip` | URL for downloading `bento4.zip` if neither the file itself nor the extracted folder already exists. |
-
-YAML:
-```yaml
-environment:
-    - BENTO4_URL=https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/bento4.zip
-```
-
-### <a id="SHAKA_URL"></a>SHAKA_URL
-
-| Default | Description |
-| :--- | :--- |
-| `https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/shaka_packager.zip` | URL for downloading `shaka_packager.zip` if neither the file itself nor the extracted binary already exists. |
-
-YAML:
-```yaml
-environment:
-    - SHAKA_URL=https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/shaka_packager.zip
 ```
 
 ### <a id="FREEZE"></a>FREEZE

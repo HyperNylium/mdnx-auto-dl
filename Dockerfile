@@ -13,14 +13,42 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates curl xz-utils && \
     rm -rf /var/lib/apt/lists/*
 
-RUN ARCH=$(dpkg --print-architecture) && \
-    mkdir -p /tmp/ff && \
-    curl -fL "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-${ARCH}-static.tar.xz" | \
+RUN mkdir -p /tmp/ff && \
+    curl -fL --retry 5 --retry-all-errors --connect-timeout 10 \
+        "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz" | \
     tar -xJ --strip-components=1 -C /tmp/ff && \
-    mv /tmp/ff/ffmpeg /usr/local/bin/ffmpeg && \
-    mv /tmp/ff/ffprobe /usr/local/bin/ffprobe && \
+    mv /tmp/ff/bin/ffmpeg /usr/local/bin/ffmpeg && \
+    mv /tmp/ff/bin/ffprobe /usr/local/bin/ffprobe && \
     chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe && \
     rm -rf /tmp/ff
+
+
+FROM debian:trixie-slim AS bento4
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates curl unzip && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /tmp/bento4 && \
+    curl -fL --retry 5 --retry-all-errors --connect-timeout 10 \
+        -o /tmp/bento4.zip \
+        "https://www.bok.net/Bento4/binaries/Bento4-SDK-1-6-0-641.x86_64-unknown-linux.zip" && \
+    unzip -q /tmp/bento4.zip -d /tmp/bento4 && \
+    mv /tmp/bento4/Bento4-SDK-1-6-0-641.x86_64-unknown-linux/bin/mp4decrypt /usr/local/bin/mp4decrypt && \
+    chmod +x /usr/local/bin/mp4decrypt && \
+    rm -rf /tmp/bento4 /tmp/bento4.zip
+
+
+FROM debian:trixie-slim AS shaka
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates curl && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN curl -fL --retry 5 --retry-all-errors --connect-timeout 10 \
+        -o /usr/local/bin/shaka \
+        "https://github.com/stratumadev/shaka-packager/releases/latest/download/packager-linux-x64" && \
+    chmod +x /usr/local/bin/shaka
 
 
 FROM python:3.13-slim
@@ -43,8 +71,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         curl \
         mkvtoolnix \
-        gosu \
-        unzip && \
+        gosu && \
     apt-get purge -y --auto-remove wget gnupg && \
     rm -rf /var/lib/apt/lists/*
 
@@ -54,6 +81,8 @@ USER root
 COPY --from=builder /app/.venv /app/.venv
 COPY --from=ffmpeg /usr/local/bin/ffmpeg /usr/local/bin/ffmpeg
 COPY --from=ffmpeg /usr/local/bin/ffprobe /usr/local/bin/ffprobe
+COPY --from=bento4 /usr/local/bin/mp4decrypt /app/appdata/bin/bento4/mp4decrypt
+COPY --from=shaka /usr/local/bin/shaka /app/appdata/bin/shaka_packager/shaka
 
 ENV PATH="/app/.venv/bin:$PATH"
 
