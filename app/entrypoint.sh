@@ -8,9 +8,6 @@ USERNAME=mdnx-auto-dl
 CONFIG_FILE="${CONFIG_FILE:-}"
 FREEZE="${FREEZE:-false}"
 
-BENTO4_URL="${BENTO4_URL:-https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/bento4.zip}"
-SHAKA_URL="${SHAKA_URL:-https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/app/appdata/bin/shaka_packager.zip}"
-
 if [[ -z "$CONFIG_FILE" ]]; then
   CONFIG_CANDIDATES=(
     "/app/appdata/config/config.json"
@@ -77,54 +74,12 @@ print(value)
 PY
 }
 
-setup_dep() {
-  local package_label="$1"
-  local zip_name="$2"
-  local extracted_check_path="$3"
-  local download_url="$4"
-
-  local zip_path="$BIN_DIR/$zip_name"
-  local temp_zip_path="$BIN_DIR/.${zip_name}.tmp"
-
-  if [[ -f "$zip_path" ]]; then
-    echo "[entrypoint] Extracting $package_label from $zip_path..."
-    unzip -oq "$zip_path" -d "$BIN_DIR"
-    rm -f "$zip_path"
-    return
-  fi
-
-  if [[ -e "$BIN_DIR/$extracted_check_path" ]]; then
-    echo "[entrypoint] $zip_name missing, but extracted path found at $BIN_DIR/$extracted_check_path. Skipping unzip."
-    return
-  fi
-
-  echo "[entrypoint] $package_label not found locally. Downloading from '$download_url'..."
-  if curl -fL --retry 5 --retry-all-errors --connect-timeout 10 -o "$temp_zip_path" "$download_url"; then
-    mv "$temp_zip_path" "$zip_path"
-    echo "[entrypoint] Extracting downloaded $package_label..."
-    unzip -oq "$zip_path" -d "$BIN_DIR"
-    rm -f "$zip_path"
-    return
-  fi
-
-  echo "[entrypoint] ERROR: failed to download $package_label from $download_url" >&2
-  rm -f "$temp_zip_path" || true
-  echo "[entrypoint] Please run 'docker compose down && docker compose up -d' to fix this."
-  exit 1
-}
-
 # Extract BIN_DIR (falls back to /app/appdata/bin if the key is null/absent)
 BIN_DIR="$(read_config "BIN_DIR" "/app/appdata/bin")"
 
 echo "[entrypoint] Using CONFIG_FILE=$CONFIG_FILE"
 echo "[entrypoint] Using BIN_DIR=$BIN_DIR"
 mkdir -p "$BIN_DIR"
-
-# Bento4-SDK / mp4decrypt
-setup_dep "Bento4" "bento4.zip" "bento4" "$BENTO4_URL"
-
-# Shaka Packager / shaka
-setup_dep "Shaka Packager" "shaka_packager.zip" "shaka_packager" "$SHAKA_URL"
 
 # Create non-root user and start app with said user
 if ! getent group "$GROUP_ID" >/dev/null; then
