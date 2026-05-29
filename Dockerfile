@@ -47,7 +47,7 @@ RUN apt-get update && \
 
 RUN curl -fL --retry 5 --retry-all-errors --connect-timeout 10 \
         -o /usr/local/bin/shaka \
-        "https://github.com/stratumadev/shaka-packager/releases/latest/download/packager-linux-x64" && \
+        "https://github.com/stratumadev/shaka-packager/releases/latest/download/shaka_decrypt-linux-x64" && \
     chmod +x /usr/local/bin/shaka
 
 
