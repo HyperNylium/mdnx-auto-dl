@@ -2,9 +2,12 @@ version: 2
 
 updates:
   - package-ecosystem: "uv"
-    directories:
-      - "/"
-      - "/__helpers/*"
+    directory: "/"
+    schedule:
+      interval: "daily"
+
+  - package-ecosystem: "uv"
+    directory: "/__helpers/*"
     schedule:
       interval: "daily"
 
