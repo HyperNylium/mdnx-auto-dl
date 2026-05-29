@@ -7,7 +7,7 @@ updates:
       interval: "daily"
 
   - package-ecosystem: "uv"
-    directory: "/__helpers/*"
+    directory: "/__helpers/CR_simulcast_config_gen"
     schedule:
       interval: "daily"
 
