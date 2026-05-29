@@ -1,8 +1,10 @@
 version: 2
 
 updates:
-  - package-ecosystem: "pip"
-    directory: "/"
+  - package-ecosystem: "uv"
+    directories:
+      - "/"
+      - "/__helpers/*"
     schedule:
       interval: "daily"
 
