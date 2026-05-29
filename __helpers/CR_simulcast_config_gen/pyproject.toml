@@ -3,7 +3,7 @@ name = "cr-simulcast-config-gen"
 version = "1"
 requires-python = ">=3.11"
 dependencies = [
-    "beautifulsoup4==4.14"
+    "beautifulsoup4==4.14.3"
 ]
 
 [tool.uv]
