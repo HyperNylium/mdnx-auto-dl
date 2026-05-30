@@ -19,11 +19,15 @@ You can track progress of things [here](https://github.com/users/HyperNylium/pro
 
 [Multi-downloader-nx](https://github.com/anidl/multi-downloader-nx)
 
+ZLO7
+
 [FFmpeg](https://ffmpeg.org/)
 
 [MKVToolNix](https://mkvtoolnix.download/)
 
 [Bento4-SDK](https://www.bento4.com/)
+
+[Shaka Packager](https://github.com/stratumadev/shaka-packager)
 
 # License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
