@@ -1,14 +1,25 @@
-# Byte-code & venvs
+# Python bytecode & virtual environments
 __pycache__/
 *.py[cod]
 .venv/
-.env/
+.env
 
-# Git & editors
+# Git & CI
 .git/
 .gitignore
-.idea/
-.vscode/
+.gitattributes
+.github/
 
 # OS junk
 .DS_Store
+
+# Editors
+.idea/
+.vscode/
+
+# other unnecessary files/folders
+docs/
+__helpers/
+*.md
+LICENSE
+docker-compose.yaml
