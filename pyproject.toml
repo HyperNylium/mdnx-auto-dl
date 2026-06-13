@@ -1,6 +1,6 @@
 [project]
 name = "mdnx-auto-dl"
-version = "3.0.2"
+version = "3.0.3"
 description = "Automated downloader for MDNX and ZLO tools."
 requires-python = ">=3.13,<3.14"
 dependencies = [
