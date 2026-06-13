@@ -6,7 +6,7 @@
 This application is not endorsed by or affiliated with *Crunchyroll*, *Hidive* or *AnimationDigitalNetwork*. This application enables you to download videos for offline viewing which may be forbidden by law in your country. The usage of this application may also cause a violation of the *Terms of Service* between you and the stream provider. This tool is not responsible for your actions; please make an informed decision before using this application.
 
 # What is this?
-MDNX-auto-dl is a free and open-source application that automatically downloads anime episodes from Crunchyroll and HiDive as they are released using [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx)
+MDNX-auto-dl is a free and open-source application that automatically downloads episodes from Crunchyroll, HiDive and AnimationDigitalNetwork (ADN) as they are released using [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) or ZLO7 as the backend. It is designed to be easy to use and highly customizable, allowing you to specify which shows you want to download, where you want to save them, and how you want them organized.
 
 # Get started
 To get started, have a look at [docs/get-started.md](get-started.md)
