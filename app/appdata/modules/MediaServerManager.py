@@ -23,7 +23,7 @@ class PLEX_API:
         self.url_override = config.app.plex_url_override
 
         if self.server_url is None or self.server_url == "":
-            log_manager.error("PLEX_URL is not set or empty. Please set it in config.json. Exiting...")
+            log_manager.error("PLEX_URL is not set or empty. Please set it in your config. Exiting...")
             sys.exit(1)
 
         if isinstance(self.server_url, str):
@@ -202,7 +202,7 @@ class PLEX_API:
             return None
 
     def _store_token(self, token) -> None:
-        """Store the token in config.json."""
+        """Store the token in users config."""
 
         ok = update_app_config("PLEX_TOKEN", token)
         if not ok:
@@ -229,11 +229,11 @@ class JELLYFIN_API:
             self.server_url = raw_url.strip().rstrip("/")
 
         if self.server_url is None or self.server_url == "":
-            log_manager.error("JELLY_URL is not set or empty. Please set it in config.json. Exiting...")
+            log_manager.error("JELLY_URL is not set or empty. Please set it in your config. Exiting...")
             sys.exit(1)
 
         if self.api_key is None or self.api_key == "":
-            log_manager.error("JELLY_API_KEY is not set or empty. Please set it in config.json. Exiting...")
+            log_manager.error("JELLY_API_KEY is not set or empty. Please set it in your config. Exiting...")
             sys.exit(1)
 
         log_manager.info(f"JELLYFIN API initialized with: URL: {self.server_url})")
