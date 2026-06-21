@@ -12,7 +12,7 @@ from appdata.modules.API.MDNX._shared import (
     update_mdnx_config
 )
 from appdata.modules.API.ZLO7._shared import (
-    ZLO_SERVICE_BIN_PATH, ZLO_SERVICE_CONFIG_SETTINGS_PATH
+    ZLO_SERVICE_BIN_PATH, check_zlo_signed_in
 )
 from appdata.modules.Vars import (
     config,
@@ -61,8 +61,9 @@ def app():
             log_manager.critical(f"ZLO is enabled, but the ZLO binary was not found at: {ZLO_SERVICE_BIN_PATH}\nPlease mount the correct ZLO binary and restart the application.")
             sys.exit(1)
 
-        if not os.path.isdir(ZLO_SERVICE_CONFIG_SETTINGS_PATH):
-            log_manager.critical(f"ZLO is enabled and the binary was found, but the settings folder was not found at: {ZLO_SERVICE_CONFIG_SETTINGS_PATH}\nPlease mount the correct ZLO settings folder and restart the application.")
+        zlo_signed_in, zlo_error = check_zlo_signed_in()
+        if not zlo_signed_in:
+            log_manager.critical(zlo_error)
             sys.exit(1)
 
         log_manager.info("ZLO checks completed. All good!")

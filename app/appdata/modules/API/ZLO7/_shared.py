@@ -1,5 +1,6 @@
 import os
 import re
+import sqlite3
 
 from appdata.modules.Vars import (
     config,
@@ -11,8 +12,8 @@ from appdata.modules.types.service import Service
 
 
 ZLO_SERVICE_BIN_PATH = os.path.join(BIN_DIR, "zlo", "zlo7")
-ZLO_SERVICE_CONFIG_PATH = os.path.join(os.path.expanduser("~"), "Documents", "zlo7")
-ZLO_SERVICE_CONFIG_SETTINGS_PATH = os.path.join(ZLO_SERVICE_CONFIG_PATH, "settings")
+ZLO_SERVICE_PATH = os.path.join(os.path.expanduser("~"), ".zlo7")
+ZLO_SERVICE_STORAGE_PATH = os.path.join(ZLO_SERVICE_PATH, "storage", "storage.db")
 
 
 # format is: "Language Name": "zlo_code"
@@ -112,6 +113,27 @@ ISO_B_TO_T: dict[str, str] = {
 
 
 VALID_ZLO_CODES: set[str] = {zlo_code for zlo_code, _ in LANG_MAP.values()}
+
+
+def check_zlo_signed_in() -> tuple[bool, str]:
+    """Check ZLO's storage DB exists and the user has signed in."""
+
+    if not os.path.isfile(ZLO_SERVICE_STORAGE_PATH):
+        return (False, f"ZLO storage database was not found at: {ZLO_SERVICE_STORAGE_PATH}\nPlease mount the correct ZLO storage folder and restart the application.")
+
+    try:
+        connection = sqlite3.connect(ZLO_SERVICE_STORAGE_PATH)
+        try:
+            row = connection.execute("SELECT value FROM kv_store WHERE key = 'account'").fetchone()
+        finally:
+            connection.close()
+    except sqlite3.Error as db_error:
+        return (False, f"Could not read the ZLO storage database at {ZLO_SERVICE_STORAGE_PATH}: {db_error}")
+
+    if row is None:
+        return (False, "You are not signed into ZLO. Please sign in with ZLO's GUI before enabling ZLO CLI services.")
+
+    return (True, "")
 
 
 def _log(message: str, level: str = "info") -> None:
