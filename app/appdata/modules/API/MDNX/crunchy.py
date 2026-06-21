@@ -110,7 +110,7 @@ class CR_MDNX_API:
         log_manager.info(f"Authenticating with {self.mdnx_service}...")
 
         if not self.username or not self.password:
-            log_manager.error("MDNX service username or password not found.\nPlease check the config.json file and enter your credentials in the following keys:\nCR_USERNAME\nCR_PASSWORD\nExiting...")
+            log_manager.error("MDNX service username or password not found.\nPlease check your config file and enter your credentials in the following keys:\nCR_USERNAME\nCR_PASSWORD\nExiting...")
             sys.exit(1)
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--auth", "--username", self.username, "--password", self.password, "--silentAuth"]
@@ -214,7 +214,7 @@ class CR_MDNX_API:
             log_manager.info(f"Using dlsubs override: {' '.join(sub_override)}")
 
         # Hardcoded options.
-        # These can not be modified by config.json, or things will break/not work as expected.
+        # These can not be modified by the users config, or things will break/not work as expected.
         tmp_cmd += ["--fileName", "output"]
         tmp_cmd += ["--skipUpdate", "true"]
 
