@@ -34,7 +34,7 @@ jobs:
           echo "PR_NUMBER=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
 
       - name: Checkout PR head
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: ${{ steps.pr.outputs.HEAD_REPO }}
           ref: ${{ steps.pr.outputs.HEAD_SHA }}
