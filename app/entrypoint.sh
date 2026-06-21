@@ -134,15 +134,6 @@ fi
 echo "[entrypoint] Running database migrations via Alembic..."
 gosu "$USER_ID:$GROUP_ID" bash -c "alembic -c appdata/modules/db/alembic/alembic.ini upgrade head"
 
-NTFY_SCRIPT_PATH="$(read_config "NTFY_SCRIPT_PATH" "")"
-
-if [[ -n "$NTFY_SCRIPT_PATH" && -f "$NTFY_SCRIPT_PATH" ]]; then
-  echo "[entrypoint] Found ntfy script at $NTFY_SCRIPT_PATH. Making it executable..."
-  chmod +x "$NTFY_SCRIPT_PATH"
-else
-  echo "[entrypoint] No ntfy script at $NTFY_SCRIPT_PATH. Skipping chmod."
-fi
-
 # If FREEZE is true, keep the container alive without starting the app
 if [[ "${FREEZE,,}" == "true" ]]; then
   echo "[entrypoint] FREEZE=true. Container will stay up without starting app.py."

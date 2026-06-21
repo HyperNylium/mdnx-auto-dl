@@ -53,9 +53,7 @@ class AppConfig(BaseModel):
     log_level: str = Field("info", alias="LOG_LEVEL")
     max_log_archives: int = Field(5, alias="MAX_LOG_ARCHIVES")
 
-    notification_preference: str = Field("none", alias="NOTIFICATION_PREFERENCE")
-    ntfy_script_path: str = Field("/app/appdata/config/ntfy.sh", alias="NTFY_SCRIPT_PATH")
-
+    smtp_enabled: bool = Field(False, alias="SMTP_ENABLED")
     smtp_from: str = Field("", alias="SMTP_FROM")
     smtp_to: str = Field("", alias="SMTP_TO")
     smtp_host: str = Field("", alias="SMTP_HOST")
@@ -63,6 +61,22 @@ class AppConfig(BaseModel):
     smtp_password: str = Field("", alias="SMTP_PASSWORD")
     smtp_port: int = Field(587, alias="SMTP_PORT")
     smtp_starttls: bool = Field(True, alias="SMTP_STARTTLS")
+
+    ntfy_enabled: bool = Field(False, alias="NTFY_ENABLED")
+    ntfy_url: str = Field("", alias="NTFY_URL")
+    ntfy_token: str = Field("", alias="NTFY_TOKEN")
+    ntfy_username: str = Field("", alias="NTFY_USERNAME")
+    ntfy_password: str = Field("", alias="NTFY_PASSWORD")
+    ntfy_priority: str = Field("", alias="NTFY_PRIORITY")
+    ntfy_tags: list[str] = Field(default_factory=list, alias="NTFY_TAGS")
+
+    gotify_enabled: bool = Field(False, alias="GOTIFY_ENABLED")
+    gotify_url: str = Field("", alias="GOTIFY_URL")
+    gotify_token: str = Field("", alias="GOTIFY_TOKEN")
+    gotify_priority: int = Field(5, alias="GOTIFY_PRIORITY")
+
+    discord_enabled: bool = Field(False, alias="DISCORD_ENABLED")
+    discord_webhook_url: str = Field("", alias="DISCORD_WEBHOOK_URL")
 
     plex_url: str | None = Field(None, alias="PLEX_URL")
     plex_token: str | None = Field(None, alias="PLEX_TOKEN")
