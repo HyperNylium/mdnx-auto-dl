@@ -611,14 +611,27 @@ def apply_series_blacklist(tmp_dict: dict[str, Series], service: str) -> dict[st
 
                     if "-" in rule_text:
                         parts = rule_text.split("-", 1)
+                        left_text = parts[0].strip()
+                        right_text = parts[1].strip()
+
+                        left_open = left_text == "*"
+                        right_open = right_text == "*"
+                        if left_open and right_open:
+                            continue
+
                         try:
-                            range_start = int(parts[0])
-                            range_end = int(parts[1])
+                            range_start = None if left_open else int(left_text)
+                            range_end = None if right_open else int(right_text)
                         except Exception:
                             continue
-                        if range_start > range_end:
+
+                        # only swap when both ends are real numbers
+                        if range_start is not None and range_end is not None and range_start > range_end:
                             range_start, range_end = range_end, range_start
-                        if range_start <= local_episode_number <= range_end:
+
+                        lower_ok = range_start is None or local_episode_number >= range_start
+                        upper_ok = range_end is None or local_episode_number <= range_end
+                        if lower_ok and upper_ok:
                             should_skip_episode = True
                             break
                     else:
