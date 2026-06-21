@@ -15,9 +15,9 @@ from .types.queue import Episode, ServiceBucket
 
 
 class MainLoop:
-    def __init__(self, notifier) -> None:
+    def __init__(self, notifiers) -> None:
 
-        self.notifier = notifier
+        self.notifiers = notifiers
 
         self.check_missing_dub_sub = config.app.check_missing_dub_sub
         self.loop_timeout = config.app.check_for_updates_interval
@@ -151,10 +151,36 @@ class MainLoop:
             "time_taken": format_duration(int(time_taken))
         }
 
+    def _format_block(self, item: dict) -> str:
+        """Build the per-episode text block for one push notification item."""
+
+        if item["action"] == "new":
+            lines = [
+                f"Episode name: {item['episode_name']}",
+                f"Episode number: {item['episode_number']}",
+                f"Episode dubs: {', '.join(item['after_dubs']) or 'None'}",
+                f"Episode subs: {', '.join(item['after_subs']) or 'None'}",
+                f"Episode path: {item['path']}",
+                f"Time taken to download: {item['time_taken']}"
+            ]
+        else:
+            lines = [
+                f"Episode name: {item['episode_name']}",
+                f"Episode number: {item['episode_number']}",
+                f"Episode before dubs: {', '.join(item['before_dubs']) or 'None'}",
+                f"Episode before subs: {', '.join(item['before_subs']) or 'None'}",
+                f"Episode after dubs: {', '.join(item['after_dubs']) or 'None'}",
+                f"Episode after subs: {', '.join(item['after_subs']) or 'None'}",
+                f"Episode path: {item['path']}",
+                f"Time taken to download: {item['time_taken']}"
+            ]
+
+        return "\n".join(lines)
+
     def _flush_notifications(self) -> None:
         """Send out notifications for all buffered items (if enabled) and clear the buffer."""
 
-        if not self.notifications_buffer or self.notifier is None:
+        if not self.notifications_buffer or not self.notifiers:
             self.notifications_buffer.clear()
             return
 
@@ -222,8 +248,30 @@ class MainLoop:
 
         body = "\n".join(lines).strip()
 
+        # group items by (action, series) so push services can send one notification per series instead of one big summary.
+        groups = []
+        group_index = {}
+        for item in self.notifications_buffer:
+            group_key = (item["action"], item["series_name"])
+            if group_key not in group_index:
+                group_index[group_key] = len(groups)
+                groups.append({
+                    "action": item["action"],
+                    "series_name": item["series_name"],
+                    "blocks": []
+                })
+            groups[group_index[group_key]]["blocks"].append(self._format_block(item))
+
+        log_manager.debug(f"Prepared {len(groups)} notification groups for dispatch.")
+        log_manager.debug(f"Notification groups: {groups}")
+
         try:
-            self.notifier.notify(subject, body)
+            for notifier in self.notifiers:
+                if notifier.send_per_series:
+                    for group in groups:
+                        notifier.notify_series(group["action"], group["series_name"], group["blocks"])
+                else:
+                    notifier.notify(subject, body)
         finally:
             self.notifications_buffer.clear()
 
