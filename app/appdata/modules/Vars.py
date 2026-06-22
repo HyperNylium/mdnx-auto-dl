@@ -802,7 +802,7 @@ def update_app_config(config_key: str, new_value) -> bool:
     return True
 
 
-def build_folder_structure(base_dir: str, series_title: str, season: str, episode: str, episode_name: str, template_str: str, extension: str = ".mkv") -> str:
+def build_folder_structure(base_dir: str, series_title: str, season: str, episode: str, episode_name: str, template_str: str, extension: str = ".mkv", service_long: str = "", service_short: str = "") -> str:
     """Build the folder structure and file name based on the template the caller supplies."""
 
     substitutes = {
@@ -811,7 +811,9 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
         "seasonPadded": str(int(season)).zfill(2),
         "episode": str(int(episode)),
         "episodePadded": str(int(episode)).zfill(2),
-        "episodeName": episode_name
+        "episodeName": episode_name,
+        "serviceLong": service_long,
+        "serviceShort": service_short
     }
 
     raw_path = Template(template_str).safe_substitute(substitutes)
@@ -861,7 +863,21 @@ def get_episode_file_path(bucket: ServiceBucket, series_id: str, season_key: str
 
     destination = config.destinations[service.service_name]
 
-    file_name = build_folder_structure(destination.dir, raw_series, season_number, episode_number, raw_episode_name, destination.folder_structure, extension)
+    match service.service_name:
+        case "crunchyroll" | "zlo-crunchyroll":
+            service_long = "Crunchyroll"
+            service_short = "CR"
+        case "hidive" | "zlo-hidive":
+            service_long = "HiDive"
+            service_short = "HD"
+        case "adn" | "zlo-adn":
+            service_long = "ADN"
+            service_short = "ADN"
+        case _:
+            service_long = service.display_name
+            service_short = service.service_name
+
+    file_name = build_folder_structure(destination.dir, raw_series, season_number, episode_number, raw_episode_name, destination.folder_structure, extension, service_long, service_short)
 
     _log(f"Built file path for series ID {series_id}, season {season_key}, episode {episode_key}: {file_name}", level="debug")
 
