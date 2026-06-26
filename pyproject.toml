@@ -7,7 +7,7 @@ dependencies = [
     "requests>=2.33.0",
     "pydantic>=2.13.0",
     "PyYAML>=6.0.0",
-    "alembic>=1.18.0",
+    "alembic>=1.18.5",
     "SQLAlchemy>=2.0.15",
 ]
 
