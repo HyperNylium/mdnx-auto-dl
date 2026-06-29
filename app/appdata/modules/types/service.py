@@ -13,7 +13,7 @@ class Service(BaseModel):
     # short id used in logs and queue lookups
     service_name: str
 
-    # the bucket name inside queue.json
+    # the bucket name inside the queue db
     queue_bucket: str
 
     # human readable label for log lines

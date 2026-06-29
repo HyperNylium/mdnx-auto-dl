@@ -250,7 +250,7 @@ class ADN_ZLO_API:
             result["returncode"] = returncode
 
     def _process_json_payload(self, parsed_payload: dict, add2queue: bool = True):
-        """Convert the structured JSON payload from --jsonOutput to queue.json format."""
+        """Convert the structured JSON payload from --jsonOutput to queue db format."""
 
         log_manager.debug("Processing ZLO JSON payload...")
 
@@ -383,7 +383,7 @@ class ADN_ZLO_API:
 
         tmp_dict = apply_series_blacklist(tmp_dict, service=self.queue_service)
 
-        log_manager.debug("Console output processed.")
+        log_manager.debug("JSON payload processed.")
 
         if add2queue:
             queue_manager.add(tmp_dict, self.queue_service)
