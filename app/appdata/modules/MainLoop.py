@@ -48,7 +48,7 @@ class MainLoop:
                     self.stop()
                     return
 
-                # Download any missing / not yet downloaded episodes for every enabled service.
+                # Download any missing / not yet downloaded episodes for every configured service.
                 # then (if configured) check for missing dubs/subs on already downloaded episodes.
                 for service in SERVICES.all():
                     if not service.configured:
@@ -290,7 +290,7 @@ class MainLoop:
                 log_manager.info(f"{service.display_name} queue refresh skipped because the service wasnt enabled.")
                 continue
 
-            # only look at the correct bucket inside queue.json for this service
+            # only look at the correct bucket inside the queue db for this service
             bucket = queue_manager.output(service.service_name)
             if bucket is None:
                 bucket = ServiceBucket()
