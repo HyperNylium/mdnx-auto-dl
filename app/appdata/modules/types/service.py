@@ -19,6 +19,12 @@ class Service(BaseModel):
     # human readable label for log lines
     display_name: str
 
+    # long service name used in file and folder names
+    service_long: str
+
+    # short service name used in file and folder names
+    service_short: str
+
     # which downloader this service uses: "mdnx" or "zlo"
     tool: str
 

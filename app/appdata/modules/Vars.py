@@ -171,6 +171,8 @@ SERVICES = Services(
             service_name="crunchyroll",
             queue_bucket="Crunchyroll",
             display_name="Crunchyroll",
+            service_long="Crunchyroll",
+            service_short="CR",
             tool="mdnx",
             config=config.mdnx,
             monitor_series_id=config.cr_monitor_series_id,
@@ -181,6 +183,8 @@ SERVICES = Services(
             service_name="hidive",
             queue_bucket="HiDive",
             display_name="HiDive",
+            service_long="HiDive",
+            service_short="HD",
             tool="mdnx",
             config=config.mdnx,
             monitor_series_id=config.hidive_monitor_series_id,
@@ -191,6 +195,8 @@ SERVICES = Services(
             service_name="adn",
             queue_bucket="ADN",
             display_name="ADN",
+            service_long="ADN",
+            service_short="ADN",
             tool="mdnx",
             config=config.mdnx,
             monitor_series_id=config.adn_monitor_series_id,
@@ -203,6 +209,8 @@ SERVICES = Services(
             service_name="zlo-crunchyroll",
             queue_bucket="ZLO-Crunchyroll",
             display_name="ZLO Crunchyroll",
+            service_long="Crunchyroll",
+            service_short="CR",
             tool="zlo",
             config=config.zlo.crunchyroll,
             monitor_series_id=config.zlo_cr_monitor_series_id,
@@ -213,6 +221,8 @@ SERVICES = Services(
             service_name="zlo-hidive",
             queue_bucket="ZLO-HiDive",
             display_name="ZLO HiDive",
+            service_long="HiDive",
+            service_short="HD",
             tool="zlo",
             config=config.zlo.hidive,
             monitor_series_id=config.zlo_hidive_monitor_series_id,
@@ -223,6 +233,8 @@ SERVICES = Services(
             service_name="zlo-adn",
             queue_bucket="ZLO-ADN",
             display_name="ZLO ADN",
+            service_long="ADN",
+            service_short="ADN",
             tool="zlo",
             config=config.zlo.adn,
             monitor_series_id=config.zlo_adn_monitor_series_id,
@@ -863,21 +875,7 @@ def get_episode_file_path(bucket: ServiceBucket, series_id: str, season_key: str
 
     destination = config.destinations[service.service_name]
 
-    match service.service_name:
-        case "crunchyroll" | "zlo-crunchyroll":
-            service_long = "Crunchyroll"
-            service_short = "CR"
-        case "hidive" | "zlo-hidive":
-            service_long = "HiDive"
-            service_short = "HD"
-        case "adn" | "zlo-adn":
-            service_long = "ADN"
-            service_short = "ADN"
-        case _:
-            service_long = service.display_name
-            service_short = service.service_name
-
-    file_name = build_folder_structure(destination.dir, raw_series, season_number, episode_number, raw_episode_name, destination.folder_structure, extension, service_long, service_short)
+    file_name = build_folder_structure(destination.dir, raw_series, season_number, episode_number, raw_episode_name, destination.folder_structure, extension, service.service_long, service.service_short)
 
     _log(f"Built file path for series ID {series_id}, season {season_key}, episode {episode_key}: {file_name}", level="debug")
 
