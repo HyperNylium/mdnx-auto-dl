@@ -85,7 +85,7 @@ class SMTP:
                 server.send_message(msg)
 
         except Exception as e:
-            log_manager.error(f"Error sending email: {e}")
+            log_manager.error(f"Failed to send email: {e}", exc_info=e)
             return False
 
         return True
@@ -139,7 +139,7 @@ class ntfy:
             response.raise_for_status()
 
         except Exception as e:
-            log_manager.error(f"Error sending ntfy notification: {e}")
+            log_manager.error(f"Failed to send ntfy notification: {e}", exc_info=e)
             return False
 
         return True
@@ -180,7 +180,7 @@ class Gotify:
             response.raise_for_status()
 
         except Exception as e:
-            log_manager.error(f"Error sending gotify notification: {e}")
+            log_manager.error(f"Failed to send gotify notification: {e}", exc_info=e)
             return False
 
         return True
@@ -225,7 +225,7 @@ class Discord:
             response.raise_for_status()
 
         except Exception as e:
-            log_manager.error(f"Error sending Discord notification: {e}")
+            log_manager.error(f"Failed to send Discord notification: {e}", exc_info=e)
             return False
 
         return True

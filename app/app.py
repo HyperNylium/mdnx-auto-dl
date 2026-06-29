@@ -29,7 +29,7 @@ def app():
 
     # can we reliably read/write to the destination directory?
     if file_manager.test() == False:
-        log_manager.error("FileManager test failed. Please check your configuration and ensure the application has read/write access to the destination directory.")
+        log_manager.critical("FileManager test failed. Please check your configuration and ensure the application has read/write access to the destination directory.")
         sys.exit(1)
 
     # check if user has a widevine or playready CDM, and do checks to see if they are valid.
@@ -76,12 +76,12 @@ def app():
             log_manager.info("JELLY_URL and JELLY_API_KEY are set. Jellyfin media server scan enabled.")
 
         if not mediaserver_auth():
-            log_manager.error("Authentication timed out or failed. Check the logs.")
+            log_manager.critical("Authentication timed out or failed. Check the logs.")
             sys.exit(1)
 
         log_manager.info("User is authenticated. Testing library scan...")
         if not mediaserver_scan_library():
-            log_manager.error("Library scan failed. Please check your configuration.")
+            log_manager.critical("Library scan failed. Please check your configuration.")
             sys.exit(1)
         else:
             log_manager.info("Library scan successful.")
@@ -105,7 +105,7 @@ def app():
                 missing_smtp_fields.append(field)
 
         if missing_smtp_fields:
-            log_manager.error(f"Missing or invalid SMTP configuration values: {', '.join(missing_smtp_fields)}")
+            log_manager.critical(f"Missing or invalid SMTP configuration values: {', '.join(missing_smtp_fields)}")
             sys.exit(1)
 
         from appdata.modules.NotificationManager import SMTP
@@ -115,7 +115,7 @@ def app():
         log_manager.info("ntfy notifications enabled. Checking ntfy settings...")
 
         if config.app.ntfy_url == "":
-            log_manager.error("NTFY_ENABLED is true but NTFY_URL is empty. Please set it in your config.")
+            log_manager.critical("NTFY_ENABLED is true but NTFY_URL is empty. Please set it in your config.")
             sys.exit(1)
 
         from appdata.modules.NotificationManager import ntfy
@@ -132,7 +132,7 @@ def app():
             missing_gotify_fields.append("gotify_token")
 
         if missing_gotify_fields:
-            log_manager.error(f"Missing or invalid gotify configuration values: {', '.join(missing_gotify_fields)}")
+            log_manager.critical(f"Missing or invalid gotify configuration values: {', '.join(missing_gotify_fields)}")
             sys.exit(1)
 
         from appdata.modules.NotificationManager import Gotify
@@ -142,7 +142,7 @@ def app():
         log_manager.info("Discord notifications enabled. Checking Discord settings...")
 
         if config.app.discord_webhook_url == "":
-            log_manager.error("DISCORD_ENABLED is true but DISCORD_WEBHOOK_URL is empty. Please set it in your config.")
+            log_manager.critical("DISCORD_ENABLED is true but DISCORD_WEBHOOK_URL is empty. Please set it in your config.")
             sys.exit(1)
 
         from appdata.modules.NotificationManager import Discord

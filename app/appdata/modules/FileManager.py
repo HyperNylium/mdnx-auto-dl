@@ -61,7 +61,7 @@ class FileManager:
                 if not success:
                     return False
             except Exception as e:
-                log_manager.error(f"Write/read test failed in {dest_dir}: {e}")
+                log_manager.error(f"Failed write/read test in {dest_dir}: {e}", exc_info=e)
                 return False
             finally:
                 try:
@@ -110,14 +110,14 @@ class FileManager:
             os.makedirs(parent, exist_ok=True)
             log_manager.debug(f"Ensured directory exists: {parent}")
         except Exception as e:
-            log_manager.error(f"Could not create directory {parent}: {e}")
+            log_manager.error(f"Failed to create directory {parent}: {e}", exc_info=e)
             return False
 
         try:
             needed = os.path.getsize(src_path)
             free = disk_usage(parent).free
         except OSError as e:
-            log_manager.error(f"Could not check free space for '{parent}': {e}")
+            log_manager.error(f"Failed to check free space for '{parent}': {e}", exc_info=e)
             return False
 
         effective_free = free
@@ -126,7 +126,7 @@ class FileManager:
             try:
                 existing_size = os.path.getsize(final_dst)
             except OSError as e:
-                log_manager.error(f"Could not get size of existing destination file '{final_dst}': {e}")
+                log_manager.error(f"Failed to get size of existing destination file '{final_dst}': {e}", exc_info=e)
                 return False
             effective_free = free + existing_size
             log_manager.debug(f"Overwrite mode: simulating removal of '{final_dst}' ({existing_size} bytes): effective free would be {effective_free} bytes.")
@@ -142,7 +142,7 @@ class FileManager:
                 os.remove(final_dst)
                 log_manager.info(f"Removed existing file at destination: {final_dst}")
             except Exception as e:
-                log_manager.error(f"Could not remove existing file {final_dst}: {e}")
+                log_manager.error(f"Failed to remove existing file {final_dst}: {e}", exc_info=e)
                 return False
         elif effective_free < needed:
             log_manager.error(
@@ -161,7 +161,7 @@ class FileManager:
                 log_manager.info(f"Moved '{src_basename}' to '{final_dst}'")
                 return True
             except Exception as e:
-                log_manager.error(f"(attempt {attempt}) Move failed for '{src_basename}' to '{final_dst}': {e}")
+                log_manager.error(f"(attempt {attempt}) Failed to move '{src_basename}' to '{final_dst}': {e}", exc_info=e)
                 time.sleep(self.retryDelay)
 
         log_manager.error(f"Failed to move '{src_basename}' after {self.moveRetries} attempts.")
@@ -177,7 +177,7 @@ class FileManager:
                 os.remove(path)
                 log_manager.debug(f"Removed {path}")
             except Exception as e:
-                log_manager.error(f"Error removing {path}: {e}")
+                log_manager.error(f"Failed to remove {path}: {e}", exc_info=e)
 
         log_manager.info(f"Temporary files in {self.source} removed.")
         return True
@@ -193,7 +193,7 @@ class FileManager:
             try:
                 size = os.path.getsize(path)
             except Exception as e:
-                log_manager.error(f"Error getting size for {path}: {e}")
+                log_manager.error(f"Failed to get size for {path}: {e}", exc_info=e)
                 return False
 
             if size == lastSize:
