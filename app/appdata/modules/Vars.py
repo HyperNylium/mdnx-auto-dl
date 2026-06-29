@@ -33,6 +33,8 @@ def _log(message: str, level: str = "info", exc_info=None) -> None:
                 log_manager.warning(message, exc_info=exc_info)
             case "error":
                 log_manager.error(message, exc_info=exc_info)
+            case "critical":
+                log_manager.critical(message, exc_info=exc_info)
             case _:
                 log_manager.info(message, exc_info=exc_info)
     except Exception:
@@ -521,7 +523,7 @@ def validate_destinations() -> None:
             missing_destinations.append(destination_key)
 
     if missing_destinations:
-        _log(f"Missing 'destinations' entry for enabled service(s): {', '.join(missing_destinations)}", level="error")
+        _log(f"Missing 'destinations' entry for enabled service(s): {', '.join(missing_destinations)}", level="critical")
         sys.exit(1)
 
     unknown_destinations = []
@@ -550,7 +552,7 @@ def ffprobe(file_path: str) -> list[dict]:
     try:
         data = json.loads(result.stdout)
     except json.JSONDecodeError as decode_error:
-        _log(f"ffprobe JSON decode error on {file_path}: {decode_error}", level="error")
+        _log(f"Failed to decode ffprobe JSON on {file_path}: {decode_error}", level="error", exc_info=decode_error)
         return []
 
     if data == {}:
@@ -782,7 +784,7 @@ def update_app_config(config_key: str, new_value) -> bool:
     try:
         on_disk_config = _read_config(CONFIG_PATH)
     except Exception as read_error:
-        _log(f"Failed to read config file: {read_error}", level="error")
+        _log(f"Failed to read config file: {read_error}", level="error", exc_info=read_error)
         return False
 
     app_config_section = on_disk_config.get("app")
@@ -796,13 +798,13 @@ def update_app_config(config_key: str, new_value) -> bool:
     try:
         AppConfig.model_validate(app_config_section)
     except ValidationError as validation_error:
-        _log(f"Invalid value for app.{alias_key_to_write}: {validation_error}", level="error")
+        _log(f"Invalid value for app.{alias_key_to_write}: {validation_error}", level="error", exc_info=validation_error)
         return False
 
     try:
         _write_config(CONFIG_PATH, on_disk_config)
     except Exception as write_error:
-        _log(f"Failed to write config file: {write_error}", level="error")
+        _log(f"Failed to write config file: {write_error}", level="error", exc_info=write_error)
         return False
 
     try:

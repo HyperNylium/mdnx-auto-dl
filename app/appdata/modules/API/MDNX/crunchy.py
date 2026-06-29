@@ -110,7 +110,7 @@ class CR_MDNX_API:
         log_manager.info(f"Authenticating with {self.mdnx_service}...")
 
         if not self.username or not self.password:
-            log_manager.error("MDNX service username or password not found.\nPlease check your config file and enter your credentials in the following keys:\nCR_USERNAME\nCR_PASSWORD\nExiting...")
+            log_manager.critical("MDNX service username or password not found.\nPlease check your config file and enter your credentials in the following keys:\nCR_USERNAME\nCR_PASSWORD\nExiting...")
             sys.exit(1)
 
         tmp_cmd = [self.mdnx_path, "--service", self.mdnx_service, "--auth", "--username", self.username, "--password", self.password, "--silentAuth"]
@@ -181,7 +181,7 @@ class CR_MDNX_API:
                     log_manager.info("Killing active mdnx download process...")
                     proc.kill()
             except Exception as e:
-                log_manager.error(f"Failed to kill active mdnx process: {e}")
+                log_manager.error(f"Failed to kill active mdnx process: {e}", exc_info=e)
 
         # wait a bit for the worker thread to exit
         if thread is not None and thread.is_alive():
@@ -284,7 +284,7 @@ class CR_MDNX_API:
                 returncode = proc.returncode
 
         except Exception as e:
-            log_manager.error(f"Download crashed with exception: {e}")
+            log_manager.error(f"Failed to run download: {e}", exc_info=e)
 
         finally:
 

@@ -177,7 +177,7 @@ class QueueManager:
             self.conn.close()
             log_manager.info("Queue DB connection closed.")
         except Exception as e:
-            log_manager.error(f"Error closing queue DB connection: {e}")
+            log_manager.error(f"Failed to close queue DB connection: {e}", exc_info=e)
 
     def _set_flag(self, series_id: str, season_key: str, episode_key: str, field: str, status: bool, service: str) -> None:
         """Helper method to set a boolean flag on an episode and persist the change."""

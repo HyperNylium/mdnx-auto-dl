@@ -118,7 +118,7 @@ class ADN_ZLO_API:
                     log_manager.info("Killing active zlo download process...")
                     proc.kill()
             except Exception as e:
-                log_manager.error(f"Failed to kill active zlo process: {e}")
+                log_manager.error(f"Failed to kill active zlo process: {e}", exc_info=e)
 
         if thread is not None and thread.is_alive():
             log_manager.info("Waiting for download worker thread to exit...")
@@ -241,7 +241,7 @@ class ADN_ZLO_API:
                 returncode = proc.wait()
 
         except Exception as e:
-            log_manager.error(f"Download crashed with exception: {e}")
+            log_manager.error(f"Failed to run download: {e}", exc_info=e)
 
         finally:
             with self.download_lock:
