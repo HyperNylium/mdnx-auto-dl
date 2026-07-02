@@ -34,6 +34,8 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
   exit 1
 fi
 
+echo "[entrypoint] Starting up. Reading configuration..."
+
 read_config() {
   local config_key="$1"
   local default_value="$2"
@@ -94,6 +96,7 @@ if ! getent passwd "$USERNAME" >/dev/null; then
     fi
 fi
 
+echo "[entrypoint] Applying ownership and permissions to /app. This can take a moment..."
 chown -R "$USER_ID:$GROUP_ID" /app
 chmod -R 775 /app
 
