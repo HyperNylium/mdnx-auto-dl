@@ -69,8 +69,8 @@
     },
     "zlo": {
         "crunchyroll": {
-            "q": "1080p@avc",
-            "qf": true,
+            "quality": "1080p@avc",
+            "qualityfallback": true,
             "dubLang": [
                 "JP",
                 "EN"
@@ -80,8 +80,8 @@
             ]
         },
         "hidive": {
-            "q": "1080p@avc",
-            "qf": true,
+            "quality": "1080p@avc",
+            "qualityfallback": true,
             "dubLang": [
                 "JP",
                 "EN"
@@ -91,8 +91,8 @@
             ]
         },
         "adn": {
-            "q": "1080p@avc",
-            "qf": true,
+            "quality": "1080p@avc",
+            "qualityfallback": true,
             "dubLang": [
                 "JP",
                 "EN"

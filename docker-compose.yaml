@@ -46,11 +46,11 @@ services:
       ### ZLO7 ###
       ############
 
-      # ZLO linux x64 CLI binary ("zlo7" is the binary)
+      # ZLO linux x64 CLI binary ("zlo7" is the binary, not a folder)
       #- ./appdata/zlo/zlo7:/app/appdata/bin/zlo/zlo7:rw
 
       # ZLO config dir (C:/Users/[user]/.zlo7/*)
-      #- ./appdata/zlo/config:/home/mdnx-auto-dl/.zlo7:rw
+      #- ./appdata/zlo/config:/app/appdata/bin/zlo/config:rw
 
     environment:
       - UID=1000
