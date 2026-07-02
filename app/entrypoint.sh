@@ -116,7 +116,7 @@ done
 
 if [[ "$ZLO_ENABLED" == "true" ]]; then
   ZLO_BIN_PATH="$BIN_DIR/zlo/zlo7"
-  ZLO_USER_CONFIG_DIR="/home/$USERNAME/.zlo7"
+  ZLO_USER_CONFIG_DIR="$BIN_DIR/zlo/config"
 
   echo "[entrypoint] ZLO enabled. Fixing ownership/permissions on ZLO paths..."
 

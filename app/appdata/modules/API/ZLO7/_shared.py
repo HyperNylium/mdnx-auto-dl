@@ -12,8 +12,7 @@ from appdata.modules.types.service import Service
 
 
 ZLO_SERVICE_BIN_PATH = os.path.join(BIN_DIR, "zlo", "zlo7")
-ZLO_SERVICE_PATH = os.path.join(os.path.expanduser("~"), ".zlo7")
-ZLO_SERVICE_STORAGE_PATH = os.path.join(ZLO_SERVICE_PATH, "storage", "storage.db")
+ZLO_SERVICE_STORAGE_PATH = os.path.join(BIN_DIR, "zlo", "config", "storage", "storage.db")
 
 
 # format is: "Language Name": (zlo_code, iso_639_2_code or None)

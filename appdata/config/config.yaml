@@ -59,8 +59,8 @@ mdnx:
 
 zlo:
     crunchyroll:
-        q: "1080p@avc"
-        qf: true
+        quality: "1080p@avc"
+        qualityfallback: true
         dubLang:
             - "JP"
             - "EN"
@@ -68,8 +68,8 @@ zlo:
             - "EN"
 
     hidive:
-        q: "1080p@avc"
-        qf: true
+        quality: "1080p@avc"
+        qualityfallback: true
         dubLang:
             - "JP"
             - "EN"
@@ -77,8 +77,8 @@ zlo:
             - "EN"
 
     adn:
-        q: "1080p@avc"
-        qf: true
+        quality: "1080p@avc"
+        qualityfallback: true
         dubLang:
             - "JP"
             - "EN"

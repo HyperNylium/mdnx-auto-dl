@@ -131,15 +131,17 @@ class MdnxConfig(BaseModel):
 
 
 class ZloServiceConfig(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
-    q: str = "1080p@avc"
-    qf: bool = True
+    quality: str = "1080p@avc"
+    qualityfallback: bool = True
     dubLang: list[str] = ["JP", "EN"]
     dlsubs: list[str] = ["EN"]
+    forceSubFormat: str = Field("", pattern="^(srt|ass)?$")
     backup_dubs: list[str] = Field(default_factory=list)
     dlpath: str = "/app/appdata/temp"
     tempPath: str = "/tmp"
+    configPath: str = "/app/appdata/bin/zlo/config/storage/storage.db"
 
 
 class ZloConfig(BaseModel):
