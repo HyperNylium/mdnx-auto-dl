@@ -155,7 +155,7 @@ class CR_ZLO_API:
         quality_value = self.service_config.quality.strip()
         if quality_value != "":
             tmp_cmd += ["--quality", quality_value]
-            log_manager.info(f"Using --quality override: {quality_value}")
+            log_manager.info(f"Using quality override: {quality_value}")
 
         tmp_cmd += ["--qualityfallback", str(self.service_config.qualityfallback).lower()]
         log_manager.info(f"Using qualityfallback override: {str(self.service_config.qualityfallback).lower()}")
