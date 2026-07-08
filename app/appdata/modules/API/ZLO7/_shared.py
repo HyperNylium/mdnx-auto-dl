@@ -18,7 +18,7 @@ ZLO_SERVICE_STORAGE_PATH = os.path.join(BIN_DIR, "zlo", "config", "storage", "st
 # format is: "Language Name": (zlo_code, iso_639_2_code or None)
 LANG_MAP: dict[str, tuple[str, str | None]] = {
     "English": ("EN", "eng"),
-    "English (India)": ("EN", None),
+    "English (India)": ("EN-IN", None),
     "English (UK)": ("EN-GB", None),
 
     "Spanish": ("LA-ES", "spa"),
