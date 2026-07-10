@@ -29,6 +29,10 @@ mdnx:
       S2: ["13"]  # skip "Kaiju No. 8: Mission Recon"
       S3: ["14"]  # skip "Hoshina's Day Off"
 
+    # Saga of tanya the evil
+    GR9P57W96:
+      S3: ["14"]  # skip "Saga of Tanya the Evil Operation Desert Pasta"
+
   hidive: {}
   adn: {}
 
@@ -38,5 +42,10 @@ zlo:
     GG5H5XQ7D:
       S2: ["1"]  # skip "Kaiju No. 8: Mission Recon"
       S3: ["1"]  # skip "Hoshina's Day Off"
+
+    # Saga of tanya the evil
+    GR9P57W96:
+      S3: ["1"]  # skip "Saga of Tanya the Evil Operation Desert Pasta"
+
   hidive: {}
   adn: {}
