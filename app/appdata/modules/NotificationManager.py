@@ -1,9 +1,10 @@
+import time
 import smtplib
 import requests
 from email.message import EmailMessage
 from email.utils import formataddr
 
-from .Globals import log_manager
+from .Globals import log_manager, stop_event
 from .Vars import config
 
 
@@ -196,6 +197,10 @@ class Discord:
 
     def __init__(self):
         self.webhook_url = config.app.discord_webhook_url
+        self.error_attempts = 5   # tries on connection or 5xx errors before giving up
+        self.max_rate_wait = 60   # cap in seconds for one rate limit wait
+        self.min_rate_wait = 1    # floor in seconds so we never retry too fast
+        self.max_429_total = 600  # cap in seconds for total rate limit waiting on one message
 
     def notify_series(self, action: str, series_name: str, item_blocks: list) -> bool:
         return _send_grouped(self._send, action, series_name, item_blocks, self.MAX_BODY, self.COUNT_BYTES)
@@ -207,25 +212,108 @@ class Discord:
         suffix = "... (truncated)"
         return text[:limit - len(suffix)] + suffix
 
-    def _send(self, subject: str, message: str):
-        """Send one message to a Discord channel using a webhook embed."""
+    def _sleep(self, seconds: float) -> bool:
+        """Sleep for the given seconds but wake up early if the app is shutting down."""
+
+        end = time.time() + seconds
+        while time.time() < end:
+            if stop_event.is_set():
+                return True
+            time.sleep(max(0, min(1, end - time.time())))
+
+        return stop_event.is_set()
+
+    def _retry_after(self, response: requests.Response) -> float:
+        """Read how many seconds Discord wants us to wait before trying again."""
+
+        # the json body has the real wait time from my testing
         try:
-            log_manager.info("Sending Discord notification...")
+            wait = float(response.json().get("retry_after"))
+        except Exception:
+            wait = self.max_rate_wait
 
-            embed = {
-                "title": self._truncate(subject, self.TITLE_LIMIT),
-                "description": self._truncate(message, self.DESCRIPTION_LIMIT)
-            }
+        return max(self.min_rate_wait, min(wait, self.max_rate_wait))  # clamp to our min/max so we don't wait too long or too short
 
-            response = requests.post(
-                self.webhook_url,
-                json={"embeds": [embed]},
-                timeout=30
-            )
-            response.raise_for_status()
+    def _cooldown(self, response: requests.Response) -> bool:
+        """If we used up the rate limit bucket, wait the time Discord tells us to before sending another message."""
 
-        except Exception as e:
-            log_manager.error(f"Failed to send Discord notification: {e}", exc_info=e)
+        if response.headers.get("X-RateLimit-Remaining") != "0":
             return False
 
-        return True
+        try:
+            reset_after = float(response.headers.get("X-RateLimit-Reset-After"))
+        except (TypeError, ValueError):
+            return False
+
+        reset_after = min(reset_after, self.max_rate_wait)
+        if reset_after <= 0:
+            return False
+
+        log_manager.debug(f"Discord rate limit bucket used up. Cooling down for {reset_after}s before next send.")
+        return self._sleep(reset_after)
+
+    def _send(self, subject: str, message: str):
+        """Send one message to a Discord channel using a webhook embed."""
+
+        embed = {
+            "title": self._truncate(subject, self.TITLE_LIMIT),
+            "description": self._truncate(message, self.DESCRIPTION_LIMIT)
+        }
+        payload = {"embeds": [embed]}
+
+        error_attempt = 0
+        total_rate_wait = 0.0
+        while True:
+            if stop_event.is_set():
+                log_manager.info("Shutdown requested. Skipping Discord notification.")
+                return False
+
+            try:
+                log_manager.info("Sending Discord notification...")
+                response = requests.post(self.webhook_url, json=payload, timeout=30)
+            except requests.RequestException as network_error:
+                error_attempt += 1
+                if error_attempt >= self.error_attempts:
+                    log_manager.error(f"Failed to send Discord notification after {error_attempt} tries: {network_error}", exc_info=network_error)
+                    return False
+
+                wait = min(30, 2 ** error_attempt)  # exponential backoff capped at 30s
+                log_manager.warning(f"Discord request failed ({network_error}). Retrying in {wait}s...")
+                if self._sleep(wait):
+                    return False
+                continue
+
+            # discord is telling us to slow down so we slow TF down.
+            if response.status_code == 429:
+                wait = self._retry_after(response)
+                total_rate_wait += wait
+                if total_rate_wait > self.max_429_total:
+                    log_manager.error(f"Discord kept rate limiting us past {self.max_429_total}s. Giving up on this message.")
+                    return False
+
+                log_manager.warning(f"Discord rate limited us. Waiting {wait}s before retry...")
+                if self._sleep(wait):
+                    return False
+                continue
+
+            # a 5xx is a server side problem. back off a few times then give up.
+            if response.status_code >= 500:
+                error_attempt += 1
+                if error_attempt >= self.error_attempts:
+                    log_manager.error(f"Discord returned {response.status_code} after {error_attempt} tries. Giving up on this message.")
+                    return False
+
+                wait = min(30, 2 ** error_attempt)  # exponential backoff capped at 30s
+                log_manager.warning(f"Discord returned {response.status_code}. Retrying in {wait}s...")
+                if self._sleep(wait):
+                    return False
+                continue
+
+            try:
+                response.raise_for_status()
+            except Exception as bad_status:
+                log_manager.error(f"Failed to send Discord notification: {bad_status}", exc_info=bad_status)
+                return False
+
+            self._cooldown(response)
+            return True
