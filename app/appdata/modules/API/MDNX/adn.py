@@ -46,7 +46,7 @@ class ADN_MDNX_API:
 
         # Title prefix: "Épisode N - <rest>". The N value is what we use to
         # detect a new season (resets back to 1, or to anything <= prev N).
-        self.episode_title_prefix_pattern = re.compile(r'^Épisode\s+(?P<n>\d+)\s*-\s*(?P<rest>.+?)\s*$')
+        self.episode_title_prefix_pattern = re.compile(r'^[EÉ]pisode\s+(?P<n>\d+)\s*-\s*(?P<rest>.+?)\s*$')
 
         # Versions and Subtitles lines under the most recent episode.
         self.versions_pattern = re.compile(r'-\s*Versions:\s*(.+)', re.IGNORECASE)
