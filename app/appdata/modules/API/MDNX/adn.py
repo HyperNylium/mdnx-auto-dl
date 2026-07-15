@@ -22,7 +22,8 @@ ADN_LANG_MAP = {
     "fr": LANG_MAP["French"],
     "de": LANG_MAP["German"],
     "pl": LANG_MAP["Polish"],
-    "ja": LANG_MAP["Japanese"]
+    "ja": LANG_MAP["Japanese"],
+    "zh": LANG_MAP["Chinese (Mainland China)"]
 }
 
 
