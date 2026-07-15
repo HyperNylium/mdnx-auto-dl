@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from .MediaServerManager import mediaserver_scan_library
-from .Globals import file_manager, queue_manager, log_manager, remote_specials
+from .Globals import file_manager, queue_manager, log_manager, remote_specials, stop_event
 from .ServiceHelper import get_wanted_dubs_and_subs, probe_streams, select_dubs, select_subs
 from .Vars import (
     config,
@@ -26,13 +26,13 @@ class MainLoop:
         self.skip_queue_refresh = config.app.skip_queue_refresh
         self.dry_run = config.app.dry_run
         self.notifications_buffer = []
-        self.stop_requested = False
+        stop_event.clear()
 
         log_manager.debug("MainLoop initialized.")
 
     def mainloop(self) -> None:
         try:
-            while not self.stop_requested:
+            while not stop_event.is_set():
                 log_manager.debug("Executing MainLoop task.")
 
                 # pull the latest remote-specials.yaml and rebuild internal state for overrides.
@@ -86,7 +86,7 @@ class MainLoop:
         """Signal the main loop to stop."""
 
         log_manager.info("Stopping MainLoop...")
-        self.stop_requested = True
+        stop_event.set()
 
         # cancel any active downloads on every configured service
         for service in SERVICES.all():
@@ -100,10 +100,10 @@ class MainLoop:
         """Wait for the specified timeout or exit early if stop is requested."""
 
         end = time.time() + timeout
-        while not self.stop_requested and time.time() < end:
+        while not stop_event.is_set() and time.time() < end:
             time.sleep(1)
 
-        if self.stop_requested:
+        if stop_event.is_set():
             log_manager.info("Interrupt requested. Exiting wait early.")
             return True
 
@@ -281,7 +281,7 @@ class MainLoop:
         log_manager.info("Getting the current queue IDs...")
 
         for service in SERVICES.all():
-            if self.stop_requested:
+            if stop_event.is_set():
                 log_manager.info("Stop requested. Aborting queue refresh.")
                 return
 
@@ -304,7 +304,7 @@ class MainLoop:
 
             log_manager.info(f"[{service.display_name}] Checking monitors...")
             for series_id in service.monitor_series_id:
-                if self.stop_requested:
+                if stop_event.is_set():
                     log_manager.info(f"[{service.display_name}] Stop requested. Aborting monitor refresh.")
                     return
                 if series_id not in queue_ids:
@@ -317,7 +317,7 @@ class MainLoop:
             # stop monitors for series removed from config so they are no longer monitored
             log_manager.info(f"[{service.display_name}] Checking monitors to stop...")
             for series_id in queue_ids:
-                if self.stop_requested:
+                if stop_event.is_set():
                     log_manager.info(f"[{service.display_name}] Stop requested. Aborting monitor cleanup.")
                     return
                 if series_id not in service.monitor_series_id:
@@ -331,7 +331,7 @@ class MainLoop:
     def _download_for_service(self, service: str, service_label: str, mdnx_api) -> None:
         """Download missing episodes for the specified service."""
 
-        if self.stop_requested:
+        if stop_event.is_set():
             log_manager.info(f"[{service_label}] Stop requested. Skipping download.")
             return
 
@@ -345,7 +345,7 @@ class MainLoop:
 
         for series_id, season_key, episode_key, season, episode in iter_episodes(bucket):
 
-            if self.stop_requested:
+            if stop_event.is_set():
                 log_manager.info(f"[{service_label}] Stop requested. Skipping download.")
                 return
 
@@ -417,7 +417,7 @@ class MainLoop:
     def _refresh_dub_sub_for_service(self, service: str, service_label: str, mdnx_api) -> None:
         """Probe existing files for missing dubs/subs and re-download as needed."""
 
-        if self.stop_requested:
+        if stop_event.is_set():
             log_manager.info(f"[{service_label}] Stop requested. Skipping dub/sub verification.")
             return
 
@@ -431,7 +431,7 @@ class MainLoop:
 
         for series_id, season_key, episode_key, season, episode in iter_episodes(bucket):
 
-            if self.stop_requested:
+            if stop_event.is_set():
                 log_manager.info(f"[{service_label}] Stop requested. Skipping dub/sub verification.")
                 return
 
