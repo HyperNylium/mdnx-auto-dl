@@ -24,6 +24,7 @@
 
 mdnx:
   crunchyroll:
+
     # Kaiju No. 8
     GG5H5XQ7D:
       S2: ["13"]  # skip "Kaiju No. 8: Mission Recon"
@@ -33,11 +34,22 @@ mdnx:
     GR9P57W96:
       S3: ["14"]  # skip "Saga of Tanya the Evil Operation Desert Pasta"
 
+    # Mushoku Tensei Jobless Reincarnation
+    G24H1N3MP:
+      S1: ["24"] # skip "Eris the Goblin Slayer"
+      S2: ["25"] # skip "Guardian Fitz"
+
+    # Miss Kobayashi's Dragon Maid
+    G6497Z43Y:
+      S3: ["26-38"] # skip "Short Animation Series" season
+      S0: ["39", "40"]  # skip "OVAs" season
+
   hidive: {}
   adn: {}
 
 zlo:
   crunchyroll:
+
     # Kaiju No. 8
     GG5H5XQ7D:
       S2: ["1"]  # skip "Kaiju No. 8: Mission Recon"
@@ -46,6 +58,15 @@ zlo:
     # Saga of tanya the evil
     GR9P57W96:
       S3: ["1"]  # skip "Saga of Tanya the Evil Operation Desert Pasta"
+
+    # Mushoku Tensei Jobless Reincarnation
+    G24H1N3MP:
+      S1: ["24"] # skip "Eris the Goblin Slayer"
+
+    # Miss Kobayashi's Dragon Maid
+    G6497Z43Y:
+      S3: ["1-13"] # skip "Short Animation Series" season
+      S0: ["14", "13"]  # skip "OVAs" season
 
   hidive: {}
   adn: {}
