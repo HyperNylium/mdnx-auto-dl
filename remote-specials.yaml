@@ -44,6 +44,14 @@ mdnx:
       S3: ["26-38"] # skip "Short Animation Series" season
       S0: ["39", "40"]  # skip "OVAs" season
 
+    # Summer Pockets
+    G0XHWM17X:
+      S2: ["27-30"] # skip "Summer Pockets Season 1: Omnibus" season
+
+    # The Dark History of the Reincarnated Villainess
+    GG5H5XQZQ:
+      S1: ["13"] # skip "Yomi, Jealousy, and a Birthday / Iana and Sol's Feverish Day"
+
   hidive: {}
   adn: {}
 
@@ -67,6 +75,14 @@ zlo:
     G6497Z43Y:
       S3: ["1-13"] # skip "Short Animation Series" season
       S0: ["14", "13"]  # skip "OVAs" season
+
+    # Summer Pockets
+    G0XHWM17X:
+      S2: ["1-4"] # skip "Summer Pockets Season 1: Omnibus" season
+
+    # The Dark History of the Reincarnated Villainess
+    GG5H5XQZQ:
+      S1: ["13"] # skip "Yomi, Jealousy, and a Birthday / Iana and Sol's Feverish Day"
 
   hidive: {}
   adn: {}
