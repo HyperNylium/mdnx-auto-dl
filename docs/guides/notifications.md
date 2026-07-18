@@ -7,7 +7,7 @@ Each provider has its own `*_ENABLED` flag and they are independent, so you can 
 > [!NOTE]
 > SMTP sends one combined summary message per loop pass. The push providers (ntfy, Gotify, Discord) send one message per series and automatically split long messages to stay within each provider's size limit.
 
-If a provider is enabled but a required key is empty, the app exits on startup with a critical log line telling you what is missing.
+If a provider is enabled but a required key is empty, the container exits on startup with a critical log line telling you what is missing.
 
 All keys below live in the `app` section of your config file.
 
@@ -111,7 +111,7 @@ app:
     GOTIFY_PRIORITY: 5
 ```
 
-Use the base URL of your Gotify server (no `/message` suffix). The app appends `/message` itself. Create the token in Gotify under **Apps**.
+Use the base URL of your Gotify server (no `/message` suffix). mdnx-auto-dl appends `/message` itself. Create the token in Gotify under **Apps**.
 
 **Keys:** [`GOTIFY_ENABLED`](../config-options.md#GOTIFY_ENABLED) [`GOTIFY_URL`](../config-options.md#GOTIFY_URL) [`GOTIFY_TOKEN`](../config-options.md#GOTIFY_TOKEN) [`GOTIFY_PRIORITY`](../config-options.md#GOTIFY_PRIORITY)
 
@@ -135,6 +135,6 @@ app:
     DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/123456789/your-webhook-token"
 ```
 
-Notifications are posted as embeds. If Discord rate-limits the request, the app waits and retries automatically.
+Notifications are posted as embeds. If Discord rate-limits the request, mdnx-auto-dl waits and retries automatically.
 
 **Keys:** [`DISCORD_ENABLED`](../config-options.md#DISCORD_ENABLED) [`DISCORD_WEBHOOK_URL`](../config-options.md#DISCORD_WEBHOOK_URL)
