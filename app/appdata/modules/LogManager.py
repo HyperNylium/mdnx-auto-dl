@@ -96,7 +96,7 @@ class LogManager:
         filename, funcname = self._get_caller()
 
         # time_str: 6:00:00 AM
-        # date_str: 11/19/2025
+        # date_str: 19/11/2025
         now = datetime.now(ZoneInfo(TZ))
         time_str = now.strftime("%I:%M:%S %p")
         date_str = now.strftime("%d/%m/%Y")
@@ -197,13 +197,23 @@ class LogManager:
         0 -> _get_caller
         1 -> _log
         2 -> info/debug/etc
-        3 -> user code
+        3 -> caller (or Vars._log wrapper, which is skipped to reach the caller)
         """
         try:
-            stack = inspect.stack()
-            if len(stack) < 4:
+            frame = inspect.currentframe().f_back
+
+            # skip frames that live in this logger module
+            while frame is not None and frame.f_code.co_filename == __file__:
+                frame = frame.f_back
+
+            # skip the Vars._log wrapper that forwards into this logger
+            if frame is not None:
+                code = frame.f_code
+                if os.path.basename(code.co_filename) == "Vars.py" and code.co_name == "_log":
+                    frame = frame.f_back
+
+            if frame is None:
                 return "<unknown>", "<unknown>"
-            frame = stack[3].frame
         except Exception:
             return "<unknown>", "<unknown>"
 

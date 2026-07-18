@@ -23,7 +23,7 @@ class PLEX_API:
         self.url_override = config.app.plex_url_override
 
         if self.server_url is None or self.server_url == "":
-            log_manager.error("PLEX_URL is not set or empty. Please set it in config.json. Exiting...")
+            log_manager.critical("PLEX_URL is not set or empty. Please set it in your config. Exiting...")
             sys.exit(1)
 
         if isinstance(self.server_url, str):
@@ -113,9 +113,9 @@ class PLEX_API:
             if status == 401:
                 log_manager.debug("401 Unauthorized. Token invalid or lacks permission.")
             else:
-                log_manager.error(f"HTTP error: {e}")
+                log_manager.error(f"Failed with HTTP error: {e}", exc_info=e)
         except requests.RequestException as e:
-            log_manager.error(f"Request failed: {e}")
+            log_manager.error(f"Failed to complete request: {e}", exc_info=e)
         return False
 
     def _headers(self, include_token: bool) -> dict:
@@ -198,11 +198,11 @@ class PLEX_API:
             resp.raise_for_status()
             return resp.json().get("authToken")
         except requests.RequestException as e:
-            log_manager.error(f"PIN poll error: {e}")
+            log_manager.error(f"Failed to poll PIN: {e}", exc_info=e)
             return None
 
     def _store_token(self, token) -> None:
-        """Store the token in config.json."""
+        """Store the token in users config."""
 
         ok = update_app_config("PLEX_TOKEN", token)
         if not ok:
@@ -229,11 +229,11 @@ class JELLYFIN_API:
             self.server_url = raw_url.strip().rstrip("/")
 
         if self.server_url is None or self.server_url == "":
-            log_manager.error("JELLY_URL is not set or empty. Please set it in config.json. Exiting...")
+            log_manager.critical("JELLY_URL is not set or empty. Please set it in your config. Exiting...")
             sys.exit(1)
 
         if self.api_key is None or self.api_key == "":
-            log_manager.error("JELLY_API_KEY is not set or empty. Please set it in config.json. Exiting...")
+            log_manager.critical("JELLY_API_KEY is not set or empty. Please set it in your config. Exiting...")
             sys.exit(1)
 
         log_manager.info(f"JELLYFIN API initialized with: URL: {self.server_url})")
@@ -268,7 +268,7 @@ class JELLYFIN_API:
             log_manager.info("Scan triggered successfully.")
             return True
         except requests.RequestException as e:
-            log_manager.error(f"Error triggering scan: {e}")
+            log_manager.error(f"Failed to trigger scan: {e}", exc_info=e)
             return False
 
 

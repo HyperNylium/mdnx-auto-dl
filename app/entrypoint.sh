@@ -34,6 +34,8 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
   exit 1
 fi
 
+echo "[entrypoint] Starting up. Reading configuration..."
+
 read_config() {
   local config_key="$1"
   local default_value="$2"
@@ -94,6 +96,7 @@ if ! getent passwd "$USERNAME" >/dev/null; then
     fi
 fi
 
+echo "[entrypoint] Applying ownership and permissions to /app. This can take a moment..."
 chown -R "$USER_ID:$GROUP_ID" /app
 chmod -R 775 /app
 
@@ -116,7 +119,7 @@ done
 
 if [[ "$ZLO_ENABLED" == "true" ]]; then
   ZLO_BIN_PATH="$BIN_DIR/zlo/zlo7"
-  ZLO_USER_CONFIG_DIR="/home/$USERNAME/Documents/zlo7"
+  ZLO_USER_CONFIG_DIR="$BIN_DIR/zlo/config"
 
   echo "[entrypoint] ZLO enabled. Fixing ownership/permissions on ZLO paths..."
 
@@ -133,15 +136,6 @@ fi
 
 echo "[entrypoint] Running database migrations via Alembic..."
 gosu "$USER_ID:$GROUP_ID" bash -c "alembic -c appdata/modules/db/alembic/alembic.ini upgrade head"
-
-NTFY_SCRIPT_PATH="$(read_config "NTFY_SCRIPT_PATH" "")"
-
-if [[ -n "$NTFY_SCRIPT_PATH" && -f "$NTFY_SCRIPT_PATH" ]]; then
-  echo "[entrypoint] Found ntfy script at $NTFY_SCRIPT_PATH. Making it executable..."
-  chmod +x "$NTFY_SCRIPT_PATH"
-else
-  echo "[entrypoint] No ntfy script at $NTFY_SCRIPT_PATH. Skipping chmod."
-fi
 
 # If FREEZE is true, keep the container alive without starting the app
 if [[ "${FREEZE,,}" == "true" ]]; then

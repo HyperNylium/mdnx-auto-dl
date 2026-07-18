@@ -13,11 +13,17 @@ class Service(BaseModel):
     # short id used in logs and queue lookups
     service_name: str
 
-    # the bucket name inside queue.json
+    # the bucket name inside the queue db
     queue_bucket: str
 
     # human readable label for log lines
     display_name: str
+
+    # long service name used in file and folder names
+    service_long: str
+
+    # short service name used in file and folder names
+    service_short: str
 
     # which downloader this service uses: "mdnx" or "zlo"
     tool: str
