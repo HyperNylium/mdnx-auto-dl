@@ -29,5 +29,5 @@ extend-exclude = [
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "B", "UP", "RUF"]
-ignore = ["E501", "UP015", "E712"]
-extend-select = ["TID252"]
+ignore = ["line-too-long", "redundant-open-modes", "true-false-comparison"]
+extend-select = ["relative-imports"]

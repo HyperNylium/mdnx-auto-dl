@@ -681,11 +681,11 @@ def sanitize(path_segment: str, ascii_only: bool = False, max_len: int = 255) ->
     normalized = unicodedata.normalize("NFKC", path_segment)
     punctuation_translation = {
         ord('“'): '"', ord('”'): '"', ord('„'): '"', ord('‟'): '"',
-        ord('’'): "'", ord('‘'): "'", ord('‚'): "'", ord('ʼ'): "'",  # noqa: RUF001
-        ord('–'): '-', ord('—'): '-', ord('-'): '-',  # non-breaking hyphen maps to hyphen  # noqa: RUF001
+        ord('’'): "'", ord('‘'): "'", ord('‚'): "'", ord('ʼ'): "'",  # ruff:ignore[ambiguous-unicode-character-string]
+        ord('–'): '-', ord('—'): '-', ord('-'): '-',  # non-breaking hyphen maps to hyphen  # ruff:ignore[ambiguous-unicode-character-string]
         ord('…'): '...', ord('•'): '-', ord('·'): '-', ord('‧'): '-',
-        ord('／'): '/', ord('＼'): '\\', ord('～'): '~',  # noqa: RUF001
-        ord('：'): ':', ord('；'): ';', ord('！'): '!', ord('？'): '?',  # noqa: RUF001
+        ord('／'): '/', ord('＼'): '\\', ord('～'): '~',  # ruff:ignore[ambiguous-unicode-character-string]
+        ord('：'): ':', ord('；'): ';', ord('！'): '!', ord('？'): '?',  # ruff:ignore[ambiguous-unicode-character-string]
     }
     sanitized = normalized.translate(punctuation_translation)
     sanitized = INVALID_CHARS_RE.sub(" ", sanitized)
