@@ -2,7 +2,9 @@
 
 ZLO is a separate downloader from multi-downloader-nx. It uses its own `zlo7` binary and its own `.zlo7` config folder, and you sign in through the ZLO GUI (mdnx-auto-dl never logs you in).
 
-This guide covers **tuning** ZLO downloads. If you have not mounted the binary and signed-in config folder yet, do that first: see [zlo-get-started.md](../zlo-get-started.md).
+This guide covers **tuning** ZLO downloads. 
+
+If you have not mounted the binary and signed-in config folder yet, do that first: see [zlo-get-started.md](../zlo-get-started.md).
 
 ---
 
@@ -20,13 +22,14 @@ Each ZLO service has its own enable flag and its own monitor map (both live at t
 
 Then add the series IDs you want to monitor to the matching map ([`zlo_cr_monitor_series_id`](../config-options.md#zlo_cr_monitor_series_id), [`zlo_hidive_monitor_series_id`](../config-options.md#zlo_hidive_monitor_series_id), [`zlo_adn_monitor_series_id`](../config-options.md#zlo_adn_monitor_series_id)). You can also blacklist seasons/episodes and override dubs/subs per season there. See [Blacklists & per-season overrides](series-overrides.md).
 
-**Enable flags:** [`ZLO_CR_ENABLED`](../config-options.md#ZLO_CR_ENABLED), [`ZLO_HIDIVE_ENABLED`](../config-options.md#ZLO_HIDIVE_ENABLED), [`ZLO_ADN_ENABLED`](../config-options.md#ZLO_ADN_ENABLED)
+**Enable flags:** [`ZLO_CR_ENABLED`](../config-options.md#ZLO_CR_ENABLED) [`ZLO_HIDIVE_ENABLED`](../config-options.md#ZLO_HIDIVE_ENABLED) [`ZLO_ADN_ENABLED`](../config-options.md#ZLO_ADN_ENABLED)
 
 ---
 
 ## Tune quality, dubs, and subtitles
 
-Download settings live in the top-level `zlo` section, which has one subsection per service: `crunchyroll`, `hidive`, and `adn`. Each subsection takes the same keys. Only set the keys you want to change. Anything you leave out uses its default.
+Download settings live in the top-level `zlo` section, which has one subsection per service: `crunchyroll`, `hidive`, and `adn`.  
+Each subsection takes the same keys. Only set the keys you want to change. Anything you leave out uses its default.
 
 JSON:
 ```json
@@ -71,6 +74,7 @@ You normally do not need to touch these. They control where `zlo7` writes files 
 
 - [`dlpath`](../config-options.md#zlo.dlpath): where `zlo7` writes the downloaded MKV before mdnx-auto-dl picks it up.
 - [`tempPath`](../config-options.md#zlo.tempPath): scratch directory for in-progress segments.
-- [`configPath`](../config-options.md#zlo.configPath): path to the ZLO `storage.db` that holds your signed-in account. This is inside the config folder you bind-mount. The app also reads it on startup to confirm you are signed in.
+- [`configPath`](../config-options.md#zlo.configPath): path to the ZLO `storage.db` that holds your signed-in account. This is inside the config folder you bind-mount.  
+  mdnx-auto-dl also reads it on startup to confirm you are signed in.
 
 For the full list of every ZLO option and its default, see the [ZLO per-service options reference](../config-options.md#zlo-per-service-options).

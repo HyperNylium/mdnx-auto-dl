@@ -20,8 +20,8 @@ The config file has a few top-level sections:
 - `mdnx`: passthrough config for [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx). Anything valid in `cli-defaults.yml` is valid here, as long as the option's `cli-default Entry` in [multi-downloader-nx's documentation](https://github.com/anidl/multi-downloader-nx/blob/master/docs/DOCUMENTATION.md) is not `NaN`.
 - `zlo`: per-service config for the ZLO downloader. Has subsections `crunchyroll`, `hidive`, and `adn`.
 
-If you leave an option out of your config file, the application will use the default value listed in this doc.  
-The only config that doesnt have defaults is the `destinations` section. Every service you enable needs an entry in `destinations` or the app will exit with an error on startup. This is intentional to not make assumptions about where/how you want to save files.
+If you leave an option out of your config file, mdnx-auto-dl will use the default value listed in this doc.  
+The only config that doesnt have defaults is the `destinations` section. Every service you enable needs an entry in `destinations` or the container will exit with an error on startup. This is intentional to not make assumptions about where/how you want to save files.
 
 ### JSON formatting rules
 Standard JSON formatting still applies:
@@ -223,7 +223,7 @@ app:
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `false` | boolean | When `true`, do a fresh Crunchyroll login and overwrite `cr_token.yml`. After it runs, the app flips this back to `false` on its own to not do a fresh login every time. |
+| `false` | boolean | When `true`, do a fresh Crunchyroll login and overwrite `cr_token.yml`. After it runs, mdnx-auto-dl flips this back to `false` on its own to not do a fresh login every time. |
 
 JSON:
 ```json
@@ -315,7 +315,7 @@ app:
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `false` | boolean | When `true`, do a fresh HiDive login and overwrite `hd_new_token.yml`. After it runs, the app flips this back to `false` on its own. |
+| `false` | boolean | When `true`, do a fresh HiDive login and overwrite `hd_new_token.yml`. After it runs, mdnx-auto-dl flips this back to `false` on its own. |
 
 JSON:
 ```json
@@ -407,7 +407,7 @@ app:
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `false` | boolean | When `true`, do a fresh ADN login and overwrite the saved ADN token. After it runs, the app flips this back to `false` on its own. |
+| `false` | boolean | When `true`, do a fresh ADN login and overwrite the saved ADN token. After it runs, mdnx-auto-dl flips this back to `false` on its own. |
 
 JSON:
 ```json
@@ -784,7 +784,7 @@ zlo:
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `/app/appdata/bin/zlo/config/storage/storage.db` | string | Path (inside the container) to the ZLO `storage.db` file that holds your signed-in ZLO account. Passed to `zlo7` as `--configPath`. This lives under the ZLO config directory you bind-mount, and the app also reads it on startup to confirm you are signed in. You normally do not need to change this. |
+| `/app/appdata/bin/zlo/config/storage/storage.db` | string | Path (inside the container) to the ZLO `storage.db` file that holds your signed-in ZLO account. Passed to `zlo7` as `--configPath`. This lives under the ZLO config directory you bind-mount, and mdnx-auto-dl also reads it on startup to confirm you are signed in. You normally do not need to change this. |
 
 JSON:
 ```json
@@ -938,8 +938,8 @@ Where finished files are saved and how their folders are named.
 
 > How-to: [Organize your files](guides/organizing-files.md)
 
-`destinations` is a **top-level** key (not under `app`). It tells the application where to put finished files for each service.  
-Every service you enable needs its own entry. If a service is enabled and has no entry here, the app will exit with an error on startup.
+`destinations` is a **top-level** key (not under `app`). It tells mdnx-auto-dl where to put finished files for each service.  
+Every service you enable needs its own entry. If a service is enabled and has no entry here, the container will exit with an error on startup.
 
 Each entry has two keys:
 - `dir`: the folder inside the container where files are saved. This must match the right side of one of your bind-mounts in `docker-compose.yaml` (for example, `/data/Anime`).
@@ -1156,7 +1156,7 @@ app:
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `null` | string or `null` | Plex auth token. You **do not** need to set this manually. It is saved into this config option automatically after you authorize the app (check the logs on first boot!). |
+| `null` | string or `null` | Plex auth token. You **do not** need to set this manually. It is saved into this config option automatically after you authorize mdnx-auto-dl (check the logs on first boot!). |
 
 JSON:
 ```json
@@ -1265,7 +1265,7 @@ For copy-paste examples per provider, see the [Set up notifications](guides/noti
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `false` | boolean | When `true`, send notifications over SMTP email. Requires the `SMTP_*` keys below. If any required SMTP key is empty, the app exits on startup with a critical log line. |
+| `false` | boolean | When `true`, send notifications over SMTP email. Requires the `SMTP_*` keys below. If any required SMTP key is empty, the container exits on startup with a critical log line. |
 
 JSON:
 ```json
@@ -1424,7 +1424,7 @@ app:
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `false` | boolean | When `true`, publish notifications to an [ntfy](https://ntfy.sh/) topic over HTTP. Requires [`NTFY_URL`](#NTFY_URL). The app exits on startup if this is `true` but `NTFY_URL` is empty. |
+| `false` | boolean | When `true`, publish notifications to an [ntfy](https://ntfy.sh/) topic over HTTP. Requires [`NTFY_URL`](#NTFY_URL). The container exits on startup if this is `true` but `NTFY_URL` is empty. |
 
 JSON:
 ```json
@@ -1554,7 +1554,7 @@ app:
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `false` | boolean | When `true`, send notifications to a [Gotify](https://gotify.net/) server. Requires [`GOTIFY_URL`](#GOTIFY_URL) and [`GOTIFY_TOKEN`](#GOTIFY_TOKEN). The app exits on startup if either is empty. |
+| `false` | boolean | When `true`, send notifications to a [Gotify](https://gotify.net/) server. Requires [`GOTIFY_URL`](#GOTIFY_URL) and [`GOTIFY_TOKEN`](#GOTIFY_TOKEN). The container exits on startup if either is empty. |
 
 JSON:
 ```json
@@ -1572,7 +1572,7 @@ app:
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `""` | string | Base URL of your Gotify server, for example, `https://gotify.example.com`. The app posts messages to `<GOTIFY_URL>/message`. Required when [`GOTIFY_ENABLED`](#GOTIFY_ENABLED) is `true`. |
+| `""` | string | Base URL of your Gotify server, for example, `https://gotify.example.com`. mdnx-auto-dl posts messages to `<GOTIFY_URL>/message`. Required when [`GOTIFY_ENABLED`](#GOTIFY_ENABLED) is `true`. |
 
 JSON:
 ```json
@@ -1628,7 +1628,7 @@ app:
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `false` | boolean | When `true`, send notifications to a Discord channel through a webhook. Requires [`DISCORD_WEBHOOK_URL`](#DISCORD_WEBHOOK_URL). The app exits on startup if it is empty. |
+| `false` | boolean | When `true`, send notifications to a Discord channel through a webhook. Requires [`DISCORD_WEBHOOK_URL`](#DISCORD_WEBHOOK_URL). The container exits on startup if it is empty. |
 
 JSON:
 ```json
@@ -1672,7 +1672,7 @@ Lower-level options: the download queue and run modes, logging, container paths,
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `false` | boolean | When `true`, only build/update the queue and download nothing. The app exits with code `0` after the queue is built. Make sure to set `restart: no` for the container in this mode or it'll get stuck in a restart loop. |
+| `false` | boolean | When `true`, only build/update the queue and download nothing. The container exits with code `0` after the queue is built. Make sure to set `restart: no` for the container in this mode or it'll get stuck in a restart loop. |
 
 JSON:
 ```json
@@ -1690,7 +1690,7 @@ app:
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `false` | boolean | When `true`, skip refreshing the queue and go into the main loop using whatever data is already in the queue database. Only useful when testing other parts of the app and you don't want to wait for the queue to build. |
+| `false` | boolean | When `true`, skip refreshing the queue and go into the main loop using whatever data is already in the queue database. Only useful when testing other parts of mdnx-auto-dl and you don't want to wait for the queue to build. |
 
 JSON:
 ```json

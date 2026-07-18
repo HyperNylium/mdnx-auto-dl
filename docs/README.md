@@ -3,7 +3,7 @@
 [![Discord Server](https://discord.com/api/guilds/789034812799320074/widget.png?style=banner2)](https://discord.gg/XAAfYJ5ABk)
 
 ## Legal Warning
-This application is not endorsed by or affiliated with *Crunchyroll*, *Hidive* or *AnimationDigitalNetwork*. This application enables you to download videos for offline viewing which may be forbidden by law in your country. The usage of this application may also cause a violation of the *Terms of Service* between you and the stream provider. This tool is not responsible for your actions; please make an informed decision before using this application.
+mdnx-auto-dl is not endorsed by or affiliated with *Crunchyroll*, *Hidive* or *AnimationDigitalNetwork*. mdnx-auto-dl enables you to download videos for offline viewing which may be forbidden by law in your country. The usage of mdnx-auto-dl may also cause a violation of the *Terms of Service* between you and the stream provider. This tool is not responsible for your actions; please make an informed decision before using mdnx-auto-dl.
 
 # What is this?
 MDNX-auto-dl is a free and open-source headless orchestrator that automatically downloads new episodes from Crunchyroll, HiDive and AnimationDigitalNetwork (ADN) as they are released. It is not a GUI app.  
@@ -11,7 +11,7 @@ Instead of downloading anything itself, it manages the tools that do, [multi-dow
 Pick whichever downloader you want, or mix them per service (for example, ZLO7 for HiDive and multi-downloader-nx for Crunchyroll).
 
 # Documentation
-- Start here: [get-started.md](get-started.md). Pick your downloader, then follow the [multi-downloader-nx](mdnx-get-started.md) or [ZLO](zlo-get-started.md) guide to install, mount, and run the app.
+- Start here: [get-started.md](get-started.md). Pick your downloader, then follow the [multi-downloader-nx](mdnx-get-started.md) or [ZLO](zlo-get-started.md) guide to install, mount, and run the container.
 - How-to guides: [guides/](guides/README.md). Set up a specific feature like notifications, media servers, or file organization.
 - Full option reference: [config-options.md](config-options.md). Every configurable option, with defaults and JSON/YAML examples.
 

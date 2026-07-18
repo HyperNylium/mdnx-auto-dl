@@ -1,7 +1,7 @@
 # How-to: Organize your files
 
 Where each service saves finished files, and how the folders and file names are laid out, is controlled by the top-level [`destinations`](../config-options.md#destinations) section.  
-Every service you enable needs an entry, or the app exits on startup.
+Every service you enable needs an entry, or the container exits on startup.
 
 Each entry has two keys:
 - `dir`: the folder **inside the container** where files are saved. This must match the right side of one of your bind-mounts in `docker-compose.yaml` (for example, `/data/Anime`).

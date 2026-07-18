@@ -1,13 +1,20 @@
 # How-to: Configure multi-downloader-nx (aniDL)
 
-The Crunchyroll, HiDive, and ADN services that go through [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) (aniDL) share one config block: the top-level `mdnx` section. It is a passthrough. Anything valid in multi-downloader-nx's `cli-defaults.yml` is valid here, as long as the option's `cli-default Entry` in [multi-downloader-nx's documentation](https://github.com/anidl/multi-downloader-nx/blob/master/docs/DOCUMENTATION.md) is not `NaN`.
+The Crunchyroll, HiDive, and ADN services that go through [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) (aniDL) share one config block: the top-level `mdnx` section.
+
+Each subsection of `mdnx` maps to a file of the same name in multi-downloader-nx's `config` folder. On startup, mdnx-auto-dl writes whatever you put under a subsection straight into that file, so you can treat a subsection as if you were editing the multi-downloader-nx file directly:
+
+- [`cli-defaults`](../config-options.md#mdnx.cli-defaults) becomes `cli-defaults.yml`
+- [`bin-path`](../config-options.md#mdnx.bin-path) becomes `bin-path.yml`
+- [`dir-path`](../config-options.md#mdnx.dir-path) becomes `dir-path.yml`
+
+So under `cli-defaults`, anything valid in multi-downloader-nx's `cli-defaults.yml` is valid here, as long as the option's `cli-default Entry` in [multi-downloader-nx's documentation](https://github.com/anidl/multi-downloader-nx/blob/master/docs/DOCUMENTATION.md) is not `NaN`.
 
 You only need to set the keys you want to override. Anything you leave out keeps its default.
 
-The `mdnx` section has three subsections: [`bin-path`](../config-options.md#mdnx.bin-path), [`dir-path`](../config-options.md#mdnx.dir-path), and [`cli-defaults`](../config-options.md#mdnx.cli-defaults).
-
 > [!NOTE]
-> This section only applies to the aniDL versions of Crunchyroll, HiDive, and ADN. The ZLO versions are configured separately. See [Configure ZLO downloads](zlo.md).
+> This section only applies to the aniDL versions of Crunchyroll, HiDive, and ADN. The ZLO versions are configured separately.  
+> See [Configure ZLO downloads](zlo.md).
 
 ---
 
@@ -56,7 +63,8 @@ Common keys:
 - `defaultAudio` / `defaultSub`: which track to mark as default in the output file.
 - `tsd`: kills active Crunchyroll streaming sessions to avoid the `TOO_MANY_ACTIVE_STREAMS` error. Crunchyroll only, and it will kick anyone currently watching on your account.
 
-To add any other aniDL setting, just add its `cli-defaults.yml` key here. See the full defaults and the paths subsections in the [multi-downloader-nx options reference](../config-options.md#multi-downloader-nx-options).
+To add any other aniDL setting, just add its `cli-defaults.yml` key here.  
+See the full defaults and the paths subsections in the [multi-downloader-nx options reference](../config-options.md#multi-downloader-nx-options).
 
 ---
 

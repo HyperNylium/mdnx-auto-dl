@@ -55,7 +55,7 @@ wget https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/maste
 Both formats accept the same keys. The examples in this guide show both JSON and YAML, so follow whichever one you picked (see [config-options.md](config-options.md) for the full side-by-side reference).
 
 ### 6) Set where each provider saves its files
-The config file has a top-level `destinations` section. Each provider you enable needs an entry that tells the app where to put finished files inside the container, and how to name the folders.
+The config file has a top-level `destinations` section. Each provider you enable needs an entry that tells mdnx-auto-dl where to put finished files inside the container, and how to name the folders.
 
 The shipped config already has one entry per provider, pointing at `/data/Anime` or `/data/TV Shows`. Both of those paths are mounted by the default `docker-compose.yaml`. If you only enable a few providers, you can delete the entries for the ones you do not use.
 
@@ -220,7 +220,7 @@ For the full list of variables you can use inside `folder_structure`, see [Optio
 docker compose up -d
 ```
 
-That's it! The application will now keep track of the series you listed in your config file, automatically download new episodes as they're released, and update existing downloads whenever new dubs or subs become available.
+That's it! mdnx-auto-dl will now keep track of the series you listed in your config file, automatically download new episodes as they're released, and update existing downloads whenever new dubs or subs become available.
 
 ---
 

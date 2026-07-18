@@ -28,13 +28,13 @@ app:
 
 After running `docker compose up -d && docker compose logs -f`, you will see a log line like this:
 ```txt
-Open this URL in a browser to authorize the app:
+Open this URL in a browser to authorize mdnx-auto-dl:
 https://app.plex.tv/auth#?blablablablablablablabla
 ```
 
-Open that URL in a browser, log in to your Plex account, and authorize the app. The application then saves the Plex token to [`PLEX_TOKEN`](../config-options.md#PLEX_TOKEN) automatically and continues startup. There is no need to set `PLEX_TOKEN` by hand. The auth window is 10 minutes. If you do not authorize within that time, the application will exit.
+Open that URL in a browser, log in to your Plex account, and authorize mdnx-auto-dl. mdnx-auto-dl then saves the Plex token to [`PLEX_TOKEN`](../config-options.md#PLEX_TOKEN) automatically and continues startup. There is no need to set `PLEX_TOKEN` by hand. The auth window is 10 minutes. If you do not authorize within that time, the container will exit.
 
-After you authorize the app, you should see this in the logs:
+After you authorize mdnx-auto-dl, you should see this in the logs:
 ```txt
 Authorization completed. Token stored.
 User is authenticated. Testing library scan...
@@ -79,7 +79,7 @@ By default, if you only set:
 - [`PLEX_URL`](../config-options.md#PLEX_URL) (and authorize once to populate [`PLEX_TOKEN`](../config-options.md#PLEX_TOKEN)), and/or
 - [`JELLY_URL`](../config-options.md#JELLY_URL) + [`JELLY_API_KEY`](../config-options.md#JELLY_API_KEY)
 
-the application refreshes **all libraries** on the configured server(s).
+mdnx-auto-dl refreshes **all libraries** on the configured server(s).
 
 To refresh only a specific library, set the matching `*_URL_OVERRIDE` to `true` and set the matching `*_URL` to the exact refresh endpoint for that one library.
 
