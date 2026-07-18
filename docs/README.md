@@ -3,7 +3,7 @@
 [![Discord Server](https://discord.com/api/guilds/789034812799320074/widget.png?style=banner2)](https://discord.gg/XAAfYJ5ABk)
 
 ## Legal Warning
-mdnx-auto-dl is not endorsed by or affiliated with *Crunchyroll*, *Hidive* or *AnimationDigitalNetwork*. mdnx-auto-dl enables you to download videos for offline viewing which may be forbidden by law in your country. The usage of mdnx-auto-dl may also cause a violation of the *Terms of Service* between you and the stream provider. This tool is not responsible for your actions; please make an informed decision before using mdnx-auto-dl.
+mdnx-auto-dl is not endorsed by or affiliated with *Crunchyroll*, *HiDive* or *AnimationDigitalNetwork*. mdnx-auto-dl does not download, decrypt, or distribute any media itself. It is an orchestrator that automates third-party downloaders, [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) and ZLO7, which you install, configure, and supply your own credentials and CDM for. Downloading videos for offline viewing may be forbidden by law in your country, and may violate the *Terms of Service* between you and the stream provider. You alone are responsible for how you use this tool and the downloaders it runs on your behalf. Please make an informed decision before using mdnx-auto-dl.
 
 # What is this?
 MDNX-auto-dl is a free and open-source headless orchestrator that automatically downloads new episodes from Crunchyroll, HiDive and AnimationDigitalNetwork (ADN) as they are released. It is not a GUI app.  
