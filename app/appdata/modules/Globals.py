@@ -1,3 +1,5 @@
+import threading
+
 from .LogManager import LogManager
 log_manager = LogManager()
 
@@ -9,3 +11,6 @@ queue_manager = QueueManager()
 
 from .RemoteSpecials import RemoteSpecials  # noqa: E402
 remote_specials = RemoteSpecials()
+
+# Global stop event for threads to check and exit gracefully
+stop_event = threading.Event()

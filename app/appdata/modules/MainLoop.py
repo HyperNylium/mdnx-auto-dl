@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from .MediaServerManager import mediaserver_scan_library
-from .Globals import file_manager, queue_manager, log_manager, remote_specials
+from .Globals import file_manager, queue_manager, log_manager, remote_specials, stop_event
 from .ServiceHelper import get_wanted_dubs_and_subs, probe_streams, select_dubs, select_subs
 from .Vars import (
     config,
@@ -15,9 +15,9 @@ from .types.queue import Episode, ServiceBucket
 
 
 class MainLoop:
-    def __init__(self, notifier) -> None:
+    def __init__(self, notifiers) -> None:
 
-        self.notifier = notifier
+        self.notifiers = notifiers
 
         self.check_missing_dub_sub = config.app.check_missing_dub_sub
         self.loop_timeout = config.app.check_for_updates_interval
@@ -26,13 +26,13 @@ class MainLoop:
         self.skip_queue_refresh = config.app.skip_queue_refresh
         self.dry_run = config.app.dry_run
         self.notifications_buffer = []
-        self.stop_requested = False
+        stop_event.clear()
 
         log_manager.debug("MainLoop initialized.")
 
     def mainloop(self) -> None:
         try:
-            while not self.stop_requested:
+            while not stop_event.is_set():
                 log_manager.debug("Executing MainLoop task.")
 
                 # pull the latest remote-specials.yaml and rebuild internal state for overrides.
@@ -48,7 +48,7 @@ class MainLoop:
                     self.stop()
                     return
 
-                # Download any missing / not yet downloaded episodes for every enabled service.
+                # Download any missing / not yet downloaded episodes for every configured service.
                 # then (if configured) check for missing dubs/subs on already downloaded episodes.
                 for service in SERVICES.all():
                     if not service.configured:
@@ -59,7 +59,7 @@ class MainLoop:
                     if self.check_missing_dub_sub == True:
                         self._refresh_dub_sub_for_service(service.service_name, service.display_name, service.api)
                     else:
-                        log_manager.info(f"CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification for {service.display_name}.")
+                        log_manager.info(f"[{service.display_name}] CHECK_MISSING_DUB_SUB is False. Skipping dub/sub verification.")
 
                 if self.dry_run:
                     log_manager.info("DRY_RUN is True. Exiting after one iteration of the main loop.\nIf docker-compose.yaml has 'restart: always/unless-stopped', please change it to 'restart: no' to prevent restart loop.")
@@ -86,7 +86,7 @@ class MainLoop:
         """Signal the main loop to stop."""
 
         log_manager.info("Stopping MainLoop...")
-        self.stop_requested = True
+        stop_event.set()
 
         # cancel any active downloads on every configured service
         for service in SERVICES.all():
@@ -100,10 +100,10 @@ class MainLoop:
         """Wait for the specified timeout or exit early if stop is requested."""
 
         end = time.time() + timeout
-        while not self.stop_requested and time.time() < end:
+        while not stop_event.is_set() and time.time() < end:
             time.sleep(1)
 
-        if self.stop_requested:
+        if stop_event.is_set():
             log_manager.info("Interrupt requested. Exiting wait early.")
             return True
 
@@ -151,10 +151,36 @@ class MainLoop:
             "time_taken": format_duration(int(time_taken))
         }
 
+    def _format_block(self, item: dict) -> str:
+        """Build the per-episode text block for one push notification item."""
+
+        if item["action"] == "new":
+            lines = [
+                f"Episode name: {item['episode_name']}",
+                f"Episode number: {item['episode_number']}",
+                f"Episode dubs: {', '.join(item['after_dubs']) or 'None'}",
+                f"Episode subs: {', '.join(item['after_subs']) or 'None'}",
+                f"Episode path: {item['path']}",
+                f"Time taken to download: {item['time_taken']}"
+            ]
+        else:
+            lines = [
+                f"Episode name: {item['episode_name']}",
+                f"Episode number: {item['episode_number']}",
+                f"Episode before dubs: {', '.join(item['before_dubs']) or 'None'}",
+                f"Episode before subs: {', '.join(item['before_subs']) or 'None'}",
+                f"Episode after dubs: {', '.join(item['after_dubs']) or 'None'}",
+                f"Episode after subs: {', '.join(item['after_subs']) or 'None'}",
+                f"Episode path: {item['path']}",
+                f"Time taken to download: {item['time_taken']}"
+            ]
+
+        return "\n".join(lines)
+
     def _flush_notifications(self) -> None:
         """Send out notifications for all buffered items (if enabled) and clear the buffer."""
 
-        if not self.notifications_buffer or self.notifier is None:
+        if not self.notifications_buffer or not self.notifiers:
             self.notifications_buffer.clear()
             return
 
@@ -222,8 +248,30 @@ class MainLoop:
 
         body = "\n".join(lines).strip()
 
+        # group items by (action, series) so push services can send one notification per series instead of one big summary.
+        groups = []
+        group_index = {}
+        for item in self.notifications_buffer:
+            group_key = (item["action"], item["series_name"])
+            if group_key not in group_index:
+                group_index[group_key] = len(groups)
+                groups.append({
+                    "action": item["action"],
+                    "series_name": item["series_name"],
+                    "blocks": []
+                })
+            groups[group_index[group_key]]["blocks"].append(self._format_block(item))
+
+        log_manager.debug(f"Prepared {len(groups)} notification groups for dispatch.")
+        log_manager.debug(f"Notification groups: {groups}")
+
         try:
-            self.notifier.notify(subject, body)
+            for notifier in self.notifiers:
+                if notifier.send_per_series:
+                    for group in groups:
+                        notifier.notify_series(group["action"], group["series_name"], group["blocks"])
+                else:
+                    notifier.notify(subject, body)
         finally:
             self.notifications_buffer.clear()
 
@@ -233,16 +281,16 @@ class MainLoop:
         log_manager.info("Getting the current queue IDs...")
 
         for service in SERVICES.all():
-            if self.stop_requested:
+            if stop_event.is_set():
                 log_manager.info("Stop requested. Aborting queue refresh.")
                 return
 
             # if service not configured, dont refresh queue for said service.
             if not service.configured:
-                log_manager.info(f"{service.display_name} queue refresh skipped because the service wasnt enabled.")
+                log_manager.info(f"[{service.display_name}] Queue refresh skipped because the service wasnt enabled.")
                 continue
 
-            # only look at the correct bucket inside queue.json for this service
+            # only look at the correct bucket inside the queue db for this service
             bucket = queue_manager.output(service.service_name)
             if bucket is None:
                 bucket = ServiceBucket()
@@ -251,13 +299,13 @@ class MainLoop:
 
             # if both lists are empty, nothing to do, exit early
             if not service.monitor_series_id and not queue_ids:
-                log_manager.info(f"Your '{service.monitor_config_key}' list is empty. Skipped refreshing empty list.")
+                log_manager.info(f"[{service.display_name}] Your '{service.monitor_config_key}' list is empty. Skipped refreshing empty list.")
                 continue
 
-            log_manager.info(f"Checking {service.display_name} monitors...")
+            log_manager.info(f"[{service.display_name}] Checking monitors...")
             for series_id in service.monitor_series_id:
-                if self.stop_requested:
-                    log_manager.info(f"Stop requested. Aborting {service.display_name} monitor refresh.")
+                if stop_event.is_set():
+                    log_manager.info(f"[{service.display_name}] Stop requested. Aborting monitor refresh.")
                     return
                 if series_id not in queue_ids:
                     log_manager.info(f"[{service.display_name}] Starting monitor for {series_id}")
@@ -267,27 +315,27 @@ class MainLoop:
                     service.api.update_monitor(series_id)
 
             # stop monitors for series removed from config so they are no longer monitored
-            log_manager.info(f"Checking {service.display_name} monitors to stop...")
+            log_manager.info(f"[{service.display_name}] Checking monitors to stop...")
             for series_id in queue_ids:
-                if self.stop_requested:
-                    log_manager.info(f"Stop requested. Aborting {service.display_name} monitor cleanup.")
+                if stop_event.is_set():
+                    log_manager.info(f"[{service.display_name}] Stop requested. Aborting monitor cleanup.")
                     return
                 if series_id not in service.monitor_series_id:
                     log_manager.info(f"[{service.display_name}] Stopping monitor for {series_id}")
                     service.api.stop_monitor(series_id)
 
-            log_manager.info(f"{service.display_name} monitor refresh complete.")
+            log_manager.info(f"[{service.display_name}] Monitor refresh complete.")
 
         log_manager.info("Queue refresh complete.")
 
     def _download_for_service(self, service: str, service_label: str, mdnx_api) -> None:
         """Download missing episodes for the specified service."""
 
-        if self.stop_requested:
-            log_manager.info(f"Stop requested. Skipping download for {service_label}.")
+        if stop_event.is_set():
+            log_manager.info(f"[{service_label}] Stop requested. Skipping download.")
             return
 
-        log_manager.info(f"Checking for episodes to download from {service_label}...")
+        log_manager.info(f"[{service_label}] Checking for episodes to download...")
 
         bucket = queue_manager.output(service)
         if bucket is None:
@@ -297,33 +345,33 @@ class MainLoop:
 
         for series_id, season_key, episode_key, season, episode in iter_episodes(bucket):
 
-            if self.stop_requested:
-                log_manager.info(f"Stop requested. Skipping download for {service_label}.")
+            if stop_event.is_set():
+                log_manager.info(f"[{service_label}] Stop requested. Skipping download.")
                 return
 
             file_path = get_episode_file_path(bucket, series_id, season_key, episode_key, service_obj)
             episode_basename = os.path.basename(file_path)
 
             if episode.episode_skip:
-                log_manager.info(f"{episode_basename} is blacklisted (episode_skip=True). Skipping download.")
+                log_manager.info(f"[{service_label}] {episode_basename} is blacklisted (episode_skip=True). Skipping download.")
                 continue
 
             if episode.episode_downloaded:
-                log_manager.info(f"{episode_basename} is marked as already downloaded (episode_downloaded=True). Skipping download.")
+                log_manager.info(f"[{service_label}] {episode_basename} is marked as already downloaded (episode_downloaded=True). Skipping download.")
                 continue
 
-            log_manager.info(f"Checking for {episode_basename} at {file_path}.")
+            log_manager.info(f"[{service_label}] Checking for {episode_basename} at {file_path}.")
 
             if os.path.exists(file_path):
-                log_manager.info(f"Episode already exists at {file_path}. Updating 'episode_downloaded' status to True and skipping download.")
+                log_manager.info(f"[{service_label}] Episode already exists at {file_path}. Updating 'episode_downloaded' status to True and skipping download.")
                 queue_manager.update_episode_status(series_id, season_key, episode_key, True, service)
                 continue
 
             if self.dry_run:
-                log_manager.info(f"DRY_RUN is True. Would have downloaded episode for {series_id} season {season_key} episode {episode_key} that would have been stored at {file_path}.\nSkipping actual download.")
+                log_manager.info(f"[{service_label}] DRY_RUN is True. Would have downloaded episode for {series_id} season {season_key} episode {episode_key} that would have been stored at {file_path}.\nSkipping actual download.")
                 continue
 
-            log_manager.info(f"Episode not found at {file_path} and 'episode_downloaded' status is False. Initiating download.")
+            log_manager.info(f"[{service_label}] Episode not found at {file_path} and 'episode_downloaded' status is False. Initiating download.")
 
             season_monitor = get_season_monitor_config(service, series_id, season.season_id)
 
@@ -347,7 +395,7 @@ class MainLoop:
                 temp_path = os.path.join(TEMP_DIR, "output.mkv")
 
                 if file_manager.transfer(temp_path, file_path):
-                    log_manager.info("Transfer complete.")
+                    log_manager.info(f"[{service_label}] Transfer complete.")
                     queue_manager.update_episode_status(series_id, season_key, episode_key, True, service)
                     series_name = bucket.series[series_id].series.series_name
                     snapshot = self._snapshot_episode(
@@ -355,10 +403,10 @@ class MainLoop:
                     )
                     self.notifications_buffer.append(snapshot)
                 else:
-                    log_manager.error("Transfer failed.")
+                    log_manager.error(f"[{service_label}] Transfer failed.")
                     queue_manager.update_episode_status(series_id, season_key, episode_key, False, service)
             else:
-                log_manager.error(f"Episode download failed for {series_id} season {season_key} - {episode_key}.")
+                log_manager.error(f"[{service_label}] Episode download failed for {series_id} season {season_key} - {episode_key}.")
                 queue_manager.update_episode_status(series_id, season_key, episode_key, False, service)
 
             file_manager.remove_temp_files()
@@ -369,11 +417,11 @@ class MainLoop:
     def _refresh_dub_sub_for_service(self, service: str, service_label: str, mdnx_api) -> None:
         """Probe existing files for missing dubs/subs and re-download as needed."""
 
-        if self.stop_requested:
-            log_manager.info(f"Stop requested. Skipping dub/sub verification for {service_label}.")
+        if stop_event.is_set():
+            log_manager.info(f"[{service_label}] Stop requested. Skipping dub/sub verification.")
             return
 
-        log_manager.info(f"Checking if already existing episodes have new dubs/subs from {service_label}...")
+        log_manager.info(f"[{service_label}] Checking if already existing episodes have new dubs/subs...")
 
         bucket = queue_manager.output(service)
         if bucket is None:
@@ -383,8 +431,8 @@ class MainLoop:
 
         for series_id, season_key, episode_key, season, episode in iter_episodes(bucket):
 
-            if self.stop_requested:
-                log_manager.info(f"Stop requested. Skipping dub/sub verification for {service_label}.")
+            if stop_event.is_set():
+                log_manager.info(f"[{service_label}] Stop requested. Skipping dub/sub verification.")
                 return
 
             season_monitor = get_season_monitor_config(service, series_id, season.season_id)
@@ -397,11 +445,11 @@ class MainLoop:
             episode_basename = os.path.basename(file_path)
 
             if episode.episode_skip:
-                log_manager.info(f"{episode_basename} is blacklisted (episode_skip=True). Skipping dub/sub check for this episode.")
+                log_manager.info(f"[{service_label}] {episode_basename} is blacklisted (episode_skip=True). Skipping dub/sub check for this episode.")
                 continue
 
             if episode.has_all_dubs_subs and season_has_track_overrides is False:
-                log_manager.info(f"{episode_basename} already marked as having all requested dubs/subs (has_all_dubs_subs=True). Skipping dub/sub check for this episode.")
+                log_manager.info(f"[{service_label}] {episode_basename} already marked as having all requested dubs/subs (has_all_dubs_subs=True). Skipping dub/sub check for this episode.")
                 continue
 
             if not os.path.exists(file_path):
@@ -421,7 +469,7 @@ class MainLoop:
             missing_subs = wanted_subs - local_subs
 
             if not missing_dubs and not missing_subs:
-                log_manager.info(f"{episode_basename} is up to date. All requested dubs and subs are locally present. No download needed.")
+                log_manager.info(f"[{service_label}] {episode_basename} is up to date. All requested dubs and subs are locally present. No download needed.")
                 queue_manager.update_episode_has_all_dubs_subs(series_id, season_key, episode_key, True, service)
                 continue
 
@@ -460,18 +508,18 @@ class MainLoop:
             )
 
             if self.dry_run:
-                log_manager.info(f"DRY_RUN is True. Would have re-downloaded episode for {episode_basename} to acquire missing tracks: dubs={','.join(effective_missing_dubs) or 'None'}, subs={','.join(effective_missing_subs) or 'None'}.\nSkipping actual download.")
+                log_manager.info(f"[{service_label}] DRY_RUN is True. Would have re-downloaded episode for {episode_basename} to acquire missing tracks: dubs={','.join(effective_missing_dubs) or 'None'}, subs={','.join(effective_missing_subs) or 'None'}.\nSkipping actual download.")
                 continue
 
             if skip_download:
-                log_manager.info(f"Skipping re-download for {episode_basename}: requested tracks are missing locally but not offered by {service_label} yet.")
+                log_manager.info(f"[{service_label}] Skipping re-download for {episode_basename}: requested tracks are missing locally but not offered yet.")
                 continue
 
             if effective_missing_dubs:
-                log_manager.info(f"Missing dubs detected for {episode_basename}: {', '.join(effective_missing_dubs)}. Re-downloading episode to acquire missing dubs.")
+                log_manager.info(f"[{service_label}] Missing dubs detected for {episode_basename}: {', '.join(effective_missing_dubs)}. Re-downloading episode to acquire missing dubs.")
 
             if effective_missing_subs:
-                log_manager.info(f"Missing subs detected for {episode_basename}: {', '.join(effective_missing_subs)}. Re-downloading episode to acquire missing subs.")
+                log_manager.info(f"[{service_label}] Missing subs detected for {episode_basename}: {', '.join(effective_missing_subs)}. Re-downloading episode to acquire missing subs.")
 
             dub_overrides = None
             sub_overrides = None
@@ -493,7 +541,7 @@ class MainLoop:
                 temp_path = os.path.join(TEMP_DIR, "output.mkv")
 
                 if file_manager.transfer(temp_path, file_path, overwrite=True):
-                    log_manager.info("Transfer complete.")
+                    log_manager.info(f"[{service_label}] Transfer complete.")
                     series_name = bucket.series[series_id].series.series_name
                     snapshot = self._snapshot_episode(
                         series_name, episode, file_path, dl_elapsed, "updated", service,
@@ -501,9 +549,9 @@ class MainLoop:
                     )
                     self.notifications_buffer.append(snapshot)
                 else:
-                    log_manager.error("Transfer failed")
+                    log_manager.error(f"[{service_label}] Transfer failed")
             else:
-                log_manager.error("Re-download failed. Keeping existing file.")
+                log_manager.error(f"[{service_label}] Re-download failed. Keeping existing file.")
 
             file_manager.remove_temp_files()
             log_manager.info(f"Waiting for {format_duration(self.between_episode_timeout)} before next iteration.")

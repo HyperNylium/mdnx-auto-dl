@@ -33,6 +33,8 @@ def _log(message: str, level: str = "info", exc_info=None) -> None:
                 log_manager.warning(message, exc_info=exc_info)
             case "error":
                 log_manager.error(message, exc_info=exc_info)
+            case "critical":
+                log_manager.critical(message, exc_info=exc_info)
             case _:
                 log_manager.info(message, exc_info=exc_info)
     except Exception:
@@ -171,6 +173,8 @@ SERVICES = Services(
             service_name="crunchyroll",
             queue_bucket="Crunchyroll",
             display_name="Crunchyroll",
+            service_long="Crunchyroll",
+            service_short="CR",
             tool="mdnx",
             config=config.mdnx,
             monitor_series_id=config.cr_monitor_series_id,
@@ -181,6 +185,8 @@ SERVICES = Services(
             service_name="hidive",
             queue_bucket="HiDive",
             display_name="HiDive",
+            service_long="HiDive",
+            service_short="HD",
             tool="mdnx",
             config=config.mdnx,
             monitor_series_id=config.hidive_monitor_series_id,
@@ -191,6 +197,8 @@ SERVICES = Services(
             service_name="adn",
             queue_bucket="ADN",
             display_name="ADN",
+            service_long="ADN",
+            service_short="ADN",
             tool="mdnx",
             config=config.mdnx,
             monitor_series_id=config.adn_monitor_series_id,
@@ -203,6 +211,8 @@ SERVICES = Services(
             service_name="zlo-crunchyroll",
             queue_bucket="ZLO-Crunchyroll",
             display_name="ZLO Crunchyroll",
+            service_long="Crunchyroll",
+            service_short="CR",
             tool="zlo",
             config=config.zlo.crunchyroll,
             monitor_series_id=config.zlo_cr_monitor_series_id,
@@ -213,6 +223,8 @@ SERVICES = Services(
             service_name="zlo-hidive",
             queue_bucket="ZLO-HiDive",
             display_name="ZLO HiDive",
+            service_long="HiDive",
+            service_short="HD",
             tool="zlo",
             config=config.zlo.hidive,
             monitor_series_id=config.zlo_hidive_monitor_series_id,
@@ -223,6 +235,8 @@ SERVICES = Services(
             service_name="zlo-adn",
             queue_bucket="ZLO-ADN",
             display_name="ZLO ADN",
+            service_long="ADN",
+            service_short="ADN",
             tool="zlo",
             config=config.zlo.adn,
             monitor_series_id=config.zlo_adn_monitor_series_id,
@@ -509,7 +523,7 @@ def validate_destinations() -> None:
             missing_destinations.append(destination_key)
 
     if missing_destinations:
-        _log(f"Missing 'destinations' entry for enabled service(s): {', '.join(missing_destinations)}", level="error")
+        _log(f"Missing 'destinations' entry for enabled service(s): {', '.join(missing_destinations)}", level="critical")
         sys.exit(1)
 
     unknown_destinations = []
@@ -538,7 +552,7 @@ def ffprobe(file_path: str) -> list[dict]:
     try:
         data = json.loads(result.stdout)
     except json.JSONDecodeError as decode_error:
-        _log(f"ffprobe JSON decode error on {file_path}: {decode_error}", level="error")
+        _log(f"Failed to decode ffprobe JSON on {file_path}: {decode_error}", level="error", exc_info=decode_error)
         return []
 
     if data == {}:
@@ -611,14 +625,27 @@ def apply_series_blacklist(tmp_dict: dict[str, Series], service: str) -> dict[st
 
                     if "-" in rule_text:
                         parts = rule_text.split("-", 1)
+                        left_text = parts[0].strip()
+                        right_text = parts[1].strip()
+
+                        left_open = left_text == "*"
+                        right_open = right_text == "*"
+                        if left_open and right_open:
+                            continue
+
                         try:
-                            range_start = int(parts[0])
-                            range_end = int(parts[1])
+                            range_start = None if left_open else int(left_text)
+                            range_end = None if right_open else int(right_text)
                         except Exception:
                             continue
-                        if range_start > range_end:
+
+                        # only swap when both ends are real numbers
+                        if range_start is not None and range_end is not None and range_start > range_end:
                             range_start, range_end = range_end, range_start
-                        if range_start <= local_episode_number <= range_end:
+
+                        lower_ok = range_start is None or local_episode_number >= range_start
+                        upper_ok = range_end is None or local_episode_number <= range_end
+                        if lower_ok and upper_ok:
                             should_skip_episode = True
                             break
                     else:
@@ -757,7 +784,7 @@ def update_app_config(config_key: str, new_value) -> bool:
     try:
         on_disk_config = _read_config(CONFIG_PATH)
     except Exception as read_error:
-        _log(f"Failed to read config file: {read_error}", level="error")
+        _log(f"Failed to read config file: {read_error}", level="error", exc_info=read_error)
         return False
 
     app_config_section = on_disk_config.get("app")
@@ -771,13 +798,13 @@ def update_app_config(config_key: str, new_value) -> bool:
     try:
         AppConfig.model_validate(app_config_section)
     except ValidationError as validation_error:
-        _log(f"Invalid value for app.{alias_key_to_write}: {validation_error}", level="error")
+        _log(f"Invalid value for app.{alias_key_to_write}: {validation_error}", level="error", exc_info=validation_error)
         return False
 
     try:
         _write_config(CONFIG_PATH, on_disk_config)
     except Exception as write_error:
-        _log(f"Failed to write config file: {write_error}", level="error")
+        _log(f"Failed to write config file: {write_error}", level="error", exc_info=write_error)
         return False
 
     try:
@@ -789,7 +816,7 @@ def update_app_config(config_key: str, new_value) -> bool:
     return True
 
 
-def build_folder_structure(base_dir: str, series_title: str, season: str, episode: str, episode_name: str, template_str: str, extension: str = ".mkv") -> str:
+def build_folder_structure(base_dir: str, series_title: str, season: str, episode: str, episode_name: str, template_str: str, extension: str = ".mkv", service_long: str = "", service_short: str = "") -> str:
     """Build the folder structure and file name based on the template the caller supplies."""
 
     substitutes = {
@@ -798,7 +825,9 @@ def build_folder_structure(base_dir: str, series_title: str, season: str, episod
         "seasonPadded": str(int(season)).zfill(2),
         "episode": str(int(episode)),
         "episodePadded": str(int(episode)).zfill(2),
-        "episodeName": episode_name
+        "episodeName": episode_name,
+        "serviceLong": service_long,
+        "serviceShort": service_short
     }
 
     raw_path = Template(template_str).safe_substitute(substitutes)
@@ -848,7 +877,7 @@ def get_episode_file_path(bucket: ServiceBucket, series_id: str, season_key: str
 
     destination = config.destinations[service.service_name]
 
-    file_name = build_folder_structure(destination.dir, raw_series, season_number, episode_number, raw_episode_name, destination.folder_structure, extension)
+    file_name = build_folder_structure(destination.dir, raw_series, season_number, episode_number, raw_episode_name, destination.folder_structure, extension, service.service_long, service.service_short)
 
     _log(f"Built file path for series ID {series_id}, season {season_key}, episode {episode_key}: {file_name}", level="debug")
 

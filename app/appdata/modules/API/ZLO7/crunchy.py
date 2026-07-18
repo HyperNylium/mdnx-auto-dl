@@ -44,7 +44,7 @@ class CR_ZLO_API:
 
         log_manager.debug(f"Monitoring series with ID: {series_id}")
 
-        tmp_cmd = [self.zlo_path, "--service", self.zlo_service, "--srz", series_id, "--jsonOutput", self.json_path]
+        tmp_cmd = [self.zlo_path, "--service", self.zlo_service, "--srz", series_id, "--jsonOutput", self.json_path, "--configPath", self.service_config.configPath]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8", cwd=self.zlo_working_dir)
         log_manager.debug(f"Console output for start_monitor process:\n{result.stdout}")
 
@@ -79,7 +79,7 @@ class CR_ZLO_API:
 
         log_manager.debug(f"Updating monitor for series with ID: {series_id}")
 
-        tmp_cmd = [self.zlo_path, "--service", self.zlo_service, "--srz", series_id, "--jsonOutput", self.json_path]
+        tmp_cmd = [self.zlo_path, "--service", self.zlo_service, "--srz", series_id, "--jsonOutput", self.json_path, "--configPath", self.service_config.configPath]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8", cwd=self.zlo_working_dir)
         log_manager.debug(f"Console output for update_monitor process:\n{result.stdout}")
 
@@ -118,7 +118,7 @@ class CR_ZLO_API:
                     log_manager.info("Killing active zlo download process...")
                     proc.kill()
             except Exception as e:
-                log_manager.error(f"Failed to kill active zlo process: {e}")
+                log_manager.error(f"Failed to kill active zlo process: {e}", exc_info=e)
 
         if thread is not None and thread.is_alive():
             log_manager.info("Waiting for download worker thread to exit...")
@@ -152,13 +152,13 @@ class CR_ZLO_API:
             "--episode", episode_number
         ]
 
-        quality_value = self.service_config.q.strip()
+        quality_value = self.service_config.quality.strip()
         if quality_value != "":
-            tmp_cmd += ["--q", quality_value]
-            log_manager.info(f"Using --q override: {quality_value}")
+            tmp_cmd += ["--quality", quality_value]
+            log_manager.info(f"Using quality override: {quality_value}")
 
-        tmp_cmd += ["--qf", str(self.service_config.qf).lower()]
-        log_manager.info(f"Using qf override: {str(self.service_config.qf).lower()}")
+        tmp_cmd += ["--qualityfallback", str(self.service_config.qualityfallback).lower()]
+        log_manager.info(f"Using qualityfallback override: {str(self.service_config.qualityfallback).lower()}")
 
         joined_dubs = ",".join(dub_override)
         tmp_cmd += ["--dubLang", joined_dubs]
@@ -169,9 +169,14 @@ class CR_ZLO_API:
             tmp_cmd += ["--dlsubs", joined_subs]
             log_manager.info(f"Using dlsubs override: {joined_subs}")
 
+        if self.service_config.forceSubFormat:
+            tmp_cmd += ["--forceSubFormat", self.service_config.forceSubFormat]
+            log_manager.info(f"Using forceSubFormat override: {self.service_config.forceSubFormat}")
+
         tmp_cmd += ["--fileName", "output"]
         tmp_cmd += ["--dlpath", self.service_config.dlpath]
         tmp_cmd += ["--tempPath", self.service_config.tempPath]
+        tmp_cmd += ["--configPath", self.service_config.configPath]
 
         if self.stdbuf_exists:
             cmd = ["stdbuf", "-oL", "-eL", *tmp_cmd]
@@ -241,7 +246,7 @@ class CR_ZLO_API:
                 returncode = proc.wait()
 
         except Exception as e:
-            log_manager.error(f"Download crashed with exception: {e}")
+            log_manager.error(f"Failed to run download: {e}", exc_info=e)
 
         finally:
             with self.download_lock:
@@ -250,7 +255,7 @@ class CR_ZLO_API:
             result["returncode"] = returncode
 
     def _process_json_payload(self, parsed_payload: dict, add2queue: bool = True):
-        """Convert the structured JSON payload from --jsonOutput to queue.json format."""
+        """Convert the structured JSON payload from --jsonOutput to queue db format."""
 
         log_manager.debug("Processing ZLO JSON payload...")
 
@@ -383,7 +388,7 @@ class CR_ZLO_API:
 
         tmp_dict = apply_series_blacklist(tmp_dict, service=self.queue_service)
 
-        log_manager.debug("Console output processed.")
+        log_manager.debug("JSON payload processed.")
 
         if add2queue:
             queue_manager.add(tmp_dict, self.queue_service)

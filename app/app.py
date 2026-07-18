@@ -12,7 +12,7 @@ from appdata.modules.API.MDNX._shared import (
     update_mdnx_config
 )
 from appdata.modules.API.ZLO7._shared import (
-    ZLO_SERVICE_BIN_PATH, ZLO_SERVICE_CONFIG_SETTINGS_PATH
+    ZLO_SERVICE_BIN_PATH, check_zlo_signed_in
 )
 from appdata.modules.Vars import (
     config,
@@ -29,7 +29,7 @@ def app():
 
     # can we reliably read/write to the destination directory?
     if file_manager.test() == False:
-        log_manager.error("FileManager test failed. Please check your configuration and ensure the application has read/write access to the destination directory.")
+        log_manager.critical("FileManager test failed. Please check your configuration and ensure the application has read/write access to the destination directory.")
         sys.exit(1)
 
     # check if user has a widevine or playready CDM, and do checks to see if they are valid.
@@ -61,8 +61,9 @@ def app():
             log_manager.critical(f"ZLO is enabled, but the ZLO binary was not found at: {ZLO_SERVICE_BIN_PATH}\nPlease mount the correct ZLO binary and restart the application.")
             sys.exit(1)
 
-        if not os.path.isdir(ZLO_SERVICE_CONFIG_SETTINGS_PATH):
-            log_manager.critical(f"ZLO is enabled and the binary was found, but the settings folder was not found at: {ZLO_SERVICE_CONFIG_SETTINGS_PATH}\nPlease mount the correct ZLO settings folder and restart the application.")
+        zlo_signed_in, zlo_error = check_zlo_signed_in()
+        if not zlo_signed_in:
+            log_manager.critical(zlo_error)
             sys.exit(1)
 
         log_manager.info("ZLO checks completed. All good!")
@@ -75,63 +76,82 @@ def app():
             log_manager.info("JELLY_URL and JELLY_API_KEY are set. Jellyfin media server scan enabled.")
 
         if not mediaserver_auth():
-            log_manager.error("Authentication timed out or failed. Check the logs.")
+            log_manager.critical("Authentication timed out or failed. Check the logs.")
             sys.exit(1)
 
         log_manager.info("User is authenticated. Testing library scan...")
         if not mediaserver_scan_library():
-            log_manager.error("Library scan failed. Please check your configuration.")
+            log_manager.critical("Library scan failed. Please check your configuration.")
             sys.exit(1)
         else:
             log_manager.info("Library scan successful.")
     else:
         log_manager.info("No media servers configured. Skipping media server auth/scan.")
 
-    match config.app.notification_preference:
-        case "ntfy":
-            log_manager.info("User prefers ntfy notifications. Setting up ntfy script...")
+    notifiers = []
 
-            script_path = config.app.ntfy_script_path
+    if config.app.smtp_enabled:
+        log_manager.info("SMTP notifications enabled. Checking SMTP settings...")
 
-            if script_path is None or script_path == "":
-                log_manager.error("NTFY_SCRIPT_PATH is not set or is empty. Please set it in config.json.")
-                sys.exit(1)
+        required_smtp_fields = [
+            "smtp_from", "smtp_to", "smtp_host", "smtp_username",
+            "smtp_password", "smtp_port", "smtp_starttls"
+        ]
 
-            if not os.path.exists(script_path):
-                log_manager.error(f"NTFY_SCRIPT_PATH does not exist: {script_path}. Please check the path in config.json.")
-                sys.exit(1)
+        missing_smtp_fields = []
+        for field in required_smtp_fields:
+            value = getattr(config.app, field)
+            if value is None or value == "":
+                missing_smtp_fields.append(field)
 
-            from appdata.modules.NotificationManager import ntfy
-            notifier = ntfy()
-
-        case "smtp":
-            log_manager.info("User prefers SMTP notifications. Configuring SMTP settings...")
-
-            required_fields = [
-                "smtp_from", "smtp_to", "smtp_host", "smtp_username",
-                "smtp_password", "smtp_port", "smtp_starttls"
-            ]
-
-            missing_or_empty = []
-            for field in required_fields:
-                value = getattr(config.app, field)
-                if value is None or value == "":
-                    missing_or_empty.append(field)
-
-            if missing_or_empty:
-                log_manager.error(f"Missing or invalid SMTP configuration values: {', '.join(missing_or_empty)}")
-                sys.exit(1)
-
-            from appdata.modules.NotificationManager import SMTP
-            notifier = SMTP()
-
-        case "none":
-            log_manager.info("User prefers no notifications.")
-            notifier = None
-
-        case _:
-            log_manager.error(f"Unsupported notification preference: {config.app.notification_preference}. Supported options are 'ntfy', 'smtp' or 'none'.")
+        if missing_smtp_fields:
+            log_manager.critical(f"Missing or invalid SMTP configuration values: {', '.join(missing_smtp_fields)}")
             sys.exit(1)
+
+        from appdata.modules.NotificationManager import SMTP
+        notifiers.append(SMTP())
+
+    if config.app.ntfy_enabled:
+        log_manager.info("ntfy notifications enabled. Checking ntfy settings...")
+
+        if config.app.ntfy_url == "":
+            log_manager.critical("NTFY_ENABLED is true but NTFY_URL is empty. Please set it in your config.")
+            sys.exit(1)
+
+        from appdata.modules.NotificationManager import ntfy
+        notifiers.append(ntfy())
+
+    if config.app.gotify_enabled:
+        log_manager.info("gotify notifications enabled. Checking gotify settings...")
+
+        missing_gotify_fields = []
+        if config.app.gotify_url == "":
+            missing_gotify_fields.append("gotify_url")
+
+        if config.app.gotify_token == "":
+            missing_gotify_fields.append("gotify_token")
+
+        if missing_gotify_fields:
+            log_manager.critical(f"Missing or invalid gotify configuration values: {', '.join(missing_gotify_fields)}")
+            sys.exit(1)
+
+        from appdata.modules.NotificationManager import Gotify
+        notifiers.append(Gotify())
+
+    if config.app.discord_enabled:
+        log_manager.info("Discord notifications enabled. Checking Discord settings...")
+
+        if config.app.discord_webhook_url == "":
+            log_manager.critical("DISCORD_ENABLED is true but DISCORD_WEBHOOK_URL is empty. Please set it in your config.")
+            sys.exit(1)
+
+        from appdata.modules.NotificationManager import Discord
+        notifiers.append(Discord())
+
+    if notifiers:
+        log_manager.info(f"{len(notifiers)} notification service(s) enabled.")
+    else:
+        log_manager.info("No notification services enabled.")
 
     for mdnx_service in SERVICES.mdnx.all():
         if not mdnx_service.enabled:
@@ -211,7 +231,7 @@ def app():
                 from appdata.modules.API.ZLO7.adn import ADN_ZLO_API
                 zlo_service.api = ADN_ZLO_API()
 
-    mainloop = MainLoop(notifier=notifier)
+    mainloop = MainLoop(notifiers=notifiers)
 
     def shutdown(signum, frame):
         """Signal handler to gracefully shutdown the application."""
