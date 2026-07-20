@@ -1,5 +1,6 @@
 import re
 import json
+import yaml
 from bs4 import BeautifulSoup
 
 # getting the simulcast page content directly from CR is a bitch.
@@ -45,6 +46,17 @@ for series_id, series_name in series_info:
     output["cr_monitor_series_id"][series_id] = {}
     text_lines.append(f"{series_id} - {series_name}")
 
-print(json.dumps(output, indent=4))
-print()
-print("\n".join(text_lines))
+
+print(f"""
+Found {len(series_info)} series in the HTML content.
+
+JSON formatted cr_monitor_series_id:
+{json.dumps(output, indent=4)}
+
+YAML formatted cr_monitor_series_id:
+{yaml.safe_dump(output, sort_keys=False, indent=4)}
+
+Text lines of series IDs and names:
+{'\n'.join(text_lines)}
+
+      """)
