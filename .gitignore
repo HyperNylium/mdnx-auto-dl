@@ -49,5 +49,9 @@ appdata/config/queue.db
 appdata/config/queue.db-wal
 appdata/config/queue.db-shm
 
+# mdnx-auto-dl cached copy of the remote specials file
+appdata/config/remote-specials-cache.yaml
+appdata/config/remote-specials-cache.yaml.tmp
+
 # my stuff
 notes.txt
