@@ -60,24 +60,24 @@ Standard YAML formatting still applies:
             - [`ADN_PASSWORD`](#ADN_PASSWORD)
             - [`ADN_FORCE_REAUTH`](#ADN_FORCE_REAUTH)
         - [multi-downloader-nx options](#multi-downloader-nx-options)
-            - [`bin-path`](#mdnx.bin-path)
-            - [`dir-path`](#mdnx.dir-path)
-            - [`cli-defaults`](#mdnx.cli-defaults)
+            - [`bin-path`](#mdnx-bin-path)
+            - [`dir-path`](#mdnx-dir-path)
+            - [`cli-defaults`](#mdnx-cli-defaults)
     - [ZLO7](#zlo7)
         - [ZLO services](#zlo-services)
             - [`ZLO_CR_ENABLED`](#ZLO_CR_ENABLED)
             - [`ZLO_HIDIVE_ENABLED`](#ZLO_HIDIVE_ENABLED)
             - [`ZLO_ADN_ENABLED`](#ZLO_ADN_ENABLED)
         - [ZLO per-service options](#zlo-per-service-options)
-            - [`quality`](#zlo.quality)
-            - [`qualityfallback`](#zlo.qualityfallback)
-            - [`dubLang`](#zlo.dubLang)
-            - [`dlsubs`](#zlo.dlsubs)
-            - [`forceSubFormat`](#zlo.forceSubFormat)
-            - [`backup_dubs`](#zlo.backup_dubs)
-            - [`dlpath`](#zlo.dlpath)
-            - [`tempPath`](#zlo.tempPath)
-            - [`configPath`](#zlo.configPath)
+            - [`quality`](#zlo-quality)
+            - [`qualityfallback`](#zlo-qualityfallback)
+            - [`dubLang`](#zlo-dublang)
+            - [`dlsubs`](#zlo-dlsubs)
+            - [`forceSubFormat`](#zlo-forcesubformat)
+            - [`backup_dubs`](#zlo-backup_dubs)
+            - [`dlpath`](#zlo-dlpath)
+            - [`tempPath`](#zlo-temppath)
+            - [`configPath`](#zlo-configpath)
 - [Series to monitor](#series-to-monitor)
     - [`cr_monitor_series_id`](#cr_monitor_series_id)
     - [`hidive_monitor_series_id`](#hidive_monitor_series_id)
@@ -429,7 +429,7 @@ The `mdnx` section in the config file is a passthrough for [multi-downloader-nx]
 
 You only need to set the keys you want to override. Anything you leave out keeps the default below.
 
-##### <a id="mdnx.bin-path"></a>bin-path
+##### mdnx-bin-path
 
 Paths to the helper binaries that multi-downloader-nx calls. The defaults below match what the container ships with, so you do not need to touch these unless you mount your own binaries.
 
@@ -461,7 +461,7 @@ mdnx:
         mp4decrypt: "/app/appdata/bin/bento4/mp4decrypt"
 ```
 
-##### <a id="mdnx.dir-path"></a>dir-path
+##### mdnx-dir-path
 
 Working directories that multi-downloader-nx uses.
 
@@ -487,7 +487,7 @@ mdnx:
         fonts: "./fonts/"
 ```
 
-##### <a id="mdnx.cli-defaults"></a>cli-defaults
+##### mdnx-cli-defaults
 
 These are the default download settings for multi-downloader-nx. Only the keys below ship as defaults, but you can add any other valid `cli-defaults.yml` key here too.
 
@@ -608,7 +608,7 @@ app:
 
 The `zlo` section in the config file has one subsection per ZLO service: `crunchyroll`, `hidive`, and `adn`. Each subsection takes the same keys, listed below.
 
-##### <a id="zlo.quality"></a>quality
+##### zlo-quality
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -629,7 +629,7 @@ zlo:
         quality: "1080p@avc"
 ```
 
-##### <a id="zlo.qualityfallback"></a>qualityfallback
+##### zlo-qualityfallback
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -650,7 +650,7 @@ zlo:
         qualityfallback: true
 ```
 
-##### <a id="zlo.dubLang"></a>dubLang
+##### zlo-dubLang
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -673,7 +673,7 @@ zlo:
             - "EN"
 ```
 
-##### <a id="zlo.dlsubs"></a>dlsubs
+##### zlo-dlsubs
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -695,7 +695,7 @@ zlo:
             - "EN"
 ```
 
-##### <a id="zlo.forceSubFormat"></a>forceSubFormat
+##### zlo-forceSubFormat
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -716,7 +716,7 @@ zlo:
         forceSubFormat: "ass"
 ```
 
-##### <a id="zlo.backup_dubs"></a>backup_dubs
+##### zlo-backup_dubs
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -738,7 +738,7 @@ zlo:
             - "CN"
 ```
 
-##### <a id="zlo.dlpath"></a>dlpath
+##### zlo-dlpath
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -759,7 +759,7 @@ zlo:
         dlpath: "/app/appdata/temp"
 ```
 
-##### <a id="zlo.tempPath"></a>tempPath
+##### zlo-tempPath
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -780,7 +780,7 @@ zlo:
         tempPath: "/tmp"
 ```
 
-##### <a id="zlo.configPath"></a>configPath
+##### zlo-configPath
 
 | Default | Type | Description |
 | :--- | :--- | :--- |

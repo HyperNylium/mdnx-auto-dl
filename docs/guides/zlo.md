@@ -59,12 +59,12 @@ zlo:
         backup_dubs: []
 ```
 
-- [`quality`](../config-options.md#zlo.quality): quality string, format `"{resolution}@{codec}"` (for example, `1080p@avc`, `720p@hvc`).
-- [`qualityfallback`](../config-options.md#zlo.qualityfallback): when `true`, fall back to the next-best quality if the requested one is missing.
-- [`dubLang`](../config-options.md#zlo.dubLang): dub language codes you want, using ZLO's own two-letter codes (`JP`, `EN`, `DE`, `FR`, `ES`, ...).
-- [`dlsubs`](../config-options.md#zlo.dlsubs): subtitle language codes, same code format as `dubLang`.
-- [`forceSubFormat`](../config-options.md#zlo.forceSubFormat): force subtitles into `srt`, `ass`, `vtt`, `auto`, or `raw`. Leave `""` to keep the source format.
-- [`backup_dubs`](../config-options.md#zlo.backup_dubs): dubs to fall back to if none of your `dubLang` are available.
+- [`quality`](../config-options.md#zlo-quality): quality string, format `"{resolution}@{codec}"` (for example, `1080p@avc`, `720p@hvc`).
+- [`qualityfallback`](../config-options.md#zlo-qualityfallback): when `true`, fall back to the next-best quality if the requested one is missing.
+- [`dubLang`](../config-options.md#zlo-dublang): dub language codes you want, using ZLO's own two-letter codes (`JP`, `EN`, `DE`, `FR`, `ES`, ...).
+- [`dlsubs`](../config-options.md#zlo-dlsubs): subtitle language codes, same code format as `dubLang`.
+- [`forceSubFormat`](../config-options.md#zlo-forcesubformat): force subtitles into `srt`, `ass`, `vtt`, `auto`, or `raw`. Leave `""` to keep the source format.
+- [`backup_dubs`](../config-options.md#zlo-backup_dubs): dubs to fall back to if none of your `dubLang` are available.
 
 ---
 
@@ -72,9 +72,9 @@ zlo:
 
 You normally do not need to touch these. They control where `zlo7` writes files and where it reads your sign-in from.
 
-- [`dlpath`](../config-options.md#zlo.dlpath): where `zlo7` writes the downloaded MKV before mdnx-auto-dl picks it up.
-- [`tempPath`](../config-options.md#zlo.tempPath): scratch directory for in-progress segments.
-- [`configPath`](../config-options.md#zlo.configPath): path to the ZLO `storage.db` that holds your signed-in account. This is inside the config folder you bind-mount.  
+- [`dlpath`](../config-options.md#zlo-dlpath): where `zlo7` writes the downloaded MKV before mdnx-auto-dl picks it up.
+- [`tempPath`](../config-options.md#zlo-temppath): scratch directory for in-progress segments.
+- [`configPath`](../config-options.md#zlo-configpath): path to the ZLO `storage.db` that holds your signed-in account. This is inside the config folder you bind-mount.  
   mdnx-auto-dl also reads it on startup to confirm you are signed in.
 
 For the full list of every ZLO option and its default, see the [ZLO per-service options reference](../config-options.md#zlo-per-service-options).

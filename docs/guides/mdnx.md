@@ -4,9 +4,9 @@ The Crunchyroll, HiDive, and ADN services that go through [multi-downloader-nx](
 
 Each subsection of `mdnx` maps to a file of the same name in multi-downloader-nx's `config` folder. On startup, mdnx-auto-dl writes whatever you put under a subsection straight into that file, so you can treat a subsection as if you were editing the multi-downloader-nx file directly:
 
-- [`cli-defaults`](../config-options.md#mdnx.cli-defaults) becomes `cli-defaults.yml`
-- [`bin-path`](../config-options.md#mdnx.bin-path) becomes `bin-path.yml`
-- [`dir-path`](../config-options.md#mdnx.dir-path) becomes `dir-path.yml`
+- [`cli-defaults`](../config-options.md#mdnx-cli-defaults) becomes `cli-defaults.yml`
+- [`bin-path`](../config-options.md#mdnx-bin-path) becomes `bin-path.yml`
+- [`dir-path`](../config-options.md#mdnx-dir-path) becomes `dir-path.yml`
 
 So under `cli-defaults`, anything valid in multi-downloader-nx's `cli-defaults.yml` is valid here, as long as the option's `cli-default Entry` in [multi-downloader-nx's documentation](https://github.com/anidl/multi-downloader-nx/blob/master/docs/DOCUMENTATION.md) is not `NaN`.
 
@@ -70,4 +70,4 @@ See the full defaults and the paths subsections in the [multi-downloader-nx opti
 
 ## Binary and directory paths (advanced)
 
-The [`bin-path`](../config-options.md#mdnx.bin-path) and [`dir-path`](../config-options.md#mdnx.dir-path) subsections point aniDL at its helper binaries (`ffmpeg`, `ffprobe`, `mkvmerge`, `mp4decrypt`) and working directories. The defaults match what the container ships with, so you only need to change these if you mount your own binaries or move the working directories.
+The [`bin-path`](../config-options.md#mdnx-bin-path) and [`dir-path`](../config-options.md#mdnx-dir-path) subsections point aniDL at its helper binaries (`ffmpeg`, `ffprobe`, `mkvmerge`, `mp4decrypt`) and working directories. The defaults match what the container ships with, so you only need to change these if you mount your own binaries or move the working directories.

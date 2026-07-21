@@ -15,7 +15,7 @@ All keys below live in the `app` section of your config file.
 
 ## SMTP email
 
-Set [`SMTP_ENABLED`](../config-options.md#SMTP_ENABLED) to `true` and fill in the rest of the [`SMTP_*`](../config-options.md#SMTP_FROM) keys.
+Set [`SMTP_ENABLED`](../config-options.md#SMTP_ENABLED) to `true` and fill in the rest of the [`SMTP_*`](../config-options.md#smtp) keys.
 
 JSON:
 ```json
