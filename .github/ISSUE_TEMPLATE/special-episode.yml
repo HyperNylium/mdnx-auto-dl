@@ -1,0 +1,85 @@
+name: Special episode
+description: Report a recap, OVA, or compilation episode that the detection missed
+title: "[Special episode]: "
+assignees:
+  - HyperNylium
+body:
+  - type: markdown
+    attributes:
+      value: >
+        Use this when an episode got downloaded but should have been skipped, because the
+        per-service detection did not catch it. I will add it to `remote-specials.yaml`.
+        Every running container picks up the change on its next loop pass.
+
+  - type: dropdown
+    id: downloader
+    attributes:
+      label: Downloader
+      description: Which downloader handled this series?
+      options:
+        - multi-downloader-nx
+        - ZLO7
+    validations:
+      required: true
+
+  - type: dropdown
+    id: service
+    attributes:
+      label: Service
+      options:
+        - crunchyroll
+        - hidive
+        - adn
+    validations:
+      required: true
+
+  - type: input
+    id: series
+    attributes:
+      label: Series ID or name
+      description: >
+        The upstream `series_id`. The container logs show it when it parses each episode with
+        the log level set to `debug`. If you cannot find it, the series name works too.
+      placeholder: "GG5H5XQ7D or Kaiju No. 8"
+    validations:
+      required: true
+
+  - type: input
+    id: season
+    attributes:
+      label: Season
+      description: >
+        The season number the service itself uses, NOT the renumbered season the parser may
+        map it to.
+      placeholder: "S2"
+    validations:
+      required: true
+
+  - type: input
+    id: episodes
+    attributes:
+      label: Episode(s) to skip
+      description: >
+        The episode number(s) the service itself uses, NOT the renumbered episode the parser
+        may map it to. If there are multiple episodes, separate them with commas.
+      placeholder: "13"
+    validations:
+      required: true
+
+  - type: input
+    id: url
+    attributes:
+      label: Link to the episode
+      description: A link to the episode on the streaming service helps me confirm it faster.
+      placeholder: "https://www.crunchyroll.com/watch/..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Anything else
+      description: Extra information that may help me confirm the episode is a special one. Or if theres more episode links, you can list them here.
+      placeholder: "Aside from `https://www.crunchyroll.com/watch/...` theres also these special episodes that should get skipped: ..."
+    validations:
+      required: false
