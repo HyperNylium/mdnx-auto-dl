@@ -51,6 +51,40 @@ RUN curl -fL --retry 5 --retry-all-errors --connect-timeout 10 \
     chmod +x /usr/local/bin/shaka
 
 
+FROM debian:trixie-slim AS dovi_tool
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates curl && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' \
+        "https://github.com/quietvoid/dovi_tool/releases/latest" | sed 's#.*/tag/##')" && \
+    mkdir -p /tmp/dovi && \
+    curl -fL --retry 5 --retry-all-errors --connect-timeout 10 \
+        "https://github.com/quietvoid/dovi_tool/releases/download/${TAG}/dovi_tool-${TAG}-x86_64-unknown-linux-musl.tar.gz" | \
+    tar -xz -C /tmp/dovi && \
+    mv /tmp/dovi/dovi_tool /usr/local/bin/dovi_tool && \
+    chmod +x /usr/local/bin/dovi_tool && \
+    rm -rf /tmp/dovi
+
+
+FROM debian:trixie-slim AS hdr10plus_tool
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates curl && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' \
+        "https://github.com/quietvoid/hdr10plus_tool/releases/latest" | sed 's#.*/tag/##')" && \
+    mkdir -p /tmp/hdr10plus && \
+    curl -fL --retry 5 --retry-all-errors --connect-timeout 10 \
+        "https://github.com/quietvoid/hdr10plus_tool/releases/download/${TAG}/hdr10plus_tool-${TAG}-x86_64-unknown-linux-musl.tar.gz" | \
+    tar -xz -C /tmp/hdr10plus && \
+    mv /tmp/hdr10plus/hdr10plus_tool /usr/local/bin/hdr10plus_tool && \
+    chmod +x /usr/local/bin/hdr10plus_tool && \
+    rm -rf /tmp/hdr10plus
+
+
 FROM python:3.13-slim
 
 ENV PYTHONUNBUFFERED=1
@@ -83,6 +117,8 @@ COPY --from=ffmpeg /usr/local/bin/ffmpeg /usr/local/bin/ffmpeg
 COPY --from=ffmpeg /usr/local/bin/ffprobe /usr/local/bin/ffprobe
 COPY --from=bento4 /usr/local/bin/mp4decrypt /app/appdata/bin/bento4/mp4decrypt
 COPY --from=shaka /usr/local/bin/shaka /app/appdata/bin/shaka_packager/shaka
+COPY --from=dovi_tool /usr/local/bin/dovi_tool /app/appdata/bin/dovi_tool/dovi_tool
+COPY --from=hdr10plus_tool /usr/local/bin/hdr10plus_tool /app/appdata/bin/hdr10plus_tool/hdr10plus_tool
 
 ENV PATH="/app/.venv/bin:$PATH"
 

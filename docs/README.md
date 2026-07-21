@@ -33,5 +33,9 @@ ZLO7
 
 [Shaka Packager](https://github.com/stratumadev/shaka-packager)
 
+[dovi_tool](https://github.com/quietvoid/dovi_tool)
+
+[hdr10plus_tool](https://github.com/quietvoid/hdr10plus_tool)
+
 # License
 This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.
