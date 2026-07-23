@@ -52,6 +52,10 @@ mdnx:
     GG5H5XQZQ:
       S1: ["13"] # skip "Yomi, Jealousy, and a Birthday / Iana and Sol's Feverish Day"
 
+    # Smoking Behind the Supermarket with You
+    GT00378116:
+      S1: [1-12] # skip "season 1 mini episodes" season
+
   hidive: {}
   adn: {}
 
@@ -83,6 +87,10 @@ zlo:
     # The Dark History of the Reincarnated Villainess
     GG5H5XQZQ:
       S1: ["13"] # skip "Yomi, Jealousy, and a Birthday / Iana and Sol's Feverish Day"
+
+    # Smoking Behind the Supermarket with You
+    GT00378116:
+      S1: [1-12] # skip "season 1 mini episodes" season
 
   hidive: {}
   adn: {}
