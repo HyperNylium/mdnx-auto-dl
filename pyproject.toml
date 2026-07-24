@@ -4,16 +4,16 @@ version = "3.1.2"
 description = "Automated downloader for MDNX and ZLO tools."
 requires-python = ">=3.13,<3.14"
 dependencies = [
-    "requests>=2.33.0",
+    "requests>=2.34.0",
     "pydantic>=2.13.0",
     "PyYAML>=6.0.0",
     "alembic>=1.18.0",
-    "SQLAlchemy>=2.0.15",
+    "SQLAlchemy>=2.0.50",
 ]
 
 [dependency-groups]
 dev = [
-    "ruff>=0.15.0",
+    "ruff>=0.16.0",
 ]
 
 [tool.uv]
