@@ -456,10 +456,6 @@ class CR_MDNX_API:
                         log_manager.debug(f"Skipping remote-special at {upstream_season_id}E{ep_info['episode_number']} series_id={current_series_id}")
                         continue
 
-                # skip PV or trailer entries that are not full episodes
-                if ep_info["full_episode_name"].lstrip().lower().startswith("pv"):
-                    continue
-
                 # resolve which mapped season this episode belongs to
                 season_key = None
                 mapped_num = None
@@ -467,6 +463,11 @@ class CR_MDNX_API:
                 # we extract the display name portion before " - Season "
                 full_name_guess = ep_info["full_episode_name"]
                 full_name_guess = re.sub(r'^\[\d{4}-\d{2}-\d{2}\]\s*', '', full_name_guess)  # strip leading date if present
+
+                # skip PV or trailer entries that are not full episodes
+                if ep_info["full_episode_name"].lstrip().lower().startswith("pv"):
+                    continue
+
                 parts_before = full_name_guess.split(' - Season ', 1)
                 season_name_guess = parts_before[0].strip()
 
