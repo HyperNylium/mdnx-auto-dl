@@ -9,13 +9,20 @@ RUN uv sync --frozen --no-dev
 
 FROM debian:trixie-slim AS ffmpeg
 
+ARG TARGETARCH
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates curl xz-utils && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /tmp/ff && \
+RUN case "${TARGETARCH}" in \
+        amd64) ARCH="linux64" ;; \
+        arm64) ARCH="linuxarm64" ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac && \
+    mkdir -p /tmp/ff && \
     curl -fL --retry 5 --retry-all-errors --connect-timeout 10 \
-        "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz" | \
+        "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-${ARCH}-gpl.tar.xz" | \
     tar -xJ --strip-components=1 -C /tmp/ff && \
     mv /tmp/ff/bin/ffmpeg /usr/local/bin/ffmpeg && \
     mv /tmp/ff/bin/ffprobe /usr/local/bin/ffprobe && \
@@ -25,43 +32,66 @@ RUN mkdir -p /tmp/ff && \
 
 FROM debian:trixie-slim AS bento4
 
+ARG TARGETARCH
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates curl unzip && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /tmp/bento4 && \
+RUN case "${TARGETARCH}" in \
+        amd64) ARCH="x64" ;; \
+        arm64) ARCH="arm64" ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac && \
+    TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' \
+        "https://github.com/HyperNylium/Bento4-SDK/releases/latest" | sed 's#.*/tag/##')" && \
+    mkdir -p /tmp/bento4 && \
     curl -fL --retry 5 --retry-all-errors --connect-timeout 10 \
         -o /tmp/bento4.zip \
-        "https://www.bok.net/Bento4/binaries/Bento4-SDK-1-6-0-641.x86_64-unknown-linux.zip" && \
+        "https://github.com/HyperNylium/Bento4-SDK/releases/download/${TAG}/Bento4-${TAG}-linux-${ARCH}.zip" && \
     unzip -q /tmp/bento4.zip -d /tmp/bento4 && \
-    mv /tmp/bento4/Bento4-SDK-1-6-0-641.x86_64-unknown-linux/bin/mp4decrypt /usr/local/bin/mp4decrypt && \
+    mv "/tmp/bento4/Bento4-${TAG}-linux-${ARCH}/bin/mp4decrypt" /usr/local/bin/mp4decrypt && \
     chmod +x /usr/local/bin/mp4decrypt && \
     rm -rf /tmp/bento4 /tmp/bento4.zip
 
 
 FROM debian:trixie-slim AS shaka
 
+ARG TARGETARCH
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates curl && \
     rm -rf /var/lib/apt/lists/*
 
-RUN curl -fL --retry 5 --retry-all-errors --connect-timeout 10 \
+RUN case "${TARGETARCH}" in \
+        amd64) ARCH="x64" ;; \
+        arm64) ARCH="arm64" ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac && \
+    curl -fL --retry 5 --retry-all-errors --connect-timeout 10 \
         -o /usr/local/bin/shaka \
-        "https://github.com/stratumadev/shaka-packager/releases/latest/download/shaka_decrypt-linux-x64" && \
+        "https://github.com/stratumadev/shaka-packager/releases/latest/download/shaka_decrypt-linux-${ARCH}" && \
     chmod +x /usr/local/bin/shaka
 
 
 FROM debian:trixie-slim AS dovi_tool
 
+ARG TARGETARCH
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates curl && \
     rm -rf /var/lib/apt/lists/*
 
-RUN TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' \
+RUN case "${TARGETARCH}" in \
+        amd64) ARCH="x86_64" ;; \
+        arm64) ARCH="aarch64" ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac && \
+    TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' \
         "https://github.com/quietvoid/dovi_tool/releases/latest" | sed 's#.*/tag/##')" && \
     mkdir -p /tmp/dovi && \
     curl -fL --retry 5 --retry-all-errors --connect-timeout 10 \
-        "https://github.com/quietvoid/dovi_tool/releases/download/${TAG}/dovi_tool-${TAG}-x86_64-unknown-linux-musl.tar.gz" | \
+        "https://github.com/quietvoid/dovi_tool/releases/download/${TAG}/dovi_tool-${TAG}-${ARCH}-unknown-linux-musl.tar.gz" | \
     tar -xz -C /tmp/dovi && \
     mv /tmp/dovi/dovi_tool /usr/local/bin/dovi_tool && \
     chmod +x /usr/local/bin/dovi_tool && \
@@ -70,15 +100,22 @@ RUN TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' \
 
 FROM debian:trixie-slim AS hdr10plus_tool
 
+ARG TARGETARCH
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates curl && \
     rm -rf /var/lib/apt/lists/*
 
-RUN TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' \
+RUN case "${TARGETARCH}" in \
+        amd64) ARCH="x86_64" ;; \
+        arm64) ARCH="aarch64" ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac && \
+    TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' \
         "https://github.com/quietvoid/hdr10plus_tool/releases/latest" | sed 's#.*/tag/##')" && \
     mkdir -p /tmp/hdr10plus && \
     curl -fL --retry 5 --retry-all-errors --connect-timeout 10 \
-        "https://github.com/quietvoid/hdr10plus_tool/releases/download/${TAG}/hdr10plus_tool-${TAG}-x86_64-unknown-linux-musl.tar.gz" | \
+        "https://github.com/quietvoid/hdr10plus_tool/releases/download/${TAG}/hdr10plus_tool-${TAG}-${ARCH}-unknown-linux-musl.tar.gz" | \
     tar -xz -C /tmp/hdr10plus && \
     mv /tmp/hdr10plus/hdr10plus_tool /usr/local/bin/hdr10plus_tool && \
     chmod +x /usr/local/bin/hdr10plus_tool && \

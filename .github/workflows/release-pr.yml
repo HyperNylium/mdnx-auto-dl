@@ -14,8 +14,16 @@ permissions:
   pull-requests: write
 
 jobs:
-  build-and-push-pr:
+  prepare:
     runs-on: ubuntu-latest
+    outputs:
+      IMAGE: ${{ steps.vars.outputs.IMAGE }}
+      TAG: ${{ steps.vars.outputs.TAG }}
+      CREATED: ${{ steps.vars.outputs.CREATED }}
+      REF_NAME: ${{ steps.vars.outputs.REF_NAME }}
+      PR_NUMBER: ${{ steps.pr.outputs.PR_NUMBER }}
+      HEAD_SHA: ${{ steps.pr.outputs.HEAD_SHA }}
+      HEAD_REPO: ${{ steps.pr.outputs.HEAD_REPO }}
     steps:
       - name: Fetch PR info
         id: pr
@@ -33,21 +41,35 @@ jobs:
           echo "HEAD_REPO=$(jq -r '.head.repo.full_name' <<<"$PR_JSON")" >> "$GITHUB_OUTPUT"
           echo "PR_NUMBER=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout PR head
-        uses: actions/checkout@v7
-        with:
-          repository: ${{ steps.pr.outputs.HEAD_REPO }}
-          ref: ${{ steps.pr.outputs.HEAD_SHA }}
-
-      - name: Get PR git info
-        id: git
+      - name: Compute image vars
+        id: vars
         shell: bash
         run: |
           set -euo pipefail
-          echo "SHA=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          echo "SHA7=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
+          REPO_LC="${GITHUB_REPOSITORY,,}"
+          echo "IMAGE=ghcr.io/${REPO_LC}" >> "$GITHUB_OUTPUT"
+          echo "TAG=pr-${{ steps.pr.outputs.PR_NUMBER }}" >> "$GITHUB_OUTPUT"
           echo "CREATED=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
           echo "REF_NAME=refs/pull/${{ steps.pr.outputs.PR_NUMBER }}/head" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: prepare
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+            arch: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ needs.prepare.outputs.HEAD_REPO }}
+          ref: ${{ needs.prepare.outputs.HEAD_SHA }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -59,38 +81,91 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Compute image vars
-        id: vars
-        shell: bash
-        run: |
-          set -euo pipefail
-          REPO_LC="${GITHUB_REPOSITORY,,}"
-          echo "IMAGE=ghcr.io/${REPO_LC}" >> "$GITHUB_OUTPUT"
-          echo "TAG=pr-${{ steps.pr.outputs.PR_NUMBER }}" >> "$GITHUB_OUTPUT"
-
-      - name: Build & push (amd64)
+      - name: Build & push by digest (${{ matrix.arch }})
         id: docker_build
         uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
           pull: true
-          push: true
-          platforms: linux/amd64
+          platforms: ${{ matrix.platform }}
           provenance: false
           sbom: false
           no-cache: true
-          tags: |
-            ${{ steps.vars.outputs.IMAGE }}:${{ steps.vars.outputs.TAG }}
+          outputs: type=image,name=${{ needs.prepare.outputs.IMAGE }},push-by-digest=true,name-canonical=true,push=true
           labels: |
             org.opencontainers.image.title=${{ github.event.repository.name }}
             org.opencontainers.image.description=${{ github.event.repository.description }}
             org.opencontainers.image.source=${{ github.event.repository.html_url }}
             org.opencontainers.image.licenses=${{ github.event.repository.license.spdx_id }}
-            org.opencontainers.image.created=${{ steps.git.outputs.CREATED }}
-            org.opencontainers.image.revision=${{ steps.git.outputs.SHA }}
-            org.opencontainers.image.ref.name=${{ steps.git.outputs.REF_NAME }}
-            org.opencontainers.image.version=${{ steps.vars.outputs.TAG }}
+            org.opencontainers.image.created=${{ needs.prepare.outputs.CREATED }}
+            org.opencontainers.image.ref.name=${{ needs.prepare.outputs.REF_NAME }}
+            org.opencontainers.image.version=${{ needs.prepare.outputs.TAG }}
+
+      - name: Save digest
+        shell: bash
+        env:
+          DIGEST: ${{ steps.docker_build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/digests"
+          touch "${RUNNER_TEMP}/digests/${DIGEST#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+
+  merge:
+    needs: [ prepare, build ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v8
+        with:
+          pattern: digests-*
+          path: ${{ runner.temp }}/digests
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create multi-arch manifest
+        shell: bash
+        env:
+          IMAGE: ${{ needs.prepare.outputs.IMAGE }}
+          TAG: ${{ needs.prepare.outputs.TAG }}
+          TITLE: ${{ github.event.repository.name }}
+          DESCRIPTION: ${{ github.event.repository.description }}
+          SOURCE_URL: ${{ github.event.repository.html_url }}
+          LICENSES: ${{ github.event.repository.license.spdx_id }}
+          CREATED: ${{ needs.prepare.outputs.CREATED }}
+          REF_NAME: ${{ needs.prepare.outputs.REF_NAME }}
+        run: |
+          set -euo pipefail
+          SOURCES=()
+          for DIGEST_FILE in "${RUNNER_TEMP}"/digests/*; do
+            SOURCES+=("${IMAGE}@sha256:$(basename "${DIGEST_FILE}")")
+          done
+
+          docker buildx imagetools create \
+            --tag "${IMAGE}:${TAG}" \
+            --annotation "index:org.opencontainers.image.title=${TITLE}" \
+            --annotation "index:org.opencontainers.image.description=${DESCRIPTION}" \
+            --annotation "index:org.opencontainers.image.source=${SOURCE_URL}" \
+            --annotation "index:org.opencontainers.image.licenses=${LICENSES}" \
+            --annotation "index:org.opencontainers.image.created=${CREATED}" \
+            --annotation "index:org.opencontainers.image.ref.name=${REF_NAME}" \
+            --annotation "index:org.opencontainers.image.version=${TAG}" \
+            "${SOURCES[@]}"
 
       - name: Comment on PR
         shell: bash
@@ -101,5 +176,5 @@ jobs:
 
           gh api \
             --method POST \
-            repos/${GITHUB_REPOSITORY}/issues/${{ steps.pr.outputs.PR_NUMBER }}/comments \
-            -f body=$'Docker image for this PR has been built. You can test it out here:\n```bash\ndocker pull ${{ steps.vars.outputs.IMAGE }}:${{ steps.vars.outputs.TAG }}\n```'
+            repos/${GITHUB_REPOSITORY}/issues/${{ needs.prepare.outputs.PR_NUMBER }}/comments \
+            -f body=$'Docker image for this PR has been built. You can test it out here:\n```bash\ndocker pull ${{ needs.prepare.outputs.IMAGE }}:${{ needs.prepare.outputs.TAG }}\n```'
