@@ -1,9 +1,9 @@
 ## Get started (Docker)
 
-mdnx-auto-dl supports two downloaders, and they are interchangeable. You can pick one, or mix them per service (for example ZLO for HiDive and multi-downloader-nx for Crunchyroll).
+mdnx-auto-dl supports two downloaders, and they are interchangeable. You can pick one, or mix them per service (for example CardinalDL for HiDive and multi-downloader-nx for Crunchyroll).
 
 - **[Get started with multi-downloader-nx](mdnx-get-started.md)** uses the aniDL binary. It needs your own CDM (Widevine or Playready) and the aniDL binary.
-- **[Get started with ZLO](zlo-get-started.md)** uses the `zlo7` binary and a signed-in `.zlo7` config folder. No CDM required.
+- **[Get started with CardinalDL](cardinaldl-get-started.md)** uses the `cardinaldl` binary and a signed-in `.cardinaldl` config folder. No CDM required.
 
 If you want to mix them, follow one guide all the way through, then add the other downloader's binary and provider steps from its guide.
 
@@ -17,7 +17,7 @@ Want to set up a specific feature? The [how-to guides](guides/README.md) walk yo
 - [Refresh Plex and Jellyfin](guides/media-servers.md) after a download
 - [Organize your files](guides/organizing-files.md) with `folder_structure`
 - [Blacklists & per-season overrides](guides/series-overrides.md) to skip or retag seasons
-- [Configure ZLO downloads](guides/zlo.md) and [multi-downloader-nx](guides/mdnx.md)
+- [Configure CardinalDL downloads](guides/cardinaldl.md) and [multi-downloader-nx](guides/mdnx.md)
 
 For a full list of every option, see the [option reference](config-options.md).
 

@@ -7,7 +7,7 @@ Each entry has two keys:
 - `dir`: the folder **inside the container** where files are saved. This must match the right side of one of your bind-mounts in `docker-compose.yaml` (for example, `/data/Anime`).
 - `folder_structure`: the layout for series, seasons, and episodes under `dir`, built from the variables below.
 
-Valid destination keys: `crunchyroll`, `hidive`, `adn`, `zlo-crunchyroll`, `zlo-hidive`, `zlo-adn`. You only need entries for the services you enable.
+Valid destination keys: `crunchyroll`, `hidive`, `adn`, `cdl-crunchyroll`, `cdl-hidive`, `cdl-adn`. You only need entries for the services you enable.
 
 JSON:
 ```json
@@ -41,7 +41,7 @@ You can use any of these variables in a `folder_structure` template. See the [fu
 | `${serviceLong}` | `Crunchyroll` | Long service name: `Crunchyroll`, `HiDive`, `ADN`. |
 | `${serviceShort}` | `CR` | Short service code: `CR`, `HD`, `ADN`. |
 
-`${serviceLong}` and `${serviceShort}` are the same for the aniDL and ZLO variant of a service (both Crunchyroll destinations resolve to `Crunchyroll` / `CR`).
+`${serviceLong}` and `${serviceShort}` are the same for the aniDL and CardinalDL variant of a service (both Crunchyroll destinations resolve to `Crunchyroll` / `CR`).
 
 ---
 
