@@ -19,8 +19,8 @@ def open_connection(db_path: str = QUEUE_DB_FILE) -> sqlite3.Connection:
 
     cursor = conn.cursor()
     cursor.execute("PRAGMA foreign_keys = ON")
-    cursor.execute("PRAGMA journal_mode = WAL")
-    cursor.execute("PRAGMA synchronous = NORMAL")
+    cursor.execute("PRAGMA journal_mode = DELETE")
+    cursor.execute("PRAGMA synchronous = FULL")
     cursor.execute("PRAGMA busy_timeout = 5000")
     cursor.close()
 
