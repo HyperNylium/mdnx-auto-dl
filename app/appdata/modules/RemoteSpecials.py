@@ -14,7 +14,7 @@ from .types.remote_specials import (
 
 class RemoteSpecials:
     def __init__(self) -> None:
-        self.url = os.getenv("REMOTE_SPECIALS_URL", "https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/dev/remote-specials.yaml").strip() # TODO: change back to refs/heads/master after testing finishes
+        self.url = os.getenv("REMOTE_SPECIALS_URL", "https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/dev/remote-specials.yaml").strip()  # TODO: change back to refs/heads/master after testing finishes
         self.cache_path = "appdata/config/remote-specials-cache.yaml"
 
         # (downloader, service, series_id, season_id) -> (numbers_set, ids_set)
