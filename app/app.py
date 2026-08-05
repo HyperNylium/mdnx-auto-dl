@@ -11,20 +11,20 @@ from appdata.modules.API.MDNX._shared import (
     MDNX_SERVICE_PLAYREADY_PATH, MDNX_SERVICE_WIDEVINE_PATH,
     update_mdnx_config
 )
-from appdata.modules.API.ZLO7._shared import (
-    ZLO_SERVICE_BIN_PATH, check_zlo_signed_in
+from appdata.modules.API.CardinalDL._shared import (
+    CDL_SERVICE_BIN_PATH, check_cdl_signed_in
 )
 from appdata.modules.Vars import (
     config,
-    APP_VERSION, JELLY_CONFIGURED, MDNX_ENABLED, PLEX_CONFIGURED, SERVICES, ZLO_ENABLED,
+    APP_VERSION, JELLY_CONFIGURED, MDNX_ENABLED, PLEX_CONFIGURED, SERVICES, CDL_ENABLED,
     get_running_user, handle_exception, output_effective_config, update_app_config, validate_cdm, validate_destinations
 )
 
 
 def app():
 
-    if not MDNX_ENABLED and not ZLO_ENABLED:
-        log_manager.warning("No services are enabled. Please enable at least one MDNX or ZLO service in your config to use this application.")
+    if not MDNX_ENABLED and not CDL_ENABLED:
+        log_manager.warning("No services are enabled. Please enable at least one MDNX or CardinalDL service in your config to use this application.")
         sys.exit(0)
 
     # can we reliably read/write to the destination directory?
@@ -56,17 +56,24 @@ def app():
         else:
             log_manager.warning("Skipping CDM checks because SKIP_CDM_CHECK is set to True. Make sure you have a valid Widevine or Playready CDM mounted to the correct path if you want downloading to work!")
 
-    if ZLO_ENABLED:
-        if not os.path.isfile(ZLO_SERVICE_BIN_PATH):
-            log_manager.critical(f"ZLO is enabled, but the ZLO binary was not found at: {ZLO_SERVICE_BIN_PATH}\nPlease mount the correct ZLO binary and restart the application.")
+    if CDL_ENABLED:
+        if not os.path.isfile(CDL_SERVICE_BIN_PATH):
+            log_manager.critical(f"CardinalDL is enabled, but the CardinalDL binary was not found at: {CDL_SERVICE_BIN_PATH}\nPlease mount the correct CardinalDL binary and restart the application.")
             sys.exit(1)
 
-        zlo_signed_in, zlo_error = check_zlo_signed_in()
-        if not zlo_signed_in:
-            log_manager.critical(zlo_error)
-            sys.exit(1)
+        # each enabled service can point at its own storage db so only check each one once
+        storage_paths = set()
+        for cdl_service in SERVICES.cardinaldl.all():
+            if cdl_service.enabled:
+                storage_paths.add(cdl_service.config.configPath)
 
-        log_manager.info("ZLO checks completed. All good!")
+        for storage_path in sorted(storage_paths):
+            cdl_signed_in, cdl_error = check_cdl_signed_in(storage_path)
+            if not cdl_signed_in:
+                log_manager.critical(cdl_error)
+                sys.exit(1)
+
+        log_manager.info("CardinalDL checks completed. All good!")
 
     if PLEX_CONFIGURED is True or JELLY_CONFIGURED is True:
         if PLEX_CONFIGURED is True:
@@ -210,26 +217,26 @@ def app():
                 else:
                     log_manager.info("adn_token.yml exists. Assuming user is already authenticated with ADN MDNX service.")
 
-    for zlo_service in SERVICES.zlo.all():
-        if not zlo_service.enabled:
-            log_manager.info(f"ZLO service '{zlo_service.service_name}' is not enabled. Skipping...")
+    for cdl_service in SERVICES.cardinaldl.all():
+        if not cdl_service.enabled:
+            log_manager.info(f"CardinalDL service '{cdl_service.service_name}' is not enabled. Skipping...")
             continue
 
-        match zlo_service.service_name:
-            case "zlo-crunchyroll":
-                log_manager.info("Starting CR_ZLO_API...")
-                from appdata.modules.API.ZLO7.crunchy import CR_ZLO_API
-                zlo_service.api = CR_ZLO_API()
+        match cdl_service.service_name:
+            case "cdl-crunchyroll":
+                log_manager.info("Starting CR_CDL_API...")
+                from appdata.modules.API.CardinalDL.crunchy import CR_CDL_API
+                cdl_service.api = CR_CDL_API()
 
-            case "zlo-hidive":
-                log_manager.info("Starting HIDIVE_ZLO_API...")
-                from appdata.modules.API.ZLO7.hidive import HIDIVE_ZLO_API
-                zlo_service.api = HIDIVE_ZLO_API()
+            case "cdl-hidive":
+                log_manager.info("Starting HIDIVE_CDL_API...")
+                from appdata.modules.API.CardinalDL.hidive import HIDIVE_CDL_API
+                cdl_service.api = HIDIVE_CDL_API()
 
-            case "zlo-adn":
-                log_manager.info("Starting ADN_ZLO_API...")
-                from appdata.modules.API.ZLO7.adn import ADN_ZLO_API
-                zlo_service.api = ADN_ZLO_API()
+            case "cdl-adn":
+                log_manager.info("Starting ADN_CDL_API...")
+                from appdata.modules.API.CardinalDL.adn import ADN_CDL_API
+                cdl_service.api = ADN_CDL_API()
 
     mainloop = MainLoop(notifiers=notifiers)
 

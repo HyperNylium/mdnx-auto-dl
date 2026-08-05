@@ -115,48 +115,49 @@ if ! getent passwd "$USERNAME" >/dev/null; then
     fi
 fi
 
-# Purge old log files in the logs directories for both mdnx and zlo tools.
+# Purge old log files in the logs directories for both mdnx and cardinaldl tools.
 purge_folder "$BIN_DIR/mdnx/logs" "latest.log" "[0-9]*.[0-9][0-9][0-9][0-9].log"
-purge_folder "$BIN_DIR/zlo/config/logs" "combined.log" "error.log"
+purge_folder "$BIN_DIR/cardinaldl/config/logs" "combined.log" "error.log"
 
 echo "[entrypoint] Applying ownership and permissions to /app. This can take a moment..."
 chown -R "$USER_ID:$GROUP_ID" /app
 chmod -R 775 /app
 
-# Make required symlinks for ZLO7 support
-ln -sfn "/app/appdata/bin/bento4/mp4decrypt" "/app/appdata/bin/zlo/static/bento4/mp4decrypt"
-ln -sfn "/app/appdata/bin/shaka_packager/shaka" "/app/appdata/bin/zlo/static/shaka_packager/shaka"
-ln -sfn "/app/appdata/bin/dovi_tool/dovi_tool" "/app/appdata/bin/zlo/static/dovi_tool/dovi_tool"
-ln -sfn "/app/appdata/bin/hdr10plus_tool/hdr10plus_tool" "/app/appdata/bin/zlo/static/hdr10plus_tool/hdr10plus_tool"
-ln -sfn "/usr/local/bin/ffmpeg" "/app/appdata/bin/zlo/static/ffmpeg/ffmpeg"
-ln -sfn "/usr/local/bin/ffprobe" "/app/appdata/bin/zlo/static/ffmpeg/ffprobe"
-ln -sfn "/usr/bin/mkvmerge" "/app/appdata/bin/zlo/static/mkvmerge/mkvmerge"
-ln -sfn "/usr/bin/mkvpropedit" "/app/appdata/bin/zlo/static/mkvmerge/mkvpropedit"
+# Make required symlinks for CardinalDL support
+ln -sfn "/app/appdata/bin/bento4/mp4decrypt" "/app/appdata/bin/cardinaldl/static/bento4/mp4decrypt"
+ln -sfn "/app/appdata/bin/shaka_packager/shaka" "/app/appdata/bin/cardinaldl/static/shaka_packager/shaka"
+ln -sfn "/app/appdata/bin/dovi_tool/dovi_tool" "/app/appdata/bin/cardinaldl/static/dovi_tool/dovi_tool"
+ln -sfn "/app/appdata/bin/hdr10plus_tool/hdr10plus_tool" "/app/appdata/bin/cardinaldl/static/hdr10plus_tool/hdr10plus_tool"
+ln -sfn "/usr/local/bin/ffmpeg" "/app/appdata/bin/cardinaldl/static/ffmpeg/ffmpeg"
+ln -sfn "/usr/local/bin/ffprobe" "/app/appdata/bin/cardinaldl/static/ffmpeg/ffprobe"
+ln -sfn "/usr/bin/mkvmerge" "/app/appdata/bin/cardinaldl/static/mkvmerge/mkvmerge"
+ln -sfn "/usr/bin/mkvpropedit" "/app/appdata/bin/cardinaldl/static/mkvmerge/mkvpropedit"
 
-# Check if any ZLO services are enabled in the config to determine if we need to fix permissions on ZLO paths
-ZLO_ENABLED=false
-for zlo_flag in ZLO_CR_ENABLED ZLO_HIDIVE_ENABLED ZLO_ADN_ENABLED; do
-  flag_value="$(read_config "$zlo_flag" "false")"
+# Check if any CardinalDL services are enabled in the config to determine if we need to fix permissions on CardinalDL paths.
+# TODO: remove ZLO-* keys on v3.2.1. they are only needed for the migration from v3.1.3 to v3.2.0, and should be removed in a future release (v3.2.1)
+CDL_ENABLED=false
+for cdl_flag in CDL_CR_ENABLED CDL_HIDIVE_ENABLED CDL_ADN_ENABLED ZLO_CR_ENABLED ZLO_HIDIVE_ENABLED ZLO_ADN_ENABLED; do
+  flag_value="$(read_config "$cdl_flag" "false")"
   if [[ "${flag_value,,}" == "true" ]]; then
-    ZLO_ENABLED=true
+    CDL_ENABLED=true
     break
   fi
 done
 
-if [[ "$ZLO_ENABLED" == "true" ]]; then
-  ZLO_BIN_PATH="$BIN_DIR/zlo/zlo7"
-  ZLO_USER_CONFIG_DIR="$BIN_DIR/zlo/config"
+if [[ "$CDL_ENABLED" == "true" ]]; then
+  CDL_BIN_PATH="$BIN_DIR/cardinaldl/cardinaldl"
+  CDL_USER_CONFIG_DIR="$BIN_DIR/cardinaldl/config"
 
-  echo "[entrypoint] ZLO enabled. Fixing ownership/permissions on ZLO paths..."
+  echo "[entrypoint] CardinalDL enabled. Fixing ownership/permissions on CardinalDL paths..."
 
-  if [[ -f "$ZLO_BIN_PATH" ]]; then
-    chown "$USER_ID:$GROUP_ID" "$ZLO_BIN_PATH"
-    chmod 775 "$ZLO_BIN_PATH"
+  if [[ -f "$CDL_BIN_PATH" ]]; then
+    chown "$USER_ID:$GROUP_ID" "$CDL_BIN_PATH"
+    chmod 775 "$CDL_BIN_PATH"
   fi
 
-  if [[ -d "$ZLO_USER_CONFIG_DIR" ]]; then
-    chown -R "$USER_ID:$GROUP_ID" "$ZLO_USER_CONFIG_DIR"
-    chmod -R 775 "$ZLO_USER_CONFIG_DIR"
+  if [[ -d "$CDL_USER_CONFIG_DIR" ]]; then
+    chown -R "$USER_ID:$GROUP_ID" "$CDL_USER_CONFIG_DIR"
+    chmod -R 775 "$CDL_USER_CONFIG_DIR"
   fi
 fi
 

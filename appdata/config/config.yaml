@@ -1,9 +1,9 @@
 cr_monitor_series_id: {}
 hidive_monitor_series_id: {}
 adn_monitor_series_id: {}
-zlo_cr_monitor_series_id: {}
-zlo_hidive_monitor_series_id: {}
-zlo_adn_monitor_series_id: {}
+cdl_cr_monitor_series_id: {}
+cdl_hidive_monitor_series_id: {}
+cdl_adn_monitor_series_id: {}
 
 destinations:
     crunchyroll:
@@ -15,13 +15,13 @@ destinations:
     adn:
         dir: "/data/Anime"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
-    zlo-crunchyroll:
+    cdl-crunchyroll:
         dir: "/data/Anime"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
-    zlo-hidive:
+    cdl-hidive:
         dir: "/data/Anime"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
-    zlo-adn:
+    cdl-adn:
         dir: "/data/Anime"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
 
@@ -57,7 +57,7 @@ mdnx:
         astream: "androidtv"
         tsd: false
 
-zlo:
+cardinaldl:
     crunchyroll:
         quality: "1080p@avc"
         qualityfallback: true

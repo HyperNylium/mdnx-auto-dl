@@ -13,7 +13,7 @@ from collections import OrderedDict
 from pydantic import ValidationError
 
 from .types.config import Config, AppConfig
-from .types.service import Service, MdnxServices, ZloServices, Services
+from .types.service import Service, MdnxServices, CdlServices, Services
 from .types.queue import Series, ServiceBucket
 
 
@@ -110,11 +110,11 @@ def output_effective_config(config: Config, max_chunk: int = 8000):
         "cr_monitor_series_id",
         "hidive_monitor_series_id",
         "adn_monitor_series_id",
-        "zlo_cr_monitor_series_id",
-        "zlo_hidive_monitor_series_id",
-        "zlo_adn_monitor_series_id",
+        "cdl_cr_monitor_series_id",
+        "cdl_hidive_monitor_series_id",
+        "cdl_adn_monitor_series_id",
         "mdnx",
-        "zlo"
+        "cardinaldl"
     }
 
     def _order_like_defaults(config_node, defaults_node):
@@ -206,42 +206,42 @@ SERVICES = Services(
             enabled=config.app.adn_enabled
         )
     ),
-    zlo=ZloServices(
+    cardinaldl=CdlServices(
         crunchyroll=Service(
-            service_name="zlo-crunchyroll",
-            queue_bucket="ZLO-Crunchyroll",
-            display_name="ZLO Crunchyroll",
+            service_name="cdl-crunchyroll",
+            queue_bucket="CDL-Crunchyroll",
+            display_name="CardinalDL Crunchyroll",
             service_long="Crunchyroll",
             service_short="CR",
-            tool="zlo",
-            config=config.zlo.crunchyroll,
-            monitor_series_id=config.zlo_cr_monitor_series_id,
-            monitor_config_key="zlo_cr_monitor_series_id",
-            enabled=config.app.zlo_cr_enabled
+            tool="cardinaldl",
+            config=config.cardinaldl.crunchyroll,
+            monitor_series_id=config.cdl_cr_monitor_series_id,
+            monitor_config_key="cdl_cr_monitor_series_id",
+            enabled=config.app.cdl_cr_enabled
         ),
         hidive=Service(
-            service_name="zlo-hidive",
-            queue_bucket="ZLO-HiDive",
-            display_name="ZLO HiDive",
+            service_name="cdl-hidive",
+            queue_bucket="CDL-HiDive",
+            display_name="CardinalDL HiDive",
             service_long="HiDive",
             service_short="HD",
-            tool="zlo",
-            config=config.zlo.hidive,
-            monitor_series_id=config.zlo_hidive_monitor_series_id,
-            monitor_config_key="zlo_hidive_monitor_series_id",
-            enabled=config.app.zlo_hidive_enabled
+            tool="cardinaldl",
+            config=config.cardinaldl.hidive,
+            monitor_series_id=config.cdl_hidive_monitor_series_id,
+            monitor_config_key="cdl_hidive_monitor_series_id",
+            enabled=config.app.cdl_hidive_enabled
         ),
         adn=Service(
-            service_name="zlo-adn",
-            queue_bucket="ZLO-ADN",
-            display_name="ZLO ADN",
+            service_name="cdl-adn",
+            queue_bucket="CDL-ADN",
+            display_name="CardinalDL ADN",
             service_long="ADN",
             service_short="ADN",
-            tool="zlo",
-            config=config.zlo.adn,
-            monitor_series_id=config.zlo_adn_monitor_series_id,
-            monitor_config_key="zlo_adn_monitor_series_id",
-            enabled=config.app.zlo_adn_enabled
+            tool="cardinaldl",
+            config=config.cardinaldl.adn,
+            monitor_series_id=config.cdl_adn_monitor_series_id,
+            monitor_config_key="cdl_adn_monitor_series_id",
+            enabled=config.app.cdl_adn_enabled
         )
     )
 )
@@ -253,17 +253,17 @@ LOG_DIR = config.app.log_dir
 
 INVALID_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1F]')
 
-# Whether any MDNX or ZLO services are enabled
+# Whether any MDNX or CardinalDL services are enabled
 MDNX_ENABLED = False
 for mdnx_service in SERVICES.mdnx.all():
     if mdnx_service.enabled:
         MDNX_ENABLED = True
         break
 
-ZLO_ENABLED = False
-for zlo_service in SERVICES.zlo.all():
-    if zlo_service.enabled:
-        ZLO_ENABLED = True
+CDL_ENABLED = False
+for cdl_service in SERVICES.cardinaldl.all():
+    if cdl_service.enabled:
+        CDL_ENABLED = True
         break
 
 PLEX_URL = config.app.plex_url
@@ -512,9 +512,9 @@ def validate_destinations() -> None:
         "crunchyroll": config.app.cr_enabled,
         "hidive": config.app.hidive_enabled,
         "adn": config.app.adn_enabled,
-        "zlo-crunchyroll": config.app.zlo_cr_enabled,
-        "zlo-hidive": config.app.zlo_hidive_enabled,
-        "zlo-adn": config.app.zlo_adn_enabled
+        "cdl-crunchyroll": config.app.cdl_cr_enabled,
+        "cdl-hidive": config.app.cdl_hidive_enabled,
+        "cdl-adn": config.app.cdl_adn_enabled
     }
 
     missing_destinations = []

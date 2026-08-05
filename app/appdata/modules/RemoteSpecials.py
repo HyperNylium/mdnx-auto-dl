@@ -14,7 +14,7 @@ from .types.remote_specials import (
 
 class RemoteSpecials:
     def __init__(self) -> None:
-        self.url = os.getenv("REMOTE_SPECIALS_URL", "https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/master/remote-specials.yaml").strip()
+        self.url = os.getenv("REMOTE_SPECIALS_URL", "https://raw.githubusercontent.com/HyperNylium/mdnx-auto-dl/refs/heads/dev/remote-specials.yaml").strip() # TODO: change back to refs/heads/master after testing finishes
         self.cache_path = "appdata/config/remote-specials-cache.yaml"
 
         # (downloader, service, series_id, season_id) -> (numbers_set, ids_set)
@@ -43,8 +43,8 @@ class RemoteSpecials:
 
         return ({entry}, set())
 
-    def _classify_zlo_entry(self, entry: str) -> OverrideBucket:
-        """Classify a ZLO entry."""
+    def _classify_cdl_entry(self, entry: str) -> OverrideBucket:
+        """Classify a CardinalDL entry."""
 
         if entry.startswith(ID_PREFIX):
             return (set(), {entry[len(ID_PREFIX):]})
@@ -118,9 +118,9 @@ class RemoteSpecials:
             log_manager.warning(f"Top-level value is not a mapping in {source_label} file.")
             return None
 
-        # drop unknown top-level keys so only mdnx/zlo reach Pydantic
+        # drop unknown top-level keys so only mdnx/cardinaldl reach Pydantic
         for top_key in list(raw.keys()):
-            if top_key not in ("mdnx", "zlo"):
+            if top_key not in ("mdnx", "cardinaldl"):
                 log_manager.warning(f"Unknown top-level key '{top_key}' in {source_label} file. Ignoring.")
                 del raw[top_key]
 
@@ -172,9 +172,9 @@ class RemoteSpecials:
         total += self._ingest_service("mdnx", "crunchyroll", specials.mdnx.crunchyroll, self._classify_mdnx_entry)
         total += self._ingest_service("mdnx", "hidive", specials.mdnx.hidive, self._classify_mdnx_entry)
         total += self._ingest_service("mdnx", "adn", specials.mdnx.adn, self._classify_mdnx_entry)
-        total += self._ingest_service("zlo", "crunchyroll", specials.zlo.crunchyroll, self._classify_zlo_entry)
-        total += self._ingest_service("zlo", "hidive", specials.zlo.hidive, self._classify_zlo_entry)
-        total += self._ingest_service("zlo", "adn", specials.zlo.adn, self._classify_zlo_entry)
+        total += self._ingest_service("cardinaldl", "crunchyroll", specials.cardinaldl.crunchyroll, self._classify_cdl_entry)
+        total += self._ingest_service("cardinaldl", "hidive", specials.cardinaldl.hidive, self._classify_cdl_entry)
+        total += self._ingest_service("cardinaldl", "adn", specials.cardinaldl.adn, self._classify_cdl_entry)
 
         log_manager.info(f"Loaded {total} entries across {len(self.overrides)} season slots.")
 

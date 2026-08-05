@@ -42,15 +42,15 @@ services:
       #- ./appdata/mdnx/playready:/app/appdata/bin/mdnx/playready:rw
 
 
-      ############
-      ### ZLO7 ###
-      ############
+      ##################
+      ### CardinalDL ###
+      ##################
 
-      # ZLO linux x64 CLI binary ("zlo7" is the binary, not a folder)
-      #- ./appdata/zlo/zlo7:/app/appdata/bin/zlo/zlo7:rw
+      # CardinalDL linux x64 CLI binary ("cardinaldl" is the binary, not a folder)
+      #- ./appdata/cardinaldl/cardinaldl:/app/appdata/bin/cardinaldl/cardinaldl:rw
 
-      # ZLO config dir (C:/Users/[user]/.zlo7/*)
-      #- ./appdata/zlo/config:/app/appdata/bin/zlo/config:rw
+      # CardinalDL config dir (C:/Users/[user]/.cardinaldl/*)
+      #- ./appdata/cardinaldl/config:/app/appdata/bin/cardinaldl/config:rw
 
     environment:
       - UID=1000
