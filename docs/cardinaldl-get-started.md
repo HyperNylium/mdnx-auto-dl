@@ -1,6 +1,6 @@
 # Get started with CardinalDL (Docker)
 
-This guide sets up mdnx-auto-dl using **CardinalDL** (the `cardinaldl` binary) as the downloader for Crunchyroll, HiDive, and ADN.  
+This guide sets up mdnx-auto-dl using **CardinalDL** (the `cardinaldl` binary) as the downloader for Crunchyroll, HiDive, ADN, Disney, Netflix, and Amazon.  
 If you want to use multi-downloader-nx instead, or mix the two, see [mdnx-get-started.md](mdnx-get-started.md).
 
 CardinalDL is a separate downloader from multi-downloader-nx. It uses its own `cardinaldl` binary and its own `.cardinaldl` config folder, and you sign in through the CardinalDL GUI or CLI. mdnx-auto-dl only runs the binary. It does not log you in.
@@ -220,6 +220,135 @@ For the full list of variables you can use inside `folder_structure`, see [Optio
   ```
 
   ### 3) Optional: tune CardinalDL ADN download settings
+  See the [CardinalDL per-service options](config-options.md#cardinaldl-per-service-options) section for things like quality, dub languages, and subs.
+</details>
+
+<details>
+  <summary>Disney (CardinalDL)</summary>
+
+  ### 1) Enable Disney (CardinalDL)
+  Set [`CDL_DISNEY_ENABLED`](config-options.md#CDL_DISNEY_ENABLED) to `true` in your config file:
+
+  JSON:
+  ```json
+  {
+    "app": {
+      "CDL_DISNEY_ENABLED": true
+    }
+  }
+  ```
+  YAML:
+  ```yaml
+  app:
+      CDL_DISNEY_ENABLED: true
+  ```
+
+  ### 2) Disney series IDs to monitor
+  Get the **series ID** from the Disney URL and add it under `cdl_disney_monitor_series_id`.
+
+  Add it like this:
+
+  JSON:
+  ```json
+  {
+    "cdl_disney_monitor_series_id": {
+      "<series id>": {}
+    }
+  }
+  ```
+  YAML:
+  ```yaml
+  cdl_disney_monitor_series_id:
+      "<series id>": {}
+  ```
+
+  ### 3) Optional: tune CardinalDL Disney download settings
+  See the [CardinalDL per-service options](config-options.md#cardinaldl-per-service-options) section for things like quality, dub languages, and subs.
+</details>
+
+<details>
+  <summary>Netflix (CardinalDL)</summary>
+
+  ### 1) Enable Netflix (CardinalDL)
+  Set [`CDL_NETFLIX_ENABLED`](config-options.md#CDL_NETFLIX_ENABLED) to `true` in your config file:
+
+  JSON:
+  ```json
+  {
+    "app": {
+      "CDL_NETFLIX_ENABLED": true
+    }
+  }
+  ```
+  YAML:
+  ```yaml
+  app:
+      CDL_NETFLIX_ENABLED: true
+  ```
+
+  ### 2) Netflix series IDs to monitor
+  Get the **series ID** from the Netflix URL and add it under `cdl_netflix_monitor_series_id`.
+
+  Add it like this:
+
+  JSON:
+  ```json
+  {
+    "cdl_netflix_monitor_series_id": {
+      "<series id>": {}
+    }
+  }
+  ```
+  YAML:
+  ```yaml
+  cdl_netflix_monitor_series_id:
+      "<series id>": {}
+  ```
+
+  ### 3) Optional: tune CardinalDL Netflix download settings
+  See the [CardinalDL per-service options](config-options.md#cardinaldl-per-service-options) section for things like quality, dub languages, and subs.
+</details>
+
+<details>
+  <summary>Amazon (CardinalDL)</summary>
+
+  ### 1) Enable Amazon (CardinalDL)
+  Set [`CDL_AMAZON_ENABLED`](config-options.md#CDL_AMAZON_ENABLED) to `true` in your config file:
+
+  JSON:
+  ```json
+  {
+    "app": {
+      "CDL_AMAZON_ENABLED": true
+    }
+  }
+  ```
+  YAML:
+  ```yaml
+  app:
+      CDL_AMAZON_ENABLED: true
+  ```
+
+  ### 2) Amazon series IDs to monitor
+  Get the **series ID** from the Amazon URL and add it under `cdl_amazon_monitor_series_id`.
+
+  Add it like this:
+
+  JSON:
+  ```json
+  {
+    "cdl_amazon_monitor_series_id": {
+      "<series id>": {}
+    }
+  }
+  ```
+  YAML:
+  ```yaml
+  cdl_amazon_monitor_series_id:
+      "<series id>": {}
+  ```
+
+  ### 3) Optional: tune CardinalDL Amazon download settings
   See the [CardinalDL per-service options](config-options.md#cardinaldl-per-service-options) section for things like quality, dub languages, and subs.
 </details>
 

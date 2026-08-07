@@ -3,10 +3,10 @@
 [![Discord Server](https://discord.com/api/guilds/789034812799320074/widget.png?style=banner2)](https://discord.gg/XAAfYJ5ABk)
 
 ## Legal Warning
-mdnx-auto-dl is not endorsed by or affiliated with *Crunchyroll*, *HiDive* or *AnimationDigitalNetwork*. mdnx-auto-dl does not download, decrypt, or distribute any media itself. It is an orchestrator that automates third-party downloaders, [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) and CardinalDL, which you install, configure, and supply your own credentials and CDM for. Downloading videos for offline viewing may be forbidden by law in your country, and may violate the *Terms of Service* between you and the stream provider. You alone are responsible for how you use this tool and the downloaders it runs on your behalf. Please make an informed decision before using mdnx-auto-dl.
+mdnx-auto-dl is not endorsed by or affiliated with *Crunchyroll*, *HiDive*, *AnimationDigitalNetwork*, *Disney+*, *Netflix* or *Amazon Prime Video*. mdnx-auto-dl does not download, decrypt, or distribute any media itself. It is an orchestrator that automates third-party downloaders, [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) and CardinalDL, which you install, configure, and supply your own credentials and CDM for. Downloading videos for offline viewing may be forbidden by law in your country, and may violate the *Terms of Service* between you and the stream provider. You alone are responsible for how you use this tool and the downloaders it runs on your behalf. Please make an informed decision before using mdnx-auto-dl.
 
 # What is this?
-MDNX-auto-dl is a free and open-source headless orchestrator that automatically downloads new episodes from Crunchyroll, HiDive and AnimationDigitalNetwork (ADN) as they are released. It is not a GUI app.  
+MDNX-auto-dl is a free and open-source headless orchestrator that automatically downloads new episodes from Crunchyroll, HiDive, AnimationDigitalNetwork (ADN), Disney+, Netflix and Amazon Prime Video as they are released. It is not a GUI app.  
 Instead of downloading anything itself, it manages the tools that do, [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) and/or CardinalDL, and handles everything around them: watching for new episodes/dubs/subs, organizing files, refreshing your Plex or Jellyfin on completion, and sending notifications.  
 Pick whichever downloader you want, or mix them per service (for example, CardinalDL for HiDive and multi-downloader-nx for Crunchyroll).
 

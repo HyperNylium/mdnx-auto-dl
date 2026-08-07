@@ -16,19 +16,22 @@ Each CardinalDL service has its own enable flag and its own monitor map (both li
 "app": {
     "CDL_CR_ENABLED": true,
     "CDL_HIDIVE_ENABLED": false,
-    "CDL_ADN_ENABLED": false
+    "CDL_ADN_ENABLED": false,
+    "CDL_DISNEY_ENABLED": false,
+    "CDL_NETFLIX_ENABLED": false,
+    "CDL_AMAZON_ENABLED": false
 }
 ```
 
-Then add the series IDs you want to monitor to the matching map ([`cdl_cr_monitor_series_id`](../config-options.md#cdl_cr_monitor_series_id), [`cdl_hidive_monitor_series_id`](../config-options.md#cdl_hidive_monitor_series_id), [`cdl_adn_monitor_series_id`](../config-options.md#cdl_adn_monitor_series_id)). You can also blacklist seasons/episodes and override dubs/subs per season there. See [Blacklists & per-season overrides](series-overrides.md).
+Then add the series IDs you want to monitor to the matching map ([`cdl_cr_monitor_series_id`](../config-options.md#cdl_cr_monitor_series_id), [`cdl_hidive_monitor_series_id`](../config-options.md#cdl_hidive_monitor_series_id), [`cdl_adn_monitor_series_id`](../config-options.md#cdl_adn_monitor_series_id), [`cdl_disney_monitor_series_id`](../config-options.md#cdl_disney_monitor_series_id), [`cdl_netflix_monitor_series_id`](../config-options.md#cdl_netflix_monitor_series_id), [`cdl_amazon_monitor_series_id`](../config-options.md#cdl_amazon_monitor_series_id)). You can also blacklist seasons/episodes and override dubs/subs per season there. See [Blacklists & per-season overrides](series-overrides.md).
 
-**Enable flags:** [`CDL_CR_ENABLED`](../config-options.md#CDL_CR_ENABLED) [`CDL_HIDIVE_ENABLED`](../config-options.md#CDL_HIDIVE_ENABLED) [`CDL_ADN_ENABLED`](../config-options.md#CDL_ADN_ENABLED)
+**Enable flags:** [`CDL_CR_ENABLED`](../config-options.md#CDL_CR_ENABLED) [`CDL_HIDIVE_ENABLED`](../config-options.md#CDL_HIDIVE_ENABLED) [`CDL_ADN_ENABLED`](../config-options.md#CDL_ADN_ENABLED) [`CDL_DISNEY_ENABLED`](../config-options.md#CDL_DISNEY_ENABLED) [`CDL_NETFLIX_ENABLED`](../config-options.md#CDL_NETFLIX_ENABLED) [`CDL_AMAZON_ENABLED`](../config-options.md#CDL_AMAZON_ENABLED)
 
 ---
 
 ## Tune quality, dubs, and subtitles
 
-Download settings live in the top-level `cardinaldl` section, which has one subsection per service: `crunchyroll`, `hidive`, and `adn`.  
+Download settings live in the top-level `cardinaldl` section, which has one subsection per service: `crunchyroll`, `hidive`, `adn`, `disney`, `netflix`, and `amazon`.  
 Each subsection takes the same keys. Only set the keys you want to change. Anything you leave out uses its default.
 
 JSON:

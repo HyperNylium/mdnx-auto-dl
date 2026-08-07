@@ -2,7 +2,7 @@
 
 Inside each monitor map you can attach settings to a specific season of a series: skip episodes you do not want, renumber a season, or change which dubs/subs are downloaded for just that season.
 
-The examples below use [`cr_monitor_series_id`](../config-options.md#cr_monitor_series_id), but the same rules apply to every monitor map: [`hidive_monitor_series_id`](../config-options.md#hidive_monitor_series_id), [`adn_monitor_series_id`](../config-options.md#adn_monitor_series_id), [`cdl_cr_monitor_series_id`](../config-options.md#cdl_cr_monitor_series_id), [`cdl_hidive_monitor_series_id`](../config-options.md#cdl_hidive_monitor_series_id), and [`cdl_adn_monitor_series_id`](../config-options.md#cdl_adn_monitor_series_id).
+The examples below use [`cr_monitor_series_id`](../config-options.md#cr_monitor_series_id), but the same rules apply to every monitor map: [`hidive_monitor_series_id`](../config-options.md#hidive_monitor_series_id), [`adn_monitor_series_id`](../config-options.md#adn_monitor_series_id), [`cdl_cr_monitor_series_id`](../config-options.md#cdl_cr_monitor_series_id), [`cdl_hidive_monitor_series_id`](../config-options.md#cdl_hidive_monitor_series_id), [`cdl_adn_monitor_series_id`](../config-options.md#cdl_adn_monitor_series_id), [`cdl_disney_monitor_series_id`](../config-options.md#cdl_disney_monitor_series_id), [`cdl_netflix_monitor_series_id`](../config-options.md#cdl_netflix_monitor_series_id), and [`cdl_amazon_monitor_series_id`](../config-options.md#cdl_amazon_monitor_series_id).
 
 These maps are **top-level** keys, not under `app`.
 

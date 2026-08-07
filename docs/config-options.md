@@ -16,9 +16,9 @@ Both formats accept the exact same keys and values. Every option in this doc sho
 The config file has a few top-level sections:
 - `app`: every UPPER_CASE option in this doc lives here.
 - `destinations`: where each service saves its files. One entry per service. Each entry has a `dir` and a `folder_structure`.
-- `cr_monitor_series_id`, `hidive_monitor_series_id`, `adn_monitor_series_id`, `cdl_cr_monitor_series_id`, `cdl_hidive_monitor_series_id`, `cdl_adn_monitor_series_id`: top-level (not under `app`). These hold the series IDs you want to watch per service.
+- `cr_monitor_series_id`, `hidive_monitor_series_id`, `adn_monitor_series_id`, `cdl_cr_monitor_series_id`, `cdl_hidive_monitor_series_id`, `cdl_adn_monitor_series_id`, `cdl_disney_monitor_series_id`, `cdl_netflix_monitor_series_id`, `cdl_amazon_monitor_series_id`: top-level (not under `app`). These hold the series IDs you want to watch per service.
 - `mdnx`: passthrough config for [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx). Anything valid in `cli-defaults.yml` is valid here, as long as the option's `cli-default Entry` in [multi-downloader-nx's documentation](https://github.com/anidl/multi-downloader-nx/blob/master/docs/DOCUMENTATION.md) is not `NaN`.
-- `cardinaldl`: per-service config for the CardinalDL downloader. Has subsections `crunchyroll`, `hidive`, and `adn`.
+- `cardinaldl`: per-service config for the CardinalDL downloader. Has subsections `crunchyroll`, `hidive`, `adn`, `disney`, `netflix`, and `amazon`.
 
 If you leave an option out of your config file, mdnx-auto-dl will use the default value listed in this doc.  
 The only config that doesnt have defaults is the `destinations` section. Every service you enable needs an entry in `destinations` or the container will exit with an error on startup. This is intentional to not make assumptions about where/how you want to save files.
@@ -68,6 +68,9 @@ Standard YAML formatting still applies:
             - [`CDL_CR_ENABLED`](#CDL_CR_ENABLED)
             - [`CDL_HIDIVE_ENABLED`](#CDL_HIDIVE_ENABLED)
             - [`CDL_ADN_ENABLED`](#CDL_ADN_ENABLED)
+            - [`CDL_DISNEY_ENABLED`](#CDL_DISNEY_ENABLED)
+            - [`CDL_NETFLIX_ENABLED`](#CDL_NETFLIX_ENABLED)
+            - [`CDL_AMAZON_ENABLED`](#CDL_AMAZON_ENABLED)
         - [CardinalDL per-service options](#cardinaldl-per-service-options)
             - [`quality`](#cdl-quality)
             - [`qualityfallback`](#cdl-qualityfallback)
@@ -85,6 +88,9 @@ Standard YAML formatting still applies:
     - [`cdl_cr_monitor_series_id`](#cdl_cr_monitor_series_id)
     - [`cdl_hidive_monitor_series_id`](#cdl_hidive_monitor_series_id)
     - [`cdl_adn_monitor_series_id`](#cdl_adn_monitor_series_id)
+    - [`cdl_disney_monitor_series_id`](#cdl_disney_monitor_series_id)
+    - [`cdl_netflix_monitor_series_id`](#cdl_netflix_monitor_series_id)
+    - [`cdl_amazon_monitor_series_id`](#cdl_amazon_monitor_series_id)
 - [Destinations and file layout](#destinations-and-file-layout)
     - [Destinations](#destinations)
     - [Options for `folder_structure`](#options-for-folder_structure)
@@ -602,11 +608,65 @@ app:
     CDL_ADN_ENABLED: true
 ```
 
+##### <a id="CDL_DISNEY_ENABLED"></a>CDL_DISNEY_ENABLED
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `false` | boolean | When `true`, enable the CardinalDL Disney service and monitor any series IDs in `cdl_disney_monitor_series_id`. |
+
+JSON:
+```json
+"app": {
+    "CDL_DISNEY_ENABLED": true
+}
+```
+YAML:
+```yaml
+app:
+    CDL_DISNEY_ENABLED: true
+```
+
+##### <a id="CDL_NETFLIX_ENABLED"></a>CDL_NETFLIX_ENABLED
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `false` | boolean | When `true`, enable the CardinalDL Netflix service and monitor any series IDs in `cdl_netflix_monitor_series_id`. |
+
+JSON:
+```json
+"app": {
+    "CDL_NETFLIX_ENABLED": true
+}
+```
+YAML:
+```yaml
+app:
+    CDL_NETFLIX_ENABLED: true
+```
+
+##### <a id="CDL_AMAZON_ENABLED"></a>CDL_AMAZON_ENABLED
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `false` | boolean | When `true`, enable the CardinalDL Amazon service and monitor any series IDs in `cdl_amazon_monitor_series_id`. |
+
+JSON:
+```json
+"app": {
+    "CDL_AMAZON_ENABLED": true
+}
+```
+YAML:
+```yaml
+app:
+    CDL_AMAZON_ENABLED: true
+```
+
 #### CardinalDL per-service options
 
 > How-to: [Configure CardinalDL downloads](guides/cardinaldl.md)
 
-The `cardinaldl` section in the config file has one subsection per CardinalDL service: `crunchyroll`, `hidive`, and `adn`. Each subsection takes the same keys, listed below.
+The `cardinaldl` section in the config file has one subsection per CardinalDL service: `crunchyroll`, `hidive`, `adn`, `disney`, `netflix`, and `amazon`. Each subsection takes the same keys, listed below.
 
 ##### cdl-quality
 
@@ -928,6 +988,66 @@ cdl_adn_monitor_series_id:
     "442": {}
 ```
 
+### <a id="cdl_disney_monitor_series_id"></a>cdl_disney_monitor_series_id
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `{}` | object | Disney (CardinalDL) series IDs to monitor. Used when [`CDL_DISNEY_ENABLED`](#CDL_DISNEY_ENABLED) is `true`. |
+
+JSON:
+```json
+{
+    "cdl_disney_monitor_series_id": {
+        "<series id>": {}
+    }
+}
+```
+YAML:
+```yaml
+cdl_disney_monitor_series_id:
+    "<series id>": {}
+```
+
+### <a id="cdl_netflix_monitor_series_id"></a>cdl_netflix_monitor_series_id
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `{}` | object | Netflix (CardinalDL) series IDs to monitor. Used when [`CDL_NETFLIX_ENABLED`](#CDL_NETFLIX_ENABLED) is `true`. |
+
+JSON:
+```json
+{
+    "cdl_netflix_monitor_series_id": {
+        "<series id>": {}
+    }
+}
+```
+YAML:
+```yaml
+cdl_netflix_monitor_series_id:
+    "<series id>": {}
+```
+
+### <a id="cdl_amazon_monitor_series_id"></a>cdl_amazon_monitor_series_id
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `{}` | object | Amazon (CardinalDL) series IDs to monitor. Used when [`CDL_AMAZON_ENABLED`](#CDL_AMAZON_ENABLED) is `true`. |
+
+JSON:
+```json
+{
+    "cdl_amazon_monitor_series_id": {
+        "<series id>": {}
+    }
+}
+```
+YAML:
+```yaml
+cdl_amazon_monitor_series_id:
+    "<series id>": {}
+```
+
 ---
 
 ## Destinations and file layout
@@ -946,7 +1066,7 @@ Each entry has two keys:
 - `folder_structure`: the layout for series, seasons, and episodes under `dir`.  
  See [Options for `folder_structure`](#options-for-folder_structure) for the variables you can use.
 
-Valid keys are: `crunchyroll`, `hidive`, `adn`, `cdl-crunchyroll`, `cdl-hidive`, `cdl-adn`.
+Valid keys are: `crunchyroll`, `hidive`, `adn`, `cdl-crunchyroll`, `cdl-hidive`, `cdl-adn`, `cdl-disney`, `cdl-netflix`, `cdl-amazon`.
 
 JSON:
 ```json
@@ -974,6 +1094,18 @@ JSON:
     "cdl-adn": {
         "dir": "/data/Anime",
         "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    },
+    "cdl-disney": {
+        "dir": "/data/Anime",
+        "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    },
+    "cdl-netflix": {
+        "dir": "/data/Anime",
+        "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    },
+    "cdl-amazon": {
+        "dir": "/data/Anime",
+        "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
     }
 }
 ```
@@ -999,6 +1131,15 @@ destinations:
     cdl-adn:
         dir: "/data/Anime"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    cdl-disney:
+        dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    cdl-netflix:
+        dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    cdl-amazon:
+        dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
 ```
 
 You only need entries for services you enable. You can drop the rest.
@@ -1013,8 +1154,8 @@ You only need entries for services you enable. You can drop the rest.
 | `${episode}`       | `1`                          | Episode number, no leading zeros. |
 | `${episodePadded}` | `01`                         | Episode number padded to two digits. |
 | `${episodeName}`   | `The Man Who Became a Kaiju` | Sanitized episode title. |
-| `${serviceLong}`   | `Crunchyroll`                | Long, human-readable name of the source service. Values: `Crunchyroll`, `HiDive`, `ADN`. Same for the AniDL and CardinalDL variants of a service. |
-| `${serviceShort}`  | `CR`                         | Short code for the source service. Values: `CR` (Crunchyroll), `HD` (HiDive), `ADN` (ADN). |
+| `${serviceLong}`   | `Crunchyroll`                | Long, human-readable name of the source service. Values: `Crunchyroll`, `HiDive`, `ADN`, `Disney`, `Netflix`, `Amazon`. Same for the AniDL and CardinalDL variants of a service. Disney, Netflix and Amazon are CardinalDL-only. |
+| `${serviceShort}`  | `CR`                         | Short code for the source service. Values: `CR` (Crunchyroll), `HD` (HiDive), `ADN` (ADN), `DSNP` (Disney), `NF` (Netflix), `AMZN` (Amazon). Disney, Netflix and Amazon are CardinalDL-only. |
 
 Example of `folder_structure` using the variables above:
 ```txt
