@@ -11,7 +11,7 @@
 # Where:
 #   downloader  -> "mdnx" or "cardinaldl"
 #   service     -> mdnx: crunchyroll | hidive | adn
-#                  cardinaldl : crunchyroll | hidive | adn
+#                  cardinaldl : crunchyroll | hidive | adn | disney | netflix | amazon
 #   series_id   -> the series id the parser already returns
 #   season_key  -> "S<n>" using the service's season number (NOT the post-renumber S1/S2/S3 the parser may map to).
 #   entry       -> for MDNX:  a number ("7") or a range ("3-5")
@@ -94,3 +94,6 @@ cardinaldl:
 
   hidive: {}
   adn: {}
+  disney: {}
+  netflix: {}
+  amazon: {}

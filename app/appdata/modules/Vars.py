@@ -113,6 +113,9 @@ def output_effective_config(config: Config, max_chunk: int = 8000):
         "cdl_cr_monitor_series_id",
         "cdl_hidive_monitor_series_id",
         "cdl_adn_monitor_series_id",
+        "cdl_disney_monitor_series_id",
+        "cdl_netflix_monitor_series_id",
+        "cdl_amazon_monitor_series_id",
         "mdnx",
         "cardinaldl"
     }
@@ -242,6 +245,42 @@ SERVICES = Services(
             monitor_series_id=config.cdl_adn_monitor_series_id,
             monitor_config_key="cdl_adn_monitor_series_id",
             enabled=config.app.cdl_adn_enabled
+        ),
+        disney=Service(
+            service_name="cdl-disney",
+            queue_bucket="CDL-Disney",
+            display_name="CardinalDL Disney",
+            service_long="Disney",
+            service_short="DSNP",
+            tool="cardinaldl",
+            config=config.cardinaldl.disney,
+            monitor_series_id=config.cdl_disney_monitor_series_id,
+            monitor_config_key="cdl_disney_monitor_series_id",
+            enabled=config.app.cdl_disney_enabled
+        ),
+        netflix=Service(
+            service_name="cdl-netflix",
+            queue_bucket="CDL-Netflix",
+            display_name="CardinalDL Netflix",
+            service_long="Netflix",
+            service_short="NF",
+            tool="cardinaldl",
+            config=config.cardinaldl.netflix,
+            monitor_series_id=config.cdl_netflix_monitor_series_id,
+            monitor_config_key="cdl_netflix_monitor_series_id",
+            enabled=config.app.cdl_netflix_enabled
+        ),
+        amazon=Service(
+            service_name="cdl-amazon",
+            queue_bucket="CDL-Amazon",
+            display_name="CardinalDL Amazon",
+            service_long="Amazon",
+            service_short="AMZN",
+            tool="cardinaldl",
+            config=config.cardinaldl.amazon,
+            monitor_series_id=config.cdl_amazon_monitor_series_id,
+            monitor_config_key="cdl_amazon_monitor_series_id",
+            enabled=config.app.cdl_amazon_enabled
         )
     )
 )
@@ -514,7 +553,10 @@ def validate_destinations() -> None:
         "adn": config.app.adn_enabled,
         "cdl-crunchyroll": config.app.cdl_cr_enabled,
         "cdl-hidive": config.app.cdl_hidive_enabled,
-        "cdl-adn": config.app.cdl_adn_enabled
+        "cdl-adn": config.app.cdl_adn_enabled,
+        "cdl-disney": config.app.cdl_disney_enabled,
+        "cdl-netflix": config.app.cdl_netflix_enabled,
+        "cdl-amazon": config.app.cdl_amazon_enabled
     }
 
     missing_destinations = []

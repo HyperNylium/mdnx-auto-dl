@@ -30,6 +30,9 @@ body:
         - crunchyroll
         - hidive
         - adn
+        - disney
+        - netflix
+        - amazon
     validations:
       required: true
 

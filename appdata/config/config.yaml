@@ -4,6 +4,9 @@ adn_monitor_series_id: {}
 cdl_cr_monitor_series_id: {}
 cdl_hidive_monitor_series_id: {}
 cdl_adn_monitor_series_id: {}
+cdl_disney_monitor_series_id: {}
+cdl_netflix_monitor_series_id: {}
+cdl_amazon_monitor_series_id: {}
 
 destinations:
     crunchyroll:
@@ -23,6 +26,15 @@ destinations:
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
     cdl-adn:
         dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    cdl-disney:
+        dir: "/data/TV Shows"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    cdl-netflix:
+        dir: "/data/TV Shows"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    cdl-amazon:
+        dir: "/data/TV Shows"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
 
 app:
@@ -77,6 +89,33 @@ cardinaldl:
             - "EN"
 
     adn:
+        quality: "1080p@avc"
+        qualityfallback: true
+        dubLang:
+            - "JP"
+            - "EN"
+        dlsubs:
+            - "EN"
+
+    disney:
+        quality: "1080p@avc"
+        qualityfallback: true
+        dubLang:
+            - "JP"
+            - "EN"
+        dlsubs:
+            - "EN"
+
+    netflix:
+        quality: "1080p@avc"
+        qualityfallback: true
+        dubLang:
+            - "JP"
+            - "EN"
+        dlsubs:
+            - "EN"
+
+    amazon:
         quality: "1080p@avc"
         qualityfallback: true
         dubLang:

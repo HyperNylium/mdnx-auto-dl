@@ -93,6 +93,9 @@ class CdlRemoteSpecials(ServiceSpecials):
     crunchyroll: CdlSeriesMap = Field(default_factory=dict)
     hidive: CdlSeriesMap = Field(default_factory=dict)
     adn: CdlSeriesMap = Field(default_factory=dict)
+    disney: CdlSeriesMap = Field(default_factory=dict)
+    netflix: CdlSeriesMap = Field(default_factory=dict)
+    amazon: CdlSeriesMap = Field(default_factory=dict)
 
 
 class RemoteSpecialsConfig(BaseModel):

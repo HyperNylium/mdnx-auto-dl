@@ -75,6 +75,9 @@ class CdlServices(BaseModel):
     crunchyroll: Service
     hidive: Service
     adn: Service
+    disney: Service
+    netflix: Service
+    amazon: Service
 
     def all(self) -> list[Service]:
         """Return every CardinalDL service as a flat list for iteration."""
@@ -82,7 +85,10 @@ class CdlServices(BaseModel):
         return [
             self.crunchyroll,
             self.hidive,
-            self.adn
+            self.adn,
+            self.disney,
+            self.netflix,
+            self.amazon
         ]
 
 

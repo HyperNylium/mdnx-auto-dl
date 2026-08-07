@@ -175,6 +175,9 @@ class RemoteSpecials:
         total += self._ingest_service("cardinaldl", "crunchyroll", specials.cardinaldl.crunchyroll, self._classify_cdl_entry)
         total += self._ingest_service("cardinaldl", "hidive", specials.cardinaldl.hidive, self._classify_cdl_entry)
         total += self._ingest_service("cardinaldl", "adn", specials.cardinaldl.adn, self._classify_cdl_entry)
+        total += self._ingest_service("cardinaldl", "disney", specials.cardinaldl.disney, self._classify_cdl_entry)
+        total += self._ingest_service("cardinaldl", "netflix", specials.cardinaldl.netflix, self._classify_cdl_entry)
+        total += self._ingest_service("cardinaldl", "amazon", specials.cardinaldl.amazon, self._classify_cdl_entry)
 
         log_manager.info(f"Loaded {total} entries across {len(self.overrides)} season slots.")
 

@@ -238,6 +238,21 @@ def app():
                 from appdata.modules.API.CardinalDL.adn import ADN_CDL_API
                 cdl_service.api = ADN_CDL_API()
 
+            case "cdl-disney":
+                log_manager.info("Starting DISNEY_CDL_API...")
+                from appdata.modules.API.CardinalDL.disney import DISNEY_CDL_API
+                cdl_service.api = DISNEY_CDL_API()
+
+            case "cdl-netflix":
+                log_manager.info("Starting NETFLIX_CDL_API...")
+                from appdata.modules.API.CardinalDL.netflix import NETFLIX_CDL_API
+                cdl_service.api = NETFLIX_CDL_API()
+
+            case "cdl-amazon":
+                log_manager.info("Starting AMAZON_CDL_API...")
+                from appdata.modules.API.CardinalDL.amazon import AMAZON_CDL_API
+                cdl_service.api = AMAZON_CDL_API()
+
     mainloop = MainLoop(notifiers=notifiers)
 
     def shutdown(signum, frame):

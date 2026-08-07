@@ -30,6 +30,9 @@ class AppConfig(BaseModel):
     cdl_cr_enabled: bool = Field(False, alias="CDL_CR_ENABLED")
     cdl_hidive_enabled: bool = Field(False, alias="CDL_HIDIVE_ENABLED")
     cdl_adn_enabled: bool = Field(False, alias="CDL_ADN_ENABLED")
+    cdl_disney_enabled: bool = Field(False, alias="CDL_DISNEY_ENABLED")
+    cdl_netflix_enabled: bool = Field(False, alias="CDL_NETFLIX_ENABLED")
+    cdl_amazon_enabled: bool = Field(False, alias="CDL_AMAZON_ENABLED")
 
     backup_dubs: list[str] = Field(["zho"], alias="BACKUP_DUBS")
 
@@ -150,6 +153,9 @@ class CdlConfig(BaseModel):
     crunchyroll: CdlServiceConfig = Field(default_factory=CdlServiceConfig)
     hidive: CdlServiceConfig = Field(default_factory=CdlServiceConfig)
     adn: CdlServiceConfig = Field(default_factory=CdlServiceConfig)
+    disney: CdlServiceConfig = Field(default_factory=CdlServiceConfig)
+    netflix: CdlServiceConfig = Field(default_factory=CdlServiceConfig)
+    amazon: CdlServiceConfig = Field(default_factory=CdlServiceConfig)
 
 
 class Config(BaseModel):
@@ -162,6 +168,9 @@ class Config(BaseModel):
     cdl_cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
     cdl_hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
     cdl_adn_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    cdl_disney_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    cdl_netflix_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    cdl_amazon_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
 
     destinations: dict[str, DestinationConfig] = Field(default_factory=dict)
 
