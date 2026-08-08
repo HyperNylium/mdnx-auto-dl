@@ -38,8 +38,10 @@ appdata/mdnx/playready/*
 appdata/mdnx/aniDL
 
 # cardinaldl config which includes GUI settings, service auth, default dubs/subs, etc.
-appdata/cardinaldl/config/*
-!appdata/cardinaldl/config/.gitkeep
+appdata/cardinaldl/config/logs/*
+!appdata/cardinaldl/config/logs/.gitkeep
+appdata/cardinaldl/config/storage/*
+!appdata/cardinaldl/config/storage/.gitkeep
 
 # cardinaldl binary
 appdata/cardinaldl/cardinaldl
