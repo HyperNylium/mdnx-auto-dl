@@ -262,7 +262,7 @@ class DISNEY_CDL_API:
         item_info = parsed_payload.get("item") or {}
         seasons_list = parsed_payload.get("seasons") or []
 
-        series_id = str(item_info.get("id") or "").strip()
+        series_id = str(item_info.get("id") or "").strip().removeprefix("entity-")
         if series_id == "":
             log_manager.warning("CardinalDL JSON payload did not include a series id.")
             return {}
