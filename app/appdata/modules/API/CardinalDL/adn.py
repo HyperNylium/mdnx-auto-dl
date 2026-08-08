@@ -44,12 +44,19 @@ class ADN_CDL_API:
 
         log_manager.debug(f"Monitoring series with ID: {series_id}")
 
+        if os.path.isfile(self.json_path):
+            os.remove(self.json_path)
+
         tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--full", "--workers", "1", "--jsonOutput", self.json_path, "--configPath", self.service_config.configPath]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8", cwd=self.cdl_working_dir)
         log_manager.debug(f"Console output for start_monitor process:\n{result.stdout}")
 
         if result.stderr:
             log_manager.warning(f"Console output for start_monitor process (stderr):\n{result.stderr}")
+
+        if result.returncode != 0:
+            log_manager.error(f"CardinalDL listing failed for {series_id} with exit code {result.returncode}.")
+            return result.stdout
 
         if not os.path.isfile(self.json_path):
             log_manager.warning(f"CardinalDL json payload not found at {self.json_path}.")
@@ -62,7 +69,7 @@ class ADN_CDL_API:
             log_manager.warning(f"Failed to read CardinalDL json payload at {self.json_path}: {exc}")
             return result.stdout
 
-        self._process_json_payload(parsed_payload)
+        self._process_json_payload(parsed_payload, requested_series_id=series_id)
 
         log_manager.debug(f"Monitoring for series with ID: {series_id} complete.")
         return result.stdout
@@ -79,12 +86,19 @@ class ADN_CDL_API:
 
         log_manager.debug(f"Updating monitor for series with ID: {series_id}")
 
+        if os.path.isfile(self.json_path):
+            os.remove(self.json_path)
+
         tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--full", "--workers", "1", "--jsonOutput", self.json_path, "--configPath", self.service_config.configPath]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8", cwd=self.cdl_working_dir)
         log_manager.debug(f"Console output for update_monitor process:\n{result.stdout}")
 
         if result.stderr:
             log_manager.warning(f"Console output for update_monitor process (stderr):\n{result.stderr}")
+
+        if result.returncode != 0:
+            log_manager.error(f"CardinalDL listing failed for {series_id} with exit code {result.returncode}.")
+            return result.stdout
 
         if not os.path.isfile(self.json_path):
             log_manager.warning(f"CardinalDL json payload not found at {self.json_path}.")
@@ -97,7 +111,7 @@ class ADN_CDL_API:
             log_manager.warning(f"Failed to read CardinalDL json payload at {self.json_path}: {exc}")
             return result.stdout
 
-        self._process_json_payload(parsed_payload)
+        self._process_json_payload(parsed_payload, requested_series_id=series_id)
 
         log_manager.debug(f"Updating monitor for series with ID: {series_id} complete.")
         return result.stdout
@@ -254,7 +268,7 @@ class ADN_CDL_API:
 
             result["returncode"] = returncode
 
-    def _process_json_payload(self, parsed_payload: dict, add2queue: bool = True):
+    def _process_json_payload(self, parsed_payload: dict, add2queue: bool = True, requested_series_id: str | None = None):
         """Convert the structured JSON payload from --jsonOutput to queue db format."""
 
         log_manager.debug("Processing CardinalDL JSON payload...")
@@ -265,6 +279,11 @@ class ADN_CDL_API:
         series_id = str(item_info.get("id") or "").strip()
         if series_id == "":
             log_manager.warning("CardinalDL JSON payload did not include a series id.")
+            return {}
+
+        # if the caller requested a specific series id, skip any payload that doesnt match that id.
+        if requested_series_id is not None and series_id != requested_series_id:
+            log_manager.warning(f"CardinalDL returned series id '{series_id}' but '{requested_series_id}' was requested. Skipping this payload.")
             return {}
 
         series_title = sanitize(str(item_info.get("title") or "Unknown Series"))
