@@ -44,10 +44,14 @@ LANG_MAP: dict[str, tuple[str, str | None]] = {
 
     "Chinese (Mandarin, PRC)": ("CN", "zho"),
     "Chinese (Mainland China)": ("CN", None),
+    "Chinese": ("CN", None),
     "Chinese (Taiwan)": ("TW", None),
-    "Chinese (Hong-Kong)": ("HK", None),
-    "Chinese (Simplified)": ("CN", None),
     "Chinese (Traditional)": ("TW", None),
+    "TraditionalChinese": ("TW", None),
+    "Chinese (Hong-Kong)": ("HK", None),
+    "Cantonese": ("HK", None),
+    "Chinese (Simplified)": ("CN", None),
+    "SimplifiedChinese": ("CN", None),
 
     "Korean": ("KO", "kor"),
     "Catalan": ("CA", "cat"),
@@ -66,6 +70,7 @@ LANG_MAP: dict[str, tuple[str, str | None]] = {
     "Swedish": ("SV", "swe"),
     "Finnish": ("FI", "fin"),
     "Norwegian": ("NO", "nor"),
+    "Danish": ("DA", "dan"),
     "Greek": ("EL", "ell"),
     "Hebrew": ("HE", "heb"),
     "Ukrainian": ("UK", "ukr"),
@@ -88,7 +93,10 @@ LANG_MAP: dict[str, tuple[str, str | None]] = {
     "Macedonian": ("MK", "mkd"),
     "Croatian": ("HR", "hrv"),
     "Slovenian": ("SL", "slv"),
-    "Bulgarian": ("BG", "bul")
+    "Bulgarian": ("BG", "bul"),
+    "Latvian": ("LV", "lav"),
+    "Lithuanian": ("LT", "lit"),
+    "Estonian": ("ET", "est")
 }
 
 
