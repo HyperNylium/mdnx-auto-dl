@@ -105,6 +105,7 @@ class MdnxBinPath(BaseModel):
     ffprobe: str = "ffprobe"
     mkvmerge: str = "mkvmerge"
     mp4decrypt: str = "/app/appdata/bin/bento4/mp4decrypt"
+    shaka: str = "/app/appdata/bin/shaka_packager/shaka"
 
 
 class MdnxCliDefaults(BaseModel):

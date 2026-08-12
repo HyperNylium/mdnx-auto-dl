@@ -45,10 +45,16 @@ def app():
             mdnx_playready_valid = validate_cdm(MDNX_SERVICE_PLAYREADY_PATH, "PlayReady", required=False)
 
             if mdnx_widevine_valid:
-                log_manager.info("Widevine CDM is properly configured. multi-downloader-nx will utilize mp4decrypt with a widevine CDM for decryption.")
+                if config.mdnx.bin_path.shaka:
+                    log_manager.info("Widevine CDM is properly configured. multi-downloader-nx will utilize shaka-packager with a widevine CDM for decryption.")
+                elif config.mdnx.bin_path.mp4decrypt:
+                    log_manager.info("Widevine CDM is properly configured. multi-downloader-nx will utilize mp4decrypt with a widevine CDM for decryption.")
 
             if mdnx_playready_valid:
-                log_manager.info("PlayReady CDM is properly configured. multi-downloader-nx will utilize mp4decrypt with a playready CDM for decryption.")
+                if config.mdnx.bin_path.shaka:
+                    log_manager.info("PlayReady CDM is properly configured. multi-downloader-nx will utilize shaka-packager with a playready CDM for decryption.")
+                elif config.mdnx.bin_path.mp4decrypt:
+                    log_manager.info("PlayReady CDM is properly configured. multi-downloader-nx will utilize mp4decrypt with a playready CDM for decryption.")
 
             if not mdnx_widevine_valid and not mdnx_playready_valid:
                 log_manager.critical("No valid CDMs found for multi-downloader-nx. Downloading will not work without resolving this issue.\nPlease ensure you have either a Widevine or PlayReady CDM mounted to the correct path.")
