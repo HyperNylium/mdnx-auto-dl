@@ -359,11 +359,15 @@ class MainLoop:
             episode_basename = os.path.basename(file_path)
 
             if episode.episode_skip:
-                log_manager.info(f"[{service_label}] {episode_basename} is blacklisted (episode_skip=True). Skipping download.")
+                if not self.dry_run:
+                    log_manager.info(f"[{service_label}] {episode_basename} is blacklisted (episode_skip=True). Skipping download.")
                 continue
 
             if episode.episode_downloaded:
-                log_manager.info(f"[{service_label}] {episode_basename} is marked as already downloaded (episode_downloaded=True). Skipping download.")
+                if self.dry_run:
+                    log_manager.info(f"[{service_label}] DRY_RUN is True. Would have skipped {episode_basename} because it is already marked as downloaded (episode_downloaded=True).\nThe file should already be at {file_path}.")
+                else:
+                    log_manager.info(f"[{service_label}] {episode_basename} is marked as already downloaded (episode_downloaded=True). Skipping download.")
                 continue
 
             log_manager.info(f"[{service_label}] Checking for {episode_basename} at {file_path}.")
@@ -373,11 +377,8 @@ class MainLoop:
                 queue_manager.update_episode_status(series_id, season_key, episode_key, True, service)
                 continue
 
-            if self.dry_run:
-                log_manager.info(f"[{service_label}] DRY_RUN is True. Would have downloaded episode for {series_id} season {season_key} episode {episode_key} that would have been stored at {file_path}.\nSkipping actual download.")
-                continue
-
-            log_manager.info(f"[{service_label}] Episode not found at {file_path} and 'episode_downloaded' status is False. Initiating download.")
+            if not self.dry_run:
+                log_manager.info(f"[{service_label}] Episode not found at {file_path} and 'episode_downloaded' status is False. Initiating download.")
 
             season_monitor = get_season_monitor_config(service, series_id, season.season_id)
 
@@ -390,12 +391,18 @@ class MainLoop:
             dub_override = select_dubs(service, episode, dub_overrides)
             sub_override = select_subs(service, episode, sub_overrides)
 
+            if self.dry_run and dub_override is not False:
+                log_manager.info(f"[{service_label}] DRY_RUN is True. Would have downloaded {season_key}{episode_key} '{episode.episode_name}'.\nNaming it: {episode_basename}\nStoring it at: {file_path}")
+
             dl_start = time.perf_counter()
             download_successful = mdnx_api.download_episode(
                 series_id, season.season_id, episode.episode_number_download, dub_override, sub_override
             )
             dl_end = time.perf_counter()
             dl_elapsed = dl_end - dl_start
+
+            if self.dry_run:
+                continue
 
             if download_successful:
                 temp_path = os.path.join(TEMP_DIR, "output.mkv")
@@ -451,11 +458,15 @@ class MainLoop:
             episode_basename = os.path.basename(file_path)
 
             if episode.episode_skip:
-                log_manager.info(f"[{service_label}] {episode_basename} is blacklisted (episode_skip=True). Skipping dub/sub check for this episode.")
+                if not self.dry_run:
+                    log_manager.info(f"[{service_label}] {episode_basename} is blacklisted (episode_skip=True). Skipping dub/sub check for this episode.")
                 continue
 
             if episode.has_all_dubs_subs and season_has_track_overrides is False:
-                log_manager.info(f"[{service_label}] {episode_basename} already marked as having all requested dubs/subs (has_all_dubs_subs=True). Skipping dub/sub check for this episode.")
+                if self.dry_run:
+                    log_manager.info(f"[{service_label}] DRY_RUN is True. Would have skipped the dub/sub check on {episode_basename} because it is already marked as having every requested dub/sub (has_all_dubs_subs=True).")
+                else:
+                    log_manager.info(f"[{service_label}] {episode_basename} already marked as having all requested dubs/subs (has_all_dubs_subs=True). Skipping dub/sub check for this episode.")
                 continue
 
             if not os.path.exists(file_path):
@@ -513,18 +524,14 @@ class MainLoop:
                 f"downloading={','.join(effective_missing_subs) or 'None'}\n"
             )
 
-            if self.dry_run:
-                log_manager.info(f"[{service_label}] DRY_RUN is True. Would have re-downloaded episode for {episode_basename} to acquire missing tracks: dubs={','.join(effective_missing_dubs) or 'None'}, subs={','.join(effective_missing_subs) or 'None'}.\nSkipping actual download.")
-                continue
-
             if skip_download:
                 log_manager.info(f"[{service_label}] Skipping re-download for {episode_basename}: requested tracks are missing locally but not offered yet.")
                 continue
 
-            if effective_missing_dubs:
+            if effective_missing_dubs and not self.dry_run:
                 log_manager.info(f"[{service_label}] Missing dubs detected for {episode_basename}: {', '.join(effective_missing_dubs)}. Re-downloading episode to acquire missing dubs.")
 
-            if effective_missing_subs:
+            if effective_missing_subs and not self.dry_run:
                 log_manager.info(f"[{service_label}] Missing subs detected for {episode_basename}: {', '.join(effective_missing_subs)}. Re-downloading episode to acquire missing subs.")
 
             dub_overrides = None
@@ -536,12 +543,18 @@ class MainLoop:
             dub_override = select_dubs(service, episode, dub_overrides)
             sub_override = select_subs(service, episode, sub_overrides)
 
+            if self.dry_run and dub_override is not False:
+                log_manager.info(f"[{service_label}] DRY_RUN is True. Would have re-downloaded {episode_basename} to pick up missing dubs={','.join(effective_missing_dubs) or 'None'} and subs={','.join(effective_missing_subs) or 'None'}.\nOverwriting the file at {file_path}.")
+
             dl_start = time.perf_counter()
             download_successful = mdnx_api.download_episode(
                 series_id, season.season_id, episode.episode_number_download, dub_override, sub_override
             )
             dl_end = time.perf_counter()
             dl_elapsed = dl_end - dl_start
+
+            if self.dry_run:
+                continue
 
             if download_successful:
                 temp_path = os.path.join(TEMP_DIR, "output.mkv")

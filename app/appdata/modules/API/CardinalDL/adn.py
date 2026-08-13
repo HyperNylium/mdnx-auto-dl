@@ -197,6 +197,11 @@ class ADN_CDL_API:
         else:
             cmd = tmp_cmd
 
+        # dry run stops here so we can show the command without running it
+        if config.app.dry_run:
+            log_manager.info(f"DRY_RUN is True. Would have run: {' '.join(cmd)}")
+            return False
+
         with self.download_lock:
             if self.download_thread and self.download_thread.is_alive():
                 log_manager.error("A download is already in progress. refusing to start a second one.")
