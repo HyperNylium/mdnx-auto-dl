@@ -110,6 +110,13 @@ def load_queue(conn: sqlite3.Connection) -> Queue:
     return Queue(buckets=buckets)
 
 
+def checkpoint_wal(conn: sqlite3.Connection) -> None:
+    """Move everything sitting in the WAL file back into the main db file."""
+
+    with _write_lock:
+        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+
+
 def clear_queue(conn: sqlite3.Connection) -> None:
     """Delete all rows from all tables."""
 

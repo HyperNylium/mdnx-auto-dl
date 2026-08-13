@@ -43,6 +43,9 @@ class MainLoop:
                 else:
                     self._refresh_queue()
 
+                # push anything this iteration wrote out of the WAL file and into queue.db
+                queue_manager.checkpoint()
+
                 if self.only_create_queue == True:
                     log_manager.info("ONLY_CREATE_QUEUE is True. Exiting after queue creation.\nIf docker-compose.yaml has 'restart: always/unless-stopped', please change it to 'restart: no' to prevent restart loop.")
                     self.stop()
@@ -74,6 +77,9 @@ class MainLoop:
                 if self.notifications_buffer:
                     log_manager.info("Flushing notifications buffer.")
                     self._flush_notifications()
+
+                # push anything this iteration wrote out of the WAL file and into queue.db
+                queue_manager.checkpoint()
 
                 # wait for self.loop_timeout seconds or exit early if stop is requested.
                 log_manager.info(f"MainLoop iteration completed. Next iteration in {format_duration(self.loop_timeout)} ({(datetime.now(ZoneInfo(TZ)) + timedelta(seconds=self.loop_timeout)).strftime('%I:%M:%S %p')}).")
