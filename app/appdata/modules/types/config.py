@@ -137,7 +137,7 @@ class MdnxConfig(BaseModel):
 class CdlServiceConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
-    quality: str = "1080p@avc"
+    quality: str = Field("1080p@avc", pattern=r"^(\d{3,4}p?(@(avc|hvc|dvh|vp9|av1|hybrid))?)?$")
     qualityfallback: bool = True
     dubLang: list[str] = ["JP", "EN"]
     dlsubs: list[str] = ["EN"]
