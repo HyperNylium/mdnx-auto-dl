@@ -672,7 +672,7 @@ The `cardinaldl` section in the config file has one subsection per CardinalDL se
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `1080p@avc` | string | Quality string passed to the `cardinaldl` binary (as `--quality`). The format is `"{resolution}@{codec}"`. Examples: `1080p@avc`, `720p@avc`, `1080p@hvc`, `720p@hvc`, `1080p@dvh`, `720p@dvh`. The available qualities depend on the service. |
+| `1080p@avc` | string | Quality passed to the `cardinaldl` binary (as `--quality`). The format is `"{resolution}@{codec}"`. The codec has to be one of `avc`, `hvc`, `dvh`, `vp9`, `av1`, or `hybrid`, in lowercase. Examples: `1080p@avc`, `720p@hvc`, `1080p@dvh`, `1080p@vp9`, `1080@av1`, `2160p@hybrid`, or a plain `1080p`. Set it to `""` to let `cardinaldl` pick. The value is checked when your config loads, so anything outside this format stops the app on startup. Which qualities are actually available depends on the service. |
 
 JSON:
 ```json
@@ -759,7 +759,7 @@ cardinaldl:
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `""` | string | Force subtitles into a specific format. Allowed values: `""` (leave the format as-is), `srt`, `ass`, `vtt`, `auto`, or `raw`. When set, it is passed to `cardinaldl` as `--forceSubFormat`. |
+| `""` | string | Force subtitles into a specific format. Allowed values: `""` (leave the format as-is), `srt`, `ass`, `vtt`, `auto`, `raw`, or `original`. When set, it is passed to `cardinaldl` as `--forceSubFormat`. |
 
 JSON:
 ```json

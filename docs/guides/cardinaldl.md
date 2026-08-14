@@ -66,7 +66,7 @@ cardinaldl:
 - [`qualityfallback`](../config-options.md#cdl-qualityfallback): when `true`, fall back to the next-best quality if the requested one is missing.
 - [`dubLang`](../config-options.md#cdl-dublang): dub language codes you want, using CardinalDL's own two-letter codes (`JP`, `EN`, `DE`, `FR`, `ES`, ...).
 - [`dlsubs`](../config-options.md#cdl-dlsubs): subtitle language codes, same code format as `dubLang`.
-- [`forceSubFormat`](../config-options.md#cdl-forcesubformat): force subtitles into `srt`, `ass`, `vtt`, `auto`, or `raw`. Leave `""` to keep the source format.
+- [`forceSubFormat`](../config-options.md#cdl-forcesubformat): force subtitles into `srt`, `ass`, `vtt`, `auto`, `raw`, or `original`. Leave `""` to keep the source format.
 - [`backup_dubs`](../config-options.md#cdl-backup_dubs): dubs to fall back to if none of your `dubLang` are available.
 
 ---
