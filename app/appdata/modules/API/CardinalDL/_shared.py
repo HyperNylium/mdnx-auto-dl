@@ -132,7 +132,7 @@ def check_cdl_signed_in(storage_path: str) -> tuple[bool, str]:
         connection = sqlite3.connect(storage_path)
         try:
             rows = connection.execute(
-                "SELECT key, value FROM kv_store WHERE key IN ('account', 'accountDeviceId', 'accountDeviceProofKeyV1')"
+                "SELECT key, value FROM kv_store WHERE key IN ('account', 'accountDeviceId', 'accountDeviceProofKeyV2')"
             ).fetchall()
         finally:
             connection.close()
@@ -144,13 +144,13 @@ def check_cdl_signed_in(storage_path: str) -> tuple[bool, str]:
         if stored_value is not None:
             stored_values[stored_key] = stored_value
 
-    for required_key in ("account", "accountDeviceId", "accountDeviceProofKeyV1"):
+    for required_key in ("account", "accountDeviceId", "accountDeviceProofKeyV2"):
         if required_key not in stored_values:
             return (False, f"You are not signed into CardinalDL. The storage database at {storage_path} has no '{required_key}'.\nPlease sign in with the CardinalDL GUI, or run:\n./cardinaldl --login --username 'your_provided_CDL_username' --password 'your_provided_CDL_password' --configPath '/path/to/storage.db'")
 
     # the CLI stores every value as JSON so the device key should come back as an object
     try:
-        device_key = json.loads(stored_values["accountDeviceProofKeyV1"])
+        device_key = json.loads(stored_values["accountDeviceProofKeyV2"])
     except ValueError as parse_error:
         return (False, f"Could not read the CardinalDL device key in {storage_path}: {parse_error}\nPlease sign in again so it gets rebuilt.")
 
