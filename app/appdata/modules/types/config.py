@@ -27,9 +27,12 @@ class AppConfig(BaseModel):
     adn_username: str = Field("", alias="ADN_USERNAME")
     adn_password: str = Field("", alias="ADN_PASSWORD")
 
-    zlo_cr_enabled: bool = Field(False, alias="ZLO_CR_ENABLED")
-    zlo_hidive_enabled: bool = Field(False, alias="ZLO_HIDIVE_ENABLED")
-    zlo_adn_enabled: bool = Field(False, alias="ZLO_ADN_ENABLED")
+    cdl_cr_enabled: bool = Field(False, alias="CDL_CR_ENABLED")
+    cdl_hidive_enabled: bool = Field(False, alias="CDL_HIDIVE_ENABLED")
+    cdl_adn_enabled: bool = Field(False, alias="CDL_ADN_ENABLED")
+    cdl_disney_enabled: bool = Field(False, alias="CDL_DISNEY_ENABLED")
+    cdl_netflix_enabled: bool = Field(False, alias="CDL_NETFLIX_ENABLED")
+    cdl_amazon_enabled: bool = Field(False, alias="CDL_AMAZON_ENABLED")
 
     backup_dubs: list[str] = Field(["zho"], alias="BACKUP_DUBS")
 
@@ -102,6 +105,7 @@ class MdnxBinPath(BaseModel):
     ffprobe: str = "ffprobe"
     mkvmerge: str = "mkvmerge"
     mp4decrypt: str = "/app/appdata/bin/bento4/mp4decrypt"
+    shaka: str = "/app/appdata/bin/shaka_packager/shaka"
 
 
 class MdnxCliDefaults(BaseModel):
@@ -130,26 +134,29 @@ class MdnxConfig(BaseModel):
     dir_path: MdnxDirPath = Field(default_factory=MdnxDirPath, alias="dir-path")
 
 
-class ZloServiceConfig(BaseModel):
+class CdlServiceConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
-    quality: str = "1080p@avc"
+    quality: str = Field("1080p@avc", pattern=r"^(\d{3,4}p?(@(avc|hvc|dvh|vp9|av1|hybrid))?)?$")
     qualityfallback: bool = True
     dubLang: list[str] = ["JP", "EN"]
     dlsubs: list[str] = ["EN"]
-    forceSubFormat: str = Field("", pattern="^(srt|ass|vtt|auto|raw)?$")
+    forceSubFormat: str = Field("", pattern="^(srt|ass|vtt|auto|raw|original)?$")
     backup_dubs: list[str] = Field(default_factory=list)
     dlpath: str = "/app/appdata/temp"
     tempPath: str = "/tmp"
-    configPath: str = "/app/appdata/bin/zlo/config/storage/storage.db"
+    configPath: str = "/app/appdata/bin/cardinaldl/config/storage/storage.db"
 
 
-class ZloConfig(BaseModel):
+class CdlConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    crunchyroll: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
-    hidive: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
-    adn: ZloServiceConfig = Field(default_factory=ZloServiceConfig)
+    crunchyroll: CdlServiceConfig = Field(default_factory=CdlServiceConfig)
+    hidive: CdlServiceConfig = Field(default_factory=CdlServiceConfig)
+    adn: CdlServiceConfig = Field(default_factory=CdlServiceConfig)
+    disney: CdlServiceConfig = Field(default_factory=CdlServiceConfig)
+    netflix: CdlServiceConfig = Field(default_factory=CdlServiceConfig)
+    amazon: CdlServiceConfig = Field(default_factory=CdlServiceConfig)
 
 
 class Config(BaseModel):
@@ -159,12 +166,15 @@ class Config(BaseModel):
     hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
     adn_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
 
-    zlo_cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    zlo_hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    zlo_adn_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    cdl_cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    cdl_hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    cdl_adn_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    cdl_disney_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    cdl_netflix_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    cdl_amazon_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
 
     destinations: dict[str, DestinationConfig] = Field(default_factory=dict)
 
     app: AppConfig = Field(default_factory=AppConfig)
     mdnx: MdnxConfig = Field(default_factory=MdnxConfig)
-    zlo: ZloConfig = Field(default_factory=ZloConfig)
+    cardinaldl: CdlConfig = Field(default_factory=CdlConfig)

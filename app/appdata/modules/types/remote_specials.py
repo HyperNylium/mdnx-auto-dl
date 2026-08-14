@@ -9,7 +9,7 @@ from pydantic import (
 # a number with no leading zeros like "7" or "13"
 NUMBER_PATTERN = r"(0|[1-9]\d*)"
 
-# tag for ZLO episode IDs in YAML like "id:G7XK4M2NA"
+# tag for CardinalDL episode IDs in YAML like "id:G7XK4M2NA"
 ID_PREFIX = "id:"
 
 # highest episode number a range may reach, so a typo cannot expand into millions of entries
@@ -27,20 +27,20 @@ Season = Annotated[str, StringConstraints(pattern=r"^S\d+$")]
 # MDNX entry, a number or a range
 MdnxEntry = Annotated[str, StringConstraints(pattern=rf"^{NUMBER_PATTERN}(-{NUMBER_PATTERN})?$")]
 
-# ZLO entry, a number, a range, or an episode id
-ZloEntry = Annotated[str, StringConstraints(pattern=rf"^({NUMBER_PATTERN}(-{NUMBER_PATTERN})?|{ID_PREFIX}.+)$")]
+# CardinalDL entry, a number, a range, or an episode id
+CdlEntry = Annotated[str, StringConstraints(pattern=rf"^({NUMBER_PATTERN}(-{NUMBER_PATTERN})?|{ID_PREFIX}.+)$")]
 
 # series_id -> season_id -> list of entry strings
 MdnxSeriesMap = dict[Series, dict[Season, list[MdnxEntry]]]
-ZloSeriesMap = dict[Series, dict[Season, list[ZloEntry]]]
+CdlSeriesMap = dict[Series, dict[Season, list[CdlEntry]]]
 
 # either downloader's series map, for code that handles both
-SeriesMap = MdnxSeriesMap | ZloSeriesMap
+SeriesMap = MdnxSeriesMap | CdlSeriesMap
 
 # (downloader, service, series_id, season_id)
 OverrideKey = tuple[str, str, str, str]
 
-# (episode numbers, ZLO episode ids)
+# (episode numbers, CardinalDL episode ids)
 OverrideBucket = tuple[set[str], set[str]]
 
 # every season slot we found overrides for
@@ -89,14 +89,17 @@ class MdnxRemoteSpecials(ServiceSpecials):
     adn: MdnxSeriesMap = Field(default_factory=dict)
 
 
-class ZloRemoteSpecials(ServiceSpecials):
-    crunchyroll: ZloSeriesMap = Field(default_factory=dict)
-    hidive: ZloSeriesMap = Field(default_factory=dict)
-    adn: ZloSeriesMap = Field(default_factory=dict)
+class CdlRemoteSpecials(ServiceSpecials):
+    crunchyroll: CdlSeriesMap = Field(default_factory=dict)
+    hidive: CdlSeriesMap = Field(default_factory=dict)
+    adn: CdlSeriesMap = Field(default_factory=dict)
+    disney: CdlSeriesMap = Field(default_factory=dict)
+    netflix: CdlSeriesMap = Field(default_factory=dict)
+    amazon: CdlSeriesMap = Field(default_factory=dict)
 
 
 class RemoteSpecialsConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     mdnx: MdnxRemoteSpecials = Field(default_factory=MdnxRemoteSpecials)
-    zlo: ZloRemoteSpecials = Field(default_factory=ZloRemoteSpecials)
+    cardinaldl: CdlRemoteSpecials = Field(default_factory=CdlRemoteSpecials)

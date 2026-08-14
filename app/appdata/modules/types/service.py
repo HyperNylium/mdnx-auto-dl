@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 
-from .config import MdnxConfig, SeasonMonitorConfig, ZloServiceConfig
+from .config import MdnxConfig, SeasonMonitorConfig, CdlServiceConfig
 
 
 class Service(BaseModel):
@@ -25,13 +25,13 @@ class Service(BaseModel):
     # short service name used in file and folder names
     service_short: str
 
-    # which downloader this service uses: "mdnx" or "zlo"
+    # which downloader this service uses: "mdnx" or "cardinaldl"
     tool: str
 
     # live config object for this service.
     # MDNX services point at the shared MdnxConfig.
-    # ZLO services point at their own ZloServiceConfig slice.
-    config: MdnxConfig | ZloServiceConfig
+    # CardinalDL services point at their own CdlServiceConfig slice.
+    config: MdnxConfig | CdlServiceConfig
 
     # live monitor dict slice for this service (series_id -> season map)
     monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]]
@@ -69,20 +69,26 @@ class MdnxServices(BaseModel):
         ]
 
 
-class ZloServices(BaseModel):
+class CdlServices(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     crunchyroll: Service
     hidive: Service
     adn: Service
+    disney: Service
+    netflix: Service
+    amazon: Service
 
     def all(self) -> list[Service]:
-        """Return every ZLO service as a flat list for iteration."""
+        """Return every CardinalDL service as a flat list for iteration."""
 
         return [
             self.crunchyroll,
             self.hidive,
-            self.adn
+            self.adn,
+            self.disney,
+            self.netflix,
+            self.amazon
         ]
 
 
@@ -90,7 +96,7 @@ class Services(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     mdnx: MdnxServices
-    zlo: ZloServices
+    cardinaldl: CdlServices
 
     def all(self) -> list[Service]:
         """Return every registered service as a flat list for iteration."""
@@ -98,8 +104,8 @@ class Services(BaseModel):
         services = []
         for mdnx_service in self.mdnx.all():
             services.append(mdnx_service)
-        for zlo_service in self.zlo.all():
-            services.append(zlo_service)
+        for cdl_service in self.cardinaldl.all():
+            services.append(cdl_service)
         return services
 
     def get(self, service_name: str) -> Service | None:

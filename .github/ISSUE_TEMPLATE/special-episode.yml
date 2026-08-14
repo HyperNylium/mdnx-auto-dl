@@ -18,7 +18,7 @@ body:
       description: Which downloader handled this series?
       options:
         - multi-downloader-nx
-        - ZLO7
+        - CardinalDL
     validations:
       required: true
 
@@ -30,6 +30,9 @@ body:
         - crunchyroll
         - hidive
         - adn
+        - disney
+        - netflix
+        - amazon
     validations:
       required: true
 

@@ -13,8 +13,8 @@ So under `cli-defaults`, anything valid in multi-downloader-nx's `cli-defaults.y
 You only need to set the keys you want to override. Anything you leave out keeps its default.
 
 > [!NOTE]
-> This section only applies to the aniDL versions of Crunchyroll, HiDive, and ADN. The ZLO versions are configured separately.  
-> See [Configure ZLO downloads](zlo.md).
+> This section only applies to the aniDL versions of Crunchyroll, HiDive, and ADN. The CardinalDL versions are configured separately.  
+> See [Configure CardinalDL downloads](cardinaldl.md).
 
 ---
 

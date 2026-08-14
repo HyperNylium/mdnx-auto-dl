@@ -1,13 +1,12 @@
 import os
-import re
 import json
 import subprocess
 import threading
 
 from appdata.modules.Globals import queue_manager, log_manager
-from appdata.modules.API.ZLO7._shared import (
-    ZLO_SERVICE_BIN_PATH,
-    normalize_zlo_dubs, normalize_zlo_subtitles, normalize_zlo_qualities
+from appdata.modules.API.CardinalDL._shared import (
+    CDL_SERVICE_BIN_PATH,
+    normalize_cdl_dubs, normalize_cdl_subtitles, normalize_cdl_qualities
 )
 from appdata.modules.Vars import (
     config,
@@ -18,13 +17,13 @@ from appdata.modules.types.queue import Episode, Season, Series, SeriesInfo
 from appdata.modules.Globals import remote_specials
 
 
-class HIDIVE_ZLO_API:
+class NETFLIX_CDL_API:
     def __init__(self) -> None:
-        self.zlo_path = ZLO_SERVICE_BIN_PATH
-        self.zlo_working_dir = os.path.dirname(self.zlo_path)
-        self.zlo_service = "hidive"
-        self.queue_service = "zlo-hidive"
-        self.service_config = config.zlo.hidive
+        self.cdl_path = CDL_SERVICE_BIN_PATH
+        self.cdl_working_dir = os.path.dirname(self.cdl_path)
+        self.cdl_service = "netflix"
+        self.queue_service = "cdl-netflix"
+        self.service_config = config.cardinaldl.netflix
         self.download_filename = os.path.join(self.service_config.dlpath, "output.mkv")
         self.download_thread = None
         self.download_proc = None
@@ -38,36 +37,39 @@ class HIDIVE_ZLO_API:
             self.stdbuf_exists = False
             log_manager.debug("stdbuf not found, using default command without buffering.")
 
-        log_manager.info(f"ZLO API initialized with: Path: {self.zlo_path} | Service: {self.zlo_service}")
-
-        # Titles like "E7 - Coming 5/19/26 13:30 UTC", "TBA", etc (after stripping the "E# - " prefix).
-        self.unreleased_title_flag = re.compile(r'^\s*(coming|tba|tbd|available\s+on|premieres?|releasing)\b', re.IGNORECASE)
-        self.episode_prefix_strip = re.compile(r'^\s*E\d+(?:\.\d+)?\s*-\s*', re.IGNORECASE)
+        log_manager.info(f"CardinalDL API initialized with: Path: {self.cdl_path} | Service: {self.cdl_service}")
 
     def start_monitor(self, series_id: str) -> str:
         """Load a full series payload and add it to the queue."""
 
         log_manager.debug(f"Monitoring series with ID: {series_id}")
 
-        tmp_cmd = [self.zlo_path, "--service", self.zlo_service, "--srz", series_id, "--full", "--workers", "3", "--jsonOutput", self.json_path, "--configPath", self.service_config.configPath]
-        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8", cwd=self.zlo_working_dir)
+        if os.path.isfile(self.json_path):
+            os.remove(self.json_path)
+
+        tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--full", "--workers", "1", "--jsonOutput", self.json_path, "--configPath", self.service_config.configPath]
+        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8", cwd=self.cdl_working_dir)
         log_manager.debug(f"Console output for start_monitor process:\n{result.stdout}")
 
         if result.stderr:
             log_manager.warning(f"Console output for start_monitor process (stderr):\n{result.stderr}")
 
+        if result.returncode != 0:
+            log_manager.error(f"CardinalDL listing failed for {series_id} with exit code {result.returncode}.")
+            return result.stdout
+
         if not os.path.isfile(self.json_path):
-            log_manager.warning(f"ZLO json payload not found at {self.json_path}.")
+            log_manager.warning(f"CardinalDL json payload not found at {self.json_path}.")
             return result.stdout
 
         try:
             with open(self.json_path, "r", encoding="utf-8") as file_handle:
                 parsed_payload = json.load(file_handle)
         except (OSError, json.JSONDecodeError) as exc:
-            log_manager.warning(f"Failed to read ZLO json payload at {self.json_path}: {exc}")
+            log_manager.warning(f"Failed to read CardinalDL json payload at {self.json_path}: {exc}")
             return result.stdout
 
-        self._process_json_payload(parsed_payload)
+        self._process_json_payload(parsed_payload, requested_series_id=series_id)
 
         log_manager.debug(f"Monitoring for series with ID: {series_id} complete.")
         return result.stdout
@@ -84,25 +86,32 @@ class HIDIVE_ZLO_API:
 
         log_manager.debug(f"Updating monitor for series with ID: {series_id}")
 
-        tmp_cmd = [self.zlo_path, "--service", self.zlo_service, "--srz", series_id, "--full", "--workers", "3", "--jsonOutput", self.json_path, "--configPath", self.service_config.configPath]
-        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8", cwd=self.zlo_working_dir)
+        if os.path.isfile(self.json_path):
+            os.remove(self.json_path)
+
+        tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--full", "--workers", "1", "--jsonOutput", self.json_path, "--configPath", self.service_config.configPath]
+        result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8", cwd=self.cdl_working_dir)
         log_manager.debug(f"Console output for update_monitor process:\n{result.stdout}")
 
         if result.stderr:
             log_manager.warning(f"Console output for update_monitor process (stderr):\n{result.stderr}")
 
+        if result.returncode != 0:
+            log_manager.error(f"CardinalDL listing failed for {series_id} with exit code {result.returncode}.")
+            return result.stdout
+
         if not os.path.isfile(self.json_path):
-            log_manager.warning(f"ZLO json payload not found at {self.json_path}.")
+            log_manager.warning(f"CardinalDL json payload not found at {self.json_path}.")
             return result.stdout
 
         try:
             with open(self.json_path, "r", encoding="utf-8") as file_handle:
                 parsed_payload = json.load(file_handle)
         except (OSError, json.JSONDecodeError) as exc:
-            log_manager.warning(f"Failed to read ZLO json payload at {self.json_path}: {exc}")
+            log_manager.warning(f"Failed to read CardinalDL json payload at {self.json_path}: {exc}")
             return result.stdout
 
-        self._process_json_payload(parsed_payload)
+        self._process_json_payload(parsed_payload, requested_series_id=series_id)
 
         log_manager.debug(f"Updating monitor for series with ID: {series_id} complete.")
         return result.stdout
@@ -120,10 +129,10 @@ class HIDIVE_ZLO_API:
         if proc is not None:
             try:
                 if proc.poll() is None:
-                    log_manager.info("Killing active zlo download process...")
+                    log_manager.info("Killing active CardinalDL download process...")
                     proc.kill()
             except Exception as e:
-                log_manager.error(f"Failed to kill active zlo process: {e}", exc_info=e)
+                log_manager.error(f"Failed to kill active CardinalDL process: {e}", exc_info=e)
 
         if thread is not None and thread.is_alive():
             log_manager.info("Waiting for download worker thread to exit...")
@@ -137,7 +146,7 @@ class HIDIVE_ZLO_API:
                 self.download_proc = None
 
     def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list[str] | None = None, sub_override: list[str] | None = None) -> bool:
-        """Download a specific episode using the ZLO service."""
+        """Download a specific episode using the CardinalDL service."""
 
         log_manager.info(f"Downloading episode {episode_number} for series {series_id} season {season_id}")
 
@@ -150,8 +159,8 @@ class HIDIVE_ZLO_API:
             return False
 
         tmp_cmd = [
-            self.zlo_path,
-            "--service", self.zlo_service,
+            self.cdl_path,
+            "--service", self.cdl_service,
             "--item", series_id,
             "--season", season_id,
             "--episode", episode_number
@@ -188,6 +197,11 @@ class HIDIVE_ZLO_API:
         else:
             cmd = tmp_cmd
 
+        # dry run stops here so we can show the command without running it
+        if config.app.dry_run:
+            log_manager.info(f"DRY_RUN is True. Would have run: {' '.join(cmd)}")
+            return False
+
         with self.download_lock:
             if self.download_thread and self.download_thread.is_alive():
                 log_manager.error("A download is already in progress. refusing to start a second one.")
@@ -198,7 +212,7 @@ class HIDIVE_ZLO_API:
         worker = threading.Thread(
             target=self._run_download,
             args=(cmd, result),
-            name=f"{self.zlo_service}-download",
+            name=f"{self.cdl_service}-download",
             daemon=True
         )
 
@@ -238,7 +252,7 @@ class HIDIVE_ZLO_API:
                 stderr=subprocess.STDOUT,
                 text=True,
                 bufsize=1,
-                cwd=self.zlo_working_dir
+                cwd=self.cdl_working_dir
             ) as proc:
                 with self.download_lock:
                     self.download_proc = proc
@@ -259,17 +273,22 @@ class HIDIVE_ZLO_API:
 
             result["returncode"] = returncode
 
-    def _process_json_payload(self, parsed_payload: dict, add2queue: bool = True):
+    def _process_json_payload(self, parsed_payload: dict, add2queue: bool = True, requested_series_id: str | None = None):
         """Convert the structured JSON payload from --jsonOutput to queue db format."""
 
-        log_manager.debug("Processing ZLO JSON payload...")
+        log_manager.debug("Processing CardinalDL JSON payload...")
 
         item_info = parsed_payload.get("item") or {}
         seasons_list = parsed_payload.get("seasons") or []
 
         series_id = str(item_info.get("id") or "").strip()
         if series_id == "":
-            log_manager.warning("ZLO JSON payload did not include a series id.")
+            log_manager.warning("CardinalDL JSON payload did not include a series id.")
+            return {}
+
+        # if the caller requested a specific series id, skip any payload that doest match that id.
+        if requested_series_id is not None and series_id != requested_series_id:
+            log_manager.warning(f"CardinalDL returned series id '{series_id}' but '{requested_series_id}' was requested. Skipping this payload.")
             return {}
 
         series_title = sanitize(str(item_info.get("title") or "Unknown Series"))
@@ -291,21 +310,20 @@ class HIDIVE_ZLO_API:
             if season_id == "":
                 continue
 
-            raw_season_number = season_data.get("season")
-            fallback_title_number = raw_season_number if raw_season_number not in (None, "") else json_index + 1
-            raw_season_title = str(season_data.get("title") or f"Season {fallback_title_number}")
-
             raw_episode_list = season_data.get("episodes") or []
             if not isinstance(raw_episode_list, list) or raw_episode_list == []:
                 continue
 
-            season_title = sanitize(raw_season_title)
+            raw_season_number = season_data.get("season")
+            fallback_title_number = raw_season_number if raw_season_number not in (None, "") else json_index + 1
+            season_title = str(season_data.get("title") or f"Season {fallback_title_number}")
+            season_title = sanitize(season_title)
 
             episodes_dict = {}
             kept_episode_count = 0
 
             for episode_data in raw_episode_list:
-                # ZLO marks specials with is_special=True. We skip those so file numbering stays contiguous.
+                # CardinalDL marks specials with is_special=True. We skip those so file numbering stays contiguous.
                 if episode_data.get("is_special") == True:
                     log_manager.debug(f"Skipping special episode (title='{episode_data.get('title')}', season_id={season_id})")
                     continue
@@ -316,7 +334,7 @@ class HIDIVE_ZLO_API:
                     override_episode_number = str(episode_data.get("episode") or "").strip()
                     override_episode_id_raw = str(episode_data.get("id") or "").strip()
                     override_episode_id = override_episode_id_raw if override_episode_id_raw != "" else None
-                    if remote_specials.is_remote_special("zlo", "hidive", series_id, override_season_key, override_episode_number, episode_id=override_episode_id):
+                    if remote_specials.is_remote_special("cardinaldl", "netflix", series_id, override_season_key, override_episode_number, episode_id=override_episode_id):
                         log_manager.debug(f"Skipping remote-special at {override_season_key}E{override_episode_number} series_id={series_id} id={override_episode_id_raw}")
                         continue
 
@@ -326,25 +344,19 @@ class HIDIVE_ZLO_API:
 
                 episode_title = str(episode_data.get("title") or f"Episode {kept_episode_count + 1}")
                 episode_title = sanitize(episode_title)
-                episode_title = self.episode_prefix_strip.sub("", episode_title).strip()
 
                 if episode_title.lstrip().lower().startswith("pv"):
-                    log_manager.debug(f"Skipping PV entry in ZLO JSON: {episode_title}")
-                    continue
-
-                # drop unreleased episodes whose title is a placeholder like "Coming 5/19/26 13:30 UTC"
-                if self.unreleased_title_flag.match(episode_title):
-                    log_manager.debug(f"Skipping unreleased episode (title='{episode_title}', season_id={season_id})")
+                    log_manager.debug(f"Skipping PV entry in CardinalDL JSON: {episode_title}")
                     continue
 
                 kept_episode_count += 1
                 episode_key = f"E{kept_episode_count}"
 
-                available_dubs = normalize_zlo_dubs(episode_data.get("audios") or [])
-                available_subs = normalize_zlo_subtitles(episode_data.get("subtitles") or [])
-                available_qualities = normalize_zlo_qualities(episode_data.get("qualities") or [])
+                available_dubs = normalize_cdl_dubs(episode_data.get("audios") or [])
+                available_subs = normalize_cdl_subtitles(episode_data.get("subtitles") or [])
+                available_qualities = normalize_cdl_qualities(episode_data.get("qualities") or [])
 
-                # Pull the ZLO id straight from the JSON so the queue points back to the source record.
+                # Pull the CardinalDL id straight from the JSON so the queue points back to the source record.
                 episode_id_value = str(episode_data.get("id") or "").strip()
                 if episode_id_value == "":
                     episode_id_value = None

@@ -16,9 +16,9 @@ Both formats accept the exact same keys and values. Every option in this doc sho
 The config file has a few top-level sections:
 - `app`: every UPPER_CASE option in this doc lives here.
 - `destinations`: where each service saves its files. One entry per service. Each entry has a `dir` and a `folder_structure`.
-- `cr_monitor_series_id`, `hidive_monitor_series_id`, `adn_monitor_series_id`, `zlo_cr_monitor_series_id`, `zlo_hidive_monitor_series_id`, `zlo_adn_monitor_series_id`: top-level (not under `app`). These hold the series IDs you want to watch per service.
+- `cr_monitor_series_id`, `hidive_monitor_series_id`, `adn_monitor_series_id`, `cdl_cr_monitor_series_id`, `cdl_hidive_monitor_series_id`, `cdl_adn_monitor_series_id`, `cdl_disney_monitor_series_id`, `cdl_netflix_monitor_series_id`, `cdl_amazon_monitor_series_id`: top-level (not under `app`). These hold the series IDs you want to watch per service.
 - `mdnx`: passthrough config for [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx). Anything valid in `cli-defaults.yml` is valid here, as long as the option's `cli-default Entry` in [multi-downloader-nx's documentation](https://github.com/anidl/multi-downloader-nx/blob/master/docs/DOCUMENTATION.md) is not `NaN`.
-- `zlo`: per-service config for the ZLO downloader. Has subsections `crunchyroll`, `hidive`, and `adn`.
+- `cardinaldl`: per-service config for the CardinalDL downloader. Has subsections `crunchyroll`, `hidive`, `adn`, `disney`, `netflix`, and `amazon`.
 
 If you leave an option out of your config file, mdnx-auto-dl will use the default value listed in this doc.  
 The only config that doesnt have defaults is the `destinations` section. Every service you enable needs an entry in `destinations` or the container will exit with an error on startup. This is intentional to not make assumptions about where/how you want to save files.
@@ -63,28 +63,34 @@ Standard YAML formatting still applies:
             - [`bin-path`](#mdnx-bin-path)
             - [`dir-path`](#mdnx-dir-path)
             - [`cli-defaults`](#mdnx-cli-defaults)
-    - [ZLO7](#zlo7)
-        - [ZLO services](#zlo-services)
-            - [`ZLO_CR_ENABLED`](#ZLO_CR_ENABLED)
-            - [`ZLO_HIDIVE_ENABLED`](#ZLO_HIDIVE_ENABLED)
-            - [`ZLO_ADN_ENABLED`](#ZLO_ADN_ENABLED)
-        - [ZLO per-service options](#zlo-per-service-options)
-            - [`quality`](#zlo-quality)
-            - [`qualityfallback`](#zlo-qualityfallback)
-            - [`dubLang`](#zlo-dublang)
-            - [`dlsubs`](#zlo-dlsubs)
-            - [`forceSubFormat`](#zlo-forcesubformat)
-            - [`backup_dubs`](#zlo-backup_dubs)
-            - [`dlpath`](#zlo-dlpath)
-            - [`tempPath`](#zlo-temppath)
-            - [`configPath`](#zlo-configpath)
+    - [CardinalDL](#cardinaldl)
+        - [CardinalDL services](#cardinaldl-services)
+            - [`CDL_CR_ENABLED`](#CDL_CR_ENABLED)
+            - [`CDL_HIDIVE_ENABLED`](#CDL_HIDIVE_ENABLED)
+            - [`CDL_ADN_ENABLED`](#CDL_ADN_ENABLED)
+            - [`CDL_DISNEY_ENABLED`](#CDL_DISNEY_ENABLED)
+            - [`CDL_NETFLIX_ENABLED`](#CDL_NETFLIX_ENABLED)
+            - [`CDL_AMAZON_ENABLED`](#CDL_AMAZON_ENABLED)
+        - [CardinalDL per-service options](#cardinaldl-per-service-options)
+            - [`quality`](#cdl-quality)
+            - [`qualityfallback`](#cdl-qualityfallback)
+            - [`dubLang`](#cdl-dublang)
+            - [`dlsubs`](#cdl-dlsubs)
+            - [`forceSubFormat`](#cdl-forcesubformat)
+            - [`backup_dubs`](#cdl-backup_dubs)
+            - [`dlpath`](#cdl-dlpath)
+            - [`tempPath`](#cdl-temppath)
+            - [`configPath`](#cdl-configpath)
 - [Series to monitor](#series-to-monitor)
     - [`cr_monitor_series_id`](#cr_monitor_series_id)
     - [`hidive_monitor_series_id`](#hidive_monitor_series_id)
     - [`adn_monitor_series_id`](#adn_monitor_series_id)
-    - [`zlo_cr_monitor_series_id`](#zlo_cr_monitor_series_id)
-    - [`zlo_hidive_monitor_series_id`](#zlo_hidive_monitor_series_id)
-    - [`zlo_adn_monitor_series_id`](#zlo_adn_monitor_series_id)
+    - [`cdl_cr_monitor_series_id`](#cdl_cr_monitor_series_id)
+    - [`cdl_hidive_monitor_series_id`](#cdl_hidive_monitor_series_id)
+    - [`cdl_adn_monitor_series_id`](#cdl_adn_monitor_series_id)
+    - [`cdl_disney_monitor_series_id`](#cdl_disney_monitor_series_id)
+    - [`cdl_netflix_monitor_series_id`](#cdl_netflix_monitor_series_id)
+    - [`cdl_amazon_monitor_series_id`](#cdl_amazon_monitor_series_id)
 - [Destinations and file layout](#destinations-and-file-layout)
     - [Destinations](#destinations)
     - [Options for `folder_structure`](#options-for-folder_structure)
@@ -156,8 +162,8 @@ Standard YAML formatting still applies:
 
 ## Downloaders
 
-mdnx-auto-dl downloads through two interchangeable downloaders, [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) (`aniDL`) and ZLO7 (`zlo7`). You can enable whichever you want and mix them per service.  
-Each downloader's services and settings are grouped below: [multi-downloader-nx](#multi-downloader-nx) and [ZLO7](#zlo7).
+mdnx-auto-dl downloads through two interchangeable downloaders, [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) (`aniDL`) and CardinalDL (`cardinaldl`). You can enable whichever you want and mix them per service.  
+Each downloader's services and settings are grouped below: [multi-downloader-nx](#multi-downloader-nx) and [CardinalDL](#cardinaldl).
 
 ### multi-downloader-nx
 
@@ -537,86 +543,140 @@ mdnx:
         tsd: false
 ```
 
-### ZLO7
+### CardinalDL
 
-The services that download through the `zlo7` binary. Enable each one you want, then tune its download settings.
+The services that download through the `cardinaldl` binary. Enable each one you want, then tune its download settings.
 
-#### ZLO services
+#### CardinalDL services
 
-The three `ZLO_*_ENABLED` flags turn on the matching ZLO service. They all need a working `zlo7` linux CLI binary and an already-signed-in `.zlo7` config folder. See [zlo-get-started.md](zlo-get-started.md) for setup steps.
+The three `CDL_*_ENABLED` flags turn on the matching CardinalDL service. They all need a working `cardinaldl` linux CLI binary and an already-signed-in `.cardinaldl` config folder. See [cardinaldl-get-started.md](cardinaldl-get-started.md) for setup steps.
 
-ZLO expects the user to handle auth from the GUI. So in order to use mdnx-auto-dl with ZLO, you need to do a manual login for each service you want to use, then copy your `.zlo7` config folder to whatever folder you mounted `/app/appdata/bin/zlo/config` to.  
-mdnx-auto-dl **does NOT** log you into ZLO. It only runs the binary. On startup it does read the ZLO storage database (`storage/storage.db`) to confirm an account is signed in, and refuses to start a ZLO service if none is found.
+CardinalDL expects the user to handle auth from the GUI or CLI. So in order to use mdnx-auto-dl with CardinalDL, you need to do a manual login for each service you want to use, then copy your `.cardinaldl` config folder to whatever folder you mounted `/app/appdata/bin/cardinaldl/config` to.  
+mdnx-auto-dl **does NOT** log you into CardinalDL. It only runs the binary. On startup it reads the CardinalDL storage database (`storage/storage.db`) to confirm a signed-in account, a device id, and a readable device proof key are present, and refuses to start a CardinalDL service if any of them are missing.
 
-##### <a id="ZLO_CR_ENABLED"></a>ZLO_CR_ENABLED
+##### <a id="CDL_CR_ENABLED"></a>CDL_CR_ENABLED
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `false` | boolean | When `true`, enable the ZLO Crunchyroll service and monitor any series IDs in `zlo_cr_monitor_series_id`. |
+| `false` | boolean | When `true`, enable the CardinalDL Crunchyroll service and monitor any series IDs in `cdl_cr_monitor_series_id`. |
 
 JSON:
 ```json
 "app": {
-    "ZLO_CR_ENABLED": true
+    "CDL_CR_ENABLED": true
 }
 ```
 YAML:
 ```yaml
 app:
-    ZLO_CR_ENABLED: true
+    CDL_CR_ENABLED: true
 ```
 
-##### <a id="ZLO_HIDIVE_ENABLED"></a>ZLO_HIDIVE_ENABLED
+##### <a id="CDL_HIDIVE_ENABLED"></a>CDL_HIDIVE_ENABLED
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `false` | boolean | When `true`, enable the ZLO HiDive service and monitor any series IDs in `zlo_hidive_monitor_series_id`. |
+| `false` | boolean | When `true`, enable the CardinalDL HiDive service and monitor any series IDs in `cdl_hidive_monitor_series_id`. |
 
 JSON:
 ```json
 "app": {
-    "ZLO_HIDIVE_ENABLED": true
+    "CDL_HIDIVE_ENABLED": true
 }
 ```
 YAML:
 ```yaml
 app:
-    ZLO_HIDIVE_ENABLED: true
+    CDL_HIDIVE_ENABLED: true
 ```
 
-##### <a id="ZLO_ADN_ENABLED"></a>ZLO_ADN_ENABLED
+##### <a id="CDL_ADN_ENABLED"></a>CDL_ADN_ENABLED
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `false` | boolean | When `true`, enable the ZLO Animation Digital Network service and monitor any series IDs in `zlo_adn_monitor_series_id`. |
+| `false` | boolean | When `true`, enable the CardinalDL Animation Digital Network service and monitor any series IDs in `cdl_adn_monitor_series_id`. |
 
 JSON:
 ```json
 "app": {
-    "ZLO_ADN_ENABLED": true
+    "CDL_ADN_ENABLED": true
 }
 ```
 YAML:
 ```yaml
 app:
-    ZLO_ADN_ENABLED: true
+    CDL_ADN_ENABLED: true
 ```
 
-#### ZLO per-service options
-
-> How-to: [Configure ZLO downloads](guides/zlo.md)
-
-The `zlo` section in the config file has one subsection per ZLO service: `crunchyroll`, `hidive`, and `adn`. Each subsection takes the same keys, listed below.
-
-##### zlo-quality
+##### <a id="CDL_DISNEY_ENABLED"></a>CDL_DISNEY_ENABLED
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `1080p@avc` | string | Quality string passed to the `zlo7` binary (as `--quality`). The format is `"{resolution}@{codec}"`. Examples: `1080p@avc`, `720p@avc`, `1080p@hvc`, `720p@hvc`, `1080p@dvh`, `720p@dvh`. The available qualities depend on the service. |
+| `false` | boolean | When `true`, enable the CardinalDL Disney service and monitor any series IDs in `cdl_disney_monitor_series_id`. |
 
 JSON:
 ```json
-"zlo": {
+"app": {
+    "CDL_DISNEY_ENABLED": true
+}
+```
+YAML:
+```yaml
+app:
+    CDL_DISNEY_ENABLED: true
+```
+
+##### <a id="CDL_NETFLIX_ENABLED"></a>CDL_NETFLIX_ENABLED
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `false` | boolean | When `true`, enable the CardinalDL Netflix service and monitor any series IDs in `cdl_netflix_monitor_series_id`. |
+
+JSON:
+```json
+"app": {
+    "CDL_NETFLIX_ENABLED": true
+}
+```
+YAML:
+```yaml
+app:
+    CDL_NETFLIX_ENABLED: true
+```
+
+##### <a id="CDL_AMAZON_ENABLED"></a>CDL_AMAZON_ENABLED
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `false` | boolean | When `true`, enable the CardinalDL Amazon service and monitor any series IDs in `cdl_amazon_monitor_series_id`. |
+
+JSON:
+```json
+"app": {
+    "CDL_AMAZON_ENABLED": true
+}
+```
+YAML:
+```yaml
+app:
+    CDL_AMAZON_ENABLED: true
+```
+
+#### CardinalDL per-service options
+
+> How-to: [Configure CardinalDL downloads](guides/cardinaldl.md)
+
+The `cardinaldl` section in the config file has one subsection per CardinalDL service: `crunchyroll`, `hidive`, `adn`, `disney`, `netflix`, and `amazon`. Each subsection takes the same keys, listed below.
+
+##### cdl-quality
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `1080p@avc` | string | Quality passed to the `cardinaldl` binary (as `--quality`). The format is `"{resolution}@{codec}"`. The codec has to be one of `avc`, `hvc`, `dvh`, `vp9`, `av1`, or `hybrid`, in lowercase. Examples: `1080p@avc`, `720p@hvc`, `1080p@dvh`, `1080p@vp9`, `1080@av1`, `2160p@hybrid`, or a plain `1080p`. Set it to `""` to let `cardinaldl` pick. The value is checked when your config loads, so anything outside this format stops the app on startup. Which qualities are actually available depends on the service. |
+
+JSON:
+```json
+"cardinaldl": {
     "crunchyroll": {
         "quality": "1080p@avc"
     }
@@ -624,20 +684,20 @@ JSON:
 ```
 YAML:
 ```yaml
-zlo:
+cardinaldl:
     crunchyroll:
         quality: "1080p@avc"
 ```
 
-##### zlo-qualityfallback
+##### cdl-qualityfallback
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `true` | boolean | Quality fallback (passed to `zlo7` as `--qualityfallback`). When `true`, `zlo7` falls back to the next-best available quality if the requested one is missing. The fallback order is `1080p@avc -> 1080p@hvc -> 1080p@dvh -> 720p@avc -> 720p@hvc -> 720p@dvh -> ...` |
+| `true` | boolean | Quality fallback (passed to `cardinaldl` as `--qualityfallback`). When `true`, `cardinaldl` falls back to the next-best available quality if the requested one is missing. The fallback order is `1080p@avc -> 1080p@hvc -> 1080p@dvh -> 720p@avc -> 720p@hvc -> 720p@dvh -> ...` |
 
 JSON:
 ```json
-"zlo": {
+"cardinaldl": {
     "crunchyroll": {
         "qualityfallback": true
     }
@@ -645,20 +705,20 @@ JSON:
 ```
 YAML:
 ```yaml
-zlo:
+cardinaldl:
     crunchyroll:
         qualityfallback: true
 ```
 
-##### zlo-dubLang
+##### cdl-dubLang
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `["JP", "EN"]` | array of strings | Dub language codes you want for ZLO downloads. ZLO uses its own two-letter codes (for example, `JP`, `EN`, `DE`, `FR`, `ES`) as shown in the GUI. |
+| `["JP", "EN"]` | array of strings | Dub language codes you want for CardinalDL downloads. CardinalDL uses its own two-letter codes (for example, `JP`, `EN`, `DE`, `FR`, `ES`) as shown in the GUI. |
 
 JSON:
 ```json
-"zlo": {
+"cardinaldl": {
     "crunchyroll": {
         "dubLang": ["JP", "EN"]
     }
@@ -666,14 +726,14 @@ JSON:
 ```
 YAML:
 ```yaml
-zlo:
+cardinaldl:
     crunchyroll:
         dubLang:
             - "JP"
             - "EN"
 ```
 
-##### zlo-dlsubs
+##### cdl-dlsubs
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -681,7 +741,7 @@ zlo:
 
 JSON:
 ```json
-"zlo": {
+"cardinaldl": {
     "crunchyroll": {
         "dlsubs": ["EN"]
     }
@@ -689,21 +749,21 @@ JSON:
 ```
 YAML:
 ```yaml
-zlo:
+cardinaldl:
     crunchyroll:
         dlsubs:
             - "EN"
 ```
 
-##### zlo-forceSubFormat
+##### cdl-forceSubFormat
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `""` | string | Force subtitles into a specific format. Allowed values: `""` (leave the format as-is), `srt`, `ass`, `vtt`, `auto`, or `raw`. When set, it is passed to `zlo7` as `--forceSubFormat`. |
+| `""` | string | Force subtitles into a specific format. Allowed values: `""` (leave the format as-is), `srt`, `ass`, `vtt`, `auto`, `raw`, or `original`. When set, it is passed to `cardinaldl` as `--forceSubFormat`. |
 
 JSON:
 ```json
-"zlo": {
+"cardinaldl": {
     "crunchyroll": {
         "forceSubFormat": "ass"
     }
@@ -711,20 +771,20 @@ JSON:
 ```
 YAML:
 ```yaml
-zlo:
+cardinaldl:
     crunchyroll:
         forceSubFormat: "ass"
 ```
 
-##### zlo-backup_dubs
+##### cdl-backup_dubs
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `[]` | array of strings | Backup dubs to fall back to per ZLO service if none of the desired `dubLang` are available. |
+| `[]` | array of strings | Backup dubs to fall back to per CardinalDL service if none of the desired `dubLang` are available. |
 
 JSON:
 ```json
-"zlo": {
+"cardinaldl": {
     "crunchyroll": {
         "backup_dubs": ["CN"]
     }
@@ -732,21 +792,21 @@ JSON:
 ```
 YAML:
 ```yaml
-zlo:
+cardinaldl:
     crunchyroll:
         backup_dubs:
             - "CN"
 ```
 
-##### zlo-dlpath
+##### cdl-dlpath
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `/app/appdata/temp` | string | Where `zlo7` writes the downloaded MKV before mdnx-auto-dl picks it up. |
+| `/app/appdata/temp` | string | Where `cardinaldl` writes the downloaded MKV before mdnx-auto-dl picks it up. |
 
 JSON:
 ```json
-"zlo": {
+"cardinaldl": {
     "crunchyroll": {
         "dlpath": "/app/appdata/temp"
     }
@@ -754,20 +814,20 @@ JSON:
 ```
 YAML:
 ```yaml
-zlo:
+cardinaldl:
     crunchyroll:
         dlpath: "/app/appdata/temp"
 ```
 
-##### zlo-tempPath
+##### cdl-tempPath
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `/tmp` | string | Scratch directory the `zlo7` binary uses for in-progress download segments. |
+| `/tmp` | string | Scratch directory the `cardinaldl` binary uses for in-progress download segments. |
 
 JSON:
 ```json
-"zlo": {
+"cardinaldl": {
     "crunchyroll": {
         "tempPath": "/tmp"
     }
@@ -775,30 +835,30 @@ JSON:
 ```
 YAML:
 ```yaml
-zlo:
+cardinaldl:
     crunchyroll:
         tempPath: "/tmp"
 ```
 
-##### zlo-configPath
+##### cdl-configPath
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `/app/appdata/bin/zlo/config/storage/storage.db` | string | Path (inside the container) to the ZLO `storage.db` file that holds your signed-in ZLO account. Passed to `zlo7` as `--configPath`. This lives under the ZLO config directory you bind-mount, and mdnx-auto-dl also reads it on startup to confirm you are signed in. You normally do not need to change this. |
+| `/app/appdata/bin/cardinaldl/config/storage/storage.db` | string | Path (inside the container) to the CardinalDL `storage.db` file that holds your signed-in CardinalDL account. Passed to `cardinaldl` as `--configPath`. This lives under the CardinalDL config directory you bind-mount, and mdnx-auto-dl also reads it on startup to confirm you are signed in. You normally do not need to change this. |
 
 JSON:
 ```json
-"zlo": {
+"cardinaldl": {
     "crunchyroll": {
-        "configPath": "/app/appdata/bin/zlo/config/storage/storage.db"
+        "configPath": "/app/appdata/bin/cardinaldl/config/storage/storage.db"
     }
 }
 ```
 YAML:
 ```yaml
-zlo:
+cardinaldl:
     crunchyroll:
-        configPath: "/app/appdata/bin/zlo/config/storage/storage.db"
+        configPath: "/app/appdata/bin/cardinaldl/config/storage/storage.db"
 ```
 
 ---
@@ -868,64 +928,124 @@ adn_monitor_series_id:
     "442": {}
 ```
 
-### <a id="zlo_cr_monitor_series_id"></a>zlo_cr_monitor_series_id
+### <a id="cdl_cr_monitor_series_id"></a>cdl_cr_monitor_series_id
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `{}` | object | Crunchyroll (ZLO) series IDs to monitor. Used when [`ZLO_CR_ENABLED`](#ZLO_CR_ENABLED) is `true`. |
+| `{}` | object | Crunchyroll (CardinalDL) series IDs to monitor. Used when [`CDL_CR_ENABLED`](#CDL_CR_ENABLED) is `true`. |
 
 JSON:
 ```json
 {
-    "zlo_cr_monitor_series_id": {
+    "cdl_cr_monitor_series_id": {
         "GG5H5XQ7D": {}
     }
 }
 ```
 YAML:
 ```yaml
-zlo_cr_monitor_series_id:
+cdl_cr_monitor_series_id:
     GG5H5XQ7D: {}
 ```
 
-### <a id="zlo_hidive_monitor_series_id"></a>zlo_hidive_monitor_series_id
+### <a id="cdl_hidive_monitor_series_id"></a>cdl_hidive_monitor_series_id
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `{}` | object | HiDive (ZLO) series IDs to monitor. Used when [`ZLO_HIDIVE_ENABLED`](#ZLO_HIDIVE_ENABLED) is `true`. |
+| `{}` | object | HiDive (CardinalDL) series IDs to monitor. Used when [`CDL_HIDIVE_ENABLED`](#CDL_HIDIVE_ENABLED) is `true`. |
 
 JSON:
 ```json
 {
-    "zlo_hidive_monitor_series_id": {
+    "cdl_hidive_monitor_series_id": {
         "1050": {}
     }
 }
 ```
 YAML:
 ```yaml
-zlo_hidive_monitor_series_id:
+cdl_hidive_monitor_series_id:
     "1050": {}
 ```
 
-### <a id="zlo_adn_monitor_series_id"></a>zlo_adn_monitor_series_id
+### <a id="cdl_adn_monitor_series_id"></a>cdl_adn_monitor_series_id
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `{}` | object | ADN (ZLO) series IDs to monitor. Used when [`ZLO_ADN_ENABLED`](#ZLO_ADN_ENABLED) is `true`. |
+| `{}` | object | ADN (CardinalDL) series IDs to monitor. Used when [`CDL_ADN_ENABLED`](#CDL_ADN_ENABLED) is `true`. |
 
 JSON:
 ```json
 {
-    "zlo_adn_monitor_series_id": {
+    "cdl_adn_monitor_series_id": {
         "442": {}
     }
 }
 ```
 YAML:
 ```yaml
-zlo_adn_monitor_series_id:
+cdl_adn_monitor_series_id:
     "442": {}
+```
+
+### <a id="cdl_disney_monitor_series_id"></a>cdl_disney_monitor_series_id
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `{}` | object | Disney (CardinalDL) series IDs to monitor. Used when [`CDL_DISNEY_ENABLED`](#CDL_DISNEY_ENABLED) is `true`. |
+
+JSON:
+```json
+{
+    "cdl_disney_monitor_series_id": {
+        "<series id>": {}
+    }
+}
+```
+YAML:
+```yaml
+cdl_disney_monitor_series_id:
+    "<series id>": {}
+```
+
+### <a id="cdl_netflix_monitor_series_id"></a>cdl_netflix_monitor_series_id
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `{}` | object | Netflix (CardinalDL) series IDs to monitor. Used when [`CDL_NETFLIX_ENABLED`](#CDL_NETFLIX_ENABLED) is `true`. |
+
+JSON:
+```json
+{
+    "cdl_netflix_monitor_series_id": {
+        "<series id>": {}
+    }
+}
+```
+YAML:
+```yaml
+cdl_netflix_monitor_series_id:
+    "<series id>": {}
+```
+
+### <a id="cdl_amazon_monitor_series_id"></a>cdl_amazon_monitor_series_id
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `{}` | object | Amazon (CardinalDL) series IDs to monitor. Used when [`CDL_AMAZON_ENABLED`](#CDL_AMAZON_ENABLED) is `true`. |
+
+JSON:
+```json
+{
+    "cdl_amazon_monitor_series_id": {
+        "<series id>": {}
+    }
+}
+```
+YAML:
+```yaml
+cdl_amazon_monitor_series_id:
+    "<series id>": {}
 ```
 
 ---
@@ -946,7 +1066,7 @@ Each entry has two keys:
 - `folder_structure`: the layout for series, seasons, and episodes under `dir`.  
  See [Options for `folder_structure`](#options-for-folder_structure) for the variables you can use.
 
-Valid keys are: `crunchyroll`, `hidive`, `adn`, `zlo-crunchyroll`, `zlo-hidive`, `zlo-adn`.
+Valid keys are: `crunchyroll`, `hidive`, `adn`, `cdl-crunchyroll`, `cdl-hidive`, `cdl-adn`, `cdl-disney`, `cdl-netflix`, `cdl-amazon`.
 
 JSON:
 ```json
@@ -963,15 +1083,27 @@ JSON:
         "dir": "/data/Anime",
         "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
     },
-    "zlo-crunchyroll": {
+    "cdl-crunchyroll": {
         "dir": "/data/Anime",
         "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
     },
-    "zlo-hidive": {
+    "cdl-hidive": {
         "dir": "/data/Anime",
         "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
     },
-    "zlo-adn": {
+    "cdl-adn": {
+        "dir": "/data/Anime",
+        "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    },
+    "cdl-disney": {
+        "dir": "/data/Anime",
+        "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    },
+    "cdl-netflix": {
+        "dir": "/data/Anime",
+        "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    },
+    "cdl-amazon": {
         "dir": "/data/Anime",
         "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
     }
@@ -990,13 +1122,22 @@ destinations:
     adn:
         dir: "/data/Anime"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
-    zlo-crunchyroll:
+    cdl-crunchyroll:
         dir: "/data/Anime"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
-    zlo-hidive:
+    cdl-hidive:
         dir: "/data/Anime"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
-    zlo-adn:
+    cdl-adn:
+        dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    cdl-disney:
+        dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    cdl-netflix:
+        dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    cdl-amazon:
         dir: "/data/Anime"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
 ```
@@ -1013,8 +1154,8 @@ You only need entries for services you enable. You can drop the rest.
 | `${episode}`       | `1`                          | Episode number, no leading zeros. |
 | `${episodePadded}` | `01`                         | Episode number padded to two digits. |
 | `${episodeName}`   | `The Man Who Became a Kaiju` | Sanitized episode title. |
-| `${serviceLong}`   | `Crunchyroll`                | Long, human-readable name of the source service. Values: `Crunchyroll`, `HiDive`, `ADN`. Same for the AniDL and ZLO variants of a service. |
-| `${serviceShort}`  | `CR`                         | Short code for the source service. Values: `CR` (Crunchyroll), `HD` (HiDive), `ADN` (ADN). |
+| `${serviceLong}`   | `Crunchyroll`                | Long, human-readable name of the source service. Values: `Crunchyroll`, `HiDive`, `ADN`, `Disney`, `Netflix`, `Amazon`. Same for the AniDL and CardinalDL variants of a service. Disney, Netflix and Amazon are CardinalDL-only. |
+| `${serviceShort}`  | `CR`                         | Short code for the source service. Values: `CR` (Crunchyroll), `HD` (HiDive), `ADN` (ADN), `DSNP` (Disney), `NF` (Netflix), `AMZN` (Amazon). Disney, Netflix and Amazon are CardinalDL-only. |
 
 Example of `folder_structure` using the variables above:
 ```txt
@@ -1037,7 +1178,7 @@ Kaiju No. 8/S1/Kaiju No. 8 - S01E01
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `["zho"]` | array of strings | List of dubs to download if the primary dubs (set in `mdnx.cli-defaults.dubLang`) are not available. This array only applies to multi-downloader-nx as ZLO7 has its own per-service backup dubs |
+| `["zho"]` | array of strings | List of dubs to download if the primary dubs (set in `mdnx.cli-defaults.dubLang`) are not available. This array only applies to multi-downloader-nx as CardinalDL has its own per-service backup dubs |
 
 JSON:
 ```json

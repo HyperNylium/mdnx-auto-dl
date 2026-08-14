@@ -1,5 +1,5 @@
 from .API.MDNX import _shared as mdnx_shared
-from .API.ZLO7 import _shared as zlo_shared
+from .API.CardinalDL import _shared as cdl_shared
 from .Globals import log_manager
 from .Vars import SERVICES
 from .types.queue import Episode
@@ -8,7 +8,7 @@ from .types.service import Service
 
 TOOL_MODULES = {
     "mdnx": mdnx_shared,
-    "zlo": zlo_shared
+    "cardinaldl": cdl_shared
 }
 
 

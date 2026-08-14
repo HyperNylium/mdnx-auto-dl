@@ -1,9 +1,12 @@
 cr_monitor_series_id: {}
 hidive_monitor_series_id: {}
 adn_monitor_series_id: {}
-zlo_cr_monitor_series_id: {}
-zlo_hidive_monitor_series_id: {}
-zlo_adn_monitor_series_id: {}
+cdl_cr_monitor_series_id: {}
+cdl_hidive_monitor_series_id: {}
+cdl_adn_monitor_series_id: {}
+cdl_disney_monitor_series_id: {}
+cdl_netflix_monitor_series_id: {}
+cdl_amazon_monitor_series_id: {}
 
 destinations:
     crunchyroll:
@@ -15,14 +18,23 @@ destinations:
     adn:
         dir: "/data/Anime"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
-    zlo-crunchyroll:
+    cdl-crunchyroll:
         dir: "/data/Anime"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
-    zlo-hidive:
+    cdl-hidive:
         dir: "/data/Anime"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
-    zlo-adn:
+    cdl-adn:
         dir: "/data/Anime"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    cdl-disney:
+        dir: "/data/TV Shows"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    cdl-netflix:
+        dir: "/data/TV Shows"
+        folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+    cdl-amazon:
+        dir: "/data/TV Shows"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
 
 app:
@@ -57,7 +69,7 @@ mdnx:
         astream: "androidtv"
         tsd: false
 
-zlo:
+cardinaldl:
     crunchyroll:
         quality: "1080p@avc"
         qualityfallback: true
@@ -77,6 +89,33 @@ zlo:
             - "EN"
 
     adn:
+        quality: "1080p@avc"
+        qualityfallback: true
+        dubLang:
+            - "JP"
+            - "EN"
+        dlsubs:
+            - "EN"
+
+    disney:
+        quality: "1080p@avc"
+        qualityfallback: true
+        dubLang:
+            - "JP"
+            - "EN"
+        dlsubs:
+            - "EN"
+
+    netflix:
+        quality: "1080p@avc"
+        qualityfallback: true
+        dubLang:
+            - "JP"
+            - "EN"
+        dlsubs:
+            - "EN"
+
+    amazon:
         quality: "1080p@avc"
         qualityfallback: true
         dubLang:

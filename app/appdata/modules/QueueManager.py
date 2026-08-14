@@ -9,7 +9,7 @@ from .Vars import (
 )
 from .db.connection import open_connection
 from .db.queue_repo import (
-    delete_series, load_queue, set_episode_field, clear_queue, upsert_series
+    checkpoint_wal, delete_series, load_queue, set_episode_field, clear_queue, upsert_series
 )
 from .types.queue import Queue, Season, Series, ServiceBucket
 
@@ -169,6 +169,15 @@ class QueueManager:
             return None
 
         return self.queue.buckets.setdefault(bucket_name, ServiceBucket())
+
+    def checkpoint(self) -> None:
+        """Write everything from the WAL file back into queue.db."""
+
+        try:
+            checkpoint_wal(self.conn)
+            log_manager.debug("Queue DB checkpoint complete.")
+        except Exception as e:
+            log_manager.error(f"Failed to checkpoint queue DB: {e}", exc_info=e)
 
     def close(self) -> None:
         """Close the database connection."""

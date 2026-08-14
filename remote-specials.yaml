@@ -9,13 +9,13 @@
 #         <season_key>: [<entry>, <entry>, ...]
 #
 # Where:
-#   downloader  -> "mdnx" or "zlo"
+#   downloader  -> "mdnx" or "cardinaldl"
 #   service     -> mdnx: crunchyroll | hidive | adn
-#                  zlo : crunchyroll | hidive | adn
+#                  cardinaldl : crunchyroll | hidive | adn | disney | netflix | amazon
 #   series_id   -> the series id the parser already returns
 #   season_key  -> "S<n>" using the service's season number (NOT the post-renumber S1/S2/S3 the parser may map to).
 #   entry       -> for MDNX:  a number ("7") or a range ("3-5")
-#                  for ZLO:   a number ("7"), a range ("3-5"), or an episode id tagged with the "id:" prefix (e.g. "id:GWDU8GV0X").
+#                  for CardinalDL:   a number ("7"), a range ("3-5"), or an episode id tagged with the "id:" prefix (e.g. "id:GWDU8GV0X").
 #
 # If you would like to add a series to this list but dont understand how to,
 # feel free to open an issue with the series/episode URL and i can do the change for you ;)
@@ -59,7 +59,7 @@ mdnx:
   hidive: {}
   adn: {}
 
-zlo:
+cardinaldl:
   crunchyroll:
 
     # Kaiju No. 8
@@ -94,3 +94,6 @@ zlo:
 
   hidive: {}
   adn: {}
+  disney: {}
+  netflix: {}
+  amazon: {}

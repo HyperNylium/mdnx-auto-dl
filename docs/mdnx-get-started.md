@@ -1,7 +1,7 @@
 # Get started with multi-downloader-nx (Docker)
 
 This guide sets up mdnx-auto-dl using **multi-downloader-nx** (aniDL) as the downloader for Crunchyroll, HiDive, and ADN.  
-If you want to use ZLO instead, or mix the two, see [zlo-get-started.md](zlo-get-started.md).
+If you want to use CardinalDL instead, or mix the two, see [cardinaldl-get-started.md](cardinaldl-get-started.md).
 
 ### 1) Download `docker-compose.yaml` to your server
 Save the [`docker-compose.yaml`](https://github.com/HyperNylium/mdnx-auto-dl/blob/master/docker-compose.yaml) file:
