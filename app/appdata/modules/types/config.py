@@ -141,7 +141,7 @@ class CdlServiceConfig(BaseModel):
     qualityfallback: bool = True
     dubLang: list[str] = ["JP", "EN"]
     dlsubs: list[str] = ["EN"]
-    forceSubFormat: str = Field("", pattern="^(srt|ass|vtt|auto|raw)?$")
+    forceSubFormat: str = Field("", pattern="^(srt|ass|vtt|auto|raw|original)?$")
     backup_dubs: list[str] = Field(default_factory=list)
     dlpath: str = "/app/appdata/temp"
     tempPath: str = "/tmp"
