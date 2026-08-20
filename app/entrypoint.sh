@@ -43,7 +43,7 @@ read_config() {
   CONFIG_FILE="$CONFIG_FILE" CONFIG_KEY="$config_key" DEFAULT_VALUE="$default_value" python - <<'PY'
 import json
 import os
-import yaml
+from ruamel.yaml import YAML
 
 config_file_path = os.environ["CONFIG_FILE"]
 config_key = os.environ["CONFIG_KEY"]
@@ -56,7 +56,7 @@ with open(config_file_path, "r", encoding="utf-8") as config_file:
         case ".json":
             loaded_config = json.load(config_file)
         case ".yaml" | ".yml":
-            loaded_config = yaml.safe_load(config_file) or {}
+            loaded_config = YAML(typ="safe").load(config_file) or {}
         case _:
             raise SystemExit(f"Unsupported config format: {config_file_path}")
 

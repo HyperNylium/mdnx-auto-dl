@@ -7,9 +7,10 @@ Create Date: 2026-07-01 00:00:00.000000
 """
 import os
 import json
-import yaml
 import shutil
 from typing import Sequence, Union
+from ruamel.yaml import YAML
+from ruamel.yaml.comments import CommentedMap
 
 revision: str = "0004"
 down_revision: Union[str, None] = "0003"
@@ -43,6 +44,17 @@ def _resolve_config_path() -> str:
     return default_config_paths[0]
 
 
+def _make_yaml() -> YAML:
+    """Create a ruamel.yaml YAML handler with specific formatting options."""
+
+    yaml_handler = YAML()
+    yaml_handler.preserve_quotes = True
+    yaml_handler.allow_unicode = True
+    yaml_handler.width = 4096
+    yaml_handler.indent(mapping=4, sequence=6, offset=4)
+    return yaml_handler
+
+
 def _read_config(config_path: str):
     """Read the config file from disk and return it as a dict."""
 
@@ -53,7 +65,7 @@ def _read_config(config_path: str):
             case ".json":
                 loaded_config = json.load(config_file)
             case ".yaml" | ".yml":
-                loaded_config = yaml.safe_load(config_file) or {}
+                loaded_config = _make_yaml().load(config_file)
             case _:
                 return None
 
@@ -74,7 +86,7 @@ def _write_config(config_path: str, config_data: dict) -> None:
                 json.dump(config_data, config_file, indent=4, ensure_ascii=False)
                 config_file.write("\n")
             case ".yaml" | ".yml":
-                yaml.safe_dump(config_data, config_file, sort_keys=False, allow_unicode=True, indent=4)
+                _make_yaml().dump(config_data, config_file)
 
 
 def upgrade():
@@ -99,9 +111,21 @@ def upgrade():
             continue
 
         for old_key, new_key in ZLO_RENAMED_KEYS.items():
-            if old_key in service_config and new_key not in service_config:
+            if old_key not in service_config or new_key in service_config:
+                continue
+
+            # a ruamel map keeps comments so we put the new key back in the same spot
+            if isinstance(service_config, CommentedMap):
+                insert_at = list(service_config.keys()).index(old_key)
+                comment_record = service_config.ca.items.pop(old_key, None)
+                service_config.insert(insert_at, new_key, service_config.pop(old_key))
+                if comment_record is not None:
+                    service_config.ca.items[new_key] = comment_record
+            else:
+                # a plain dict is a json config with no comments to keep
                 service_config[new_key] = service_config.pop(old_key)
-                mutated = True
+
+            mutated = True
 
     if not mutated:
         return

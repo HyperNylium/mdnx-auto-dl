@@ -4,13 +4,13 @@ import sys
 import pwd
 import grp
 import json
-import yaml
 import tomllib
 import subprocess
 import unicodedata
 from string import Template
 from collections import OrderedDict
 from pydantic import ValidationError
+from ruamel.yaml import YAML
 
 from .types.config import Config, AppConfig
 from .types.service import Service, MdnxServices, CdlServices, Services
@@ -62,6 +62,17 @@ def _resolve_config_path() -> str:
     return default_config_paths[0]
 
 
+def _make_yaml() -> YAML:
+    """Create a ruamel.yaml YAML handler with specific formatting options."""
+
+    yaml_handler = YAML()
+    yaml_handler.preserve_quotes = True
+    yaml_handler.allow_unicode = True
+    yaml_handler.width = 4096
+    yaml_handler.indent(mapping=4, sequence=6, offset=4)
+    return yaml_handler
+
+
 def _read_config(config_path: str) -> dict:
     """Read the config file from disk and return it as a dict."""
 
@@ -72,7 +83,7 @@ def _read_config(config_path: str) -> dict:
             case ".json":
                 loaded_config = json.load(config_file)
             case ".yaml" | ".yml":
-                loaded_config = yaml.safe_load(config_file) or {}
+                loaded_config = _make_yaml().load(config_file) or {}
             case _:
                 raise ValueError(f"Unsupported config format: {config_path}. Use .json, .yaml, or .yml.")
 
@@ -93,7 +104,7 @@ def _write_config(config_path: str, config_data: dict) -> None:
                 json.dump(config_data, config_file, indent=4, ensure_ascii=False)
                 config_file.write("\n")
             case ".yaml" | ".yml":
-                yaml.safe_dump(config_data, config_file, sort_keys=False, allow_unicode=True, indent=4)
+                _make_yaml().dump(config_data, config_file)
             case _:
                 raise ValueError(f"Unsupported config format: {config_path}. Use .json, .yaml, or .yml.")
 
