@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 
 from .MediaServerManager import mediaserver_scan_library
 from .Globals import file_manager, queue_manager, log_manager, remote_specials, stop_event
-from .ServiceHelper import get_wanted_dubs_and_subs, probe_streams, select_dubs, select_subs
+from .ServiceHelper import get_wanted_dubs_and_subs, probe_streams, select_dubs, select_subs, select_video, select_audio
 from .Vars import (
     config,
     JELLY_CONFIGURED, PLEX_CONFIGURED, SERVICES, TEMP_DIR, TZ,
@@ -390,13 +390,16 @@ class MainLoop:
 
             dub_override = select_dubs(service, episode, dub_overrides)
             sub_override = select_subs(service, episode, sub_overrides)
+            video_override = select_video(service, episode)
+            audio_override = select_audio(service, episode, dub_override)
 
             if self.dry_run and dub_override is not False:
                 log_manager.info(f"[{service_label}] DRY_RUN is True. Would have downloaded {season_key}{episode_key} '{episode.episode_name}'.\nNaming it: {episode_basename}\nStoring it at: {file_path}")
 
             dl_start = time.perf_counter()
             download_successful = mdnx_api.download_episode(
-                series_id, season.season_id, episode.episode_number_download, dub_override, sub_override
+                series_id, season.season_id, episode.episode_number_download,
+                dub_override, sub_override, video_override, audio_override
             )
             dl_end = time.perf_counter()
             dl_elapsed = dl_end - dl_start
@@ -542,13 +545,16 @@ class MainLoop:
 
             dub_override = select_dubs(service, episode, dub_overrides)
             sub_override = select_subs(service, episode, sub_overrides)
+            video_override = select_video(service, episode)
+            audio_override = select_audio(service, episode, dub_override)
 
             if self.dry_run and dub_override is not False:
                 log_manager.info(f"[{service_label}] DRY_RUN is True. Would have re-downloaded {episode_basename} to pick up missing dubs={','.join(effective_missing_dubs) or 'None'} and subs={','.join(effective_missing_subs) or 'None'}.\nOverwriting the file at {file_path}.")
 
             dl_start = time.perf_counter()
             download_successful = mdnx_api.download_episode(
-                series_id, season.season_id, episode.episode_number_download, dub_override, sub_override
+                series_id, season.season_id, episode.episode_number_download,
+                dub_override, sub_override, video_override, audio_override
             )
             dl_end = time.perf_counter()
             dl_elapsed = dl_end - dl_start

@@ -6,7 +6,7 @@ import threading
 from appdata.modules.Globals import queue_manager, log_manager
 from appdata.modules.API.CardinalDL._shared import (
     CDL_SERVICE_BIN_PATH,
-    normalize_cdl_dubs, normalize_cdl_subtitles, normalize_cdl_qualities
+    normalize_audio_qualities, normalize_subtitles, normalize_video_qualities
 )
 from appdata.modules.Vars import (
     config,
@@ -145,17 +145,13 @@ class NETFLIX_CDL_API:
             if self.download_proc is proc:
                 self.download_proc = None
 
-    def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list[str] | None = None, sub_override: list[str] | None = None) -> bool:
+    def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list[str] | None = None, sub_override: list[str] | None = None, video_override: str | None = None, audio_override: str | None = None) -> bool:
         """Download a specific episode using the CardinalDL service."""
 
         log_manager.info(f"Downloading episode {episode_number} for series {series_id} season {season_id}")
 
         if dub_override is False:
             log_manager.info("No dubs were found for this episode, skipping download.")
-            return False
-
-        if not dub_override:
-            log_manager.info("No dublang values were selected for this episode, skipping download.")
             return False
 
         tmp_cmd = [
@@ -166,15 +162,13 @@ class NETFLIX_CDL_API:
             "--episode", episode_number
         ]
 
-        videoquality_value = self.service_config.videoquality.strip()
-        if videoquality_value != "":
-            tmp_cmd += ["--videoquality", videoquality_value]
-            log_manager.info(f"Using videoquality override: {videoquality_value}")
+        if video_override:
+            tmp_cmd += ["--videoquality", video_override]
+            log_manager.info(f"Using videoquality override: {video_override}")
 
-        audioquality_value = self.service_config.audioquality.strip()
-        if audioquality_value != "":
-            tmp_cmd += ["--audioquality", audioquality_value]
-            log_manager.info(f"Using audioquality override: {audioquality_value}")
+        if audio_override:
+            tmp_cmd += ["--audioquality", audio_override]
+            log_manager.info(f"Using audioquality override: {audio_override}")
 
         if self.service_config.fallback:
             tmp_cmd += ["--fallback"]
@@ -195,9 +189,12 @@ class NETFLIX_CDL_API:
             tmp_cmd += ["--dectool", self.service_config.dectool]
             log_manager.info(f"Using dectool override: {self.service_config.dectool}")
 
-        joined_dubs = ",".join(dub_override)
-        tmp_cmd += ["--dublang", joined_dubs]
-        log_manager.info(f"Using dublang override: {joined_dubs}")
+        if dub_override:
+            joined_dubs = ",".join(dub_override)
+            tmp_cmd += ["--dublang", joined_dubs]
+            log_manager.info(f"Using dublang override: {joined_dubs}")
+        else:
+            log_manager.info("No dublang override selected. Letting CardinalDL use its storage defaults.")
 
         if sub_override:
             joined_subs = ",".join(sub_override)
@@ -373,9 +370,10 @@ class NETFLIX_CDL_API:
                 kept_episode_count += 1
                 episode_key = f"E{kept_episode_count}"
 
-                available_dubs = normalize_cdl_dubs(episode_data.get("audios") or [])
-                available_subs = normalize_cdl_subtitles(episode_data.get("subtitles") or [])
-                available_qualities = normalize_cdl_qualities(episode_data.get("qualities") or [])
+                available_audio_qualities = normalize_audio_qualities(episode_data.get("audios") or {})
+                available_dubs = list(available_audio_qualities)
+                available_subs = normalize_subtitles(episode_data.get("subtitles") or [])
+                available_video_qualities = normalize_video_qualities(episode_data.get("qualities") or {})
 
                 # Pull the CardinalDL id straight from the JSON so the queue points back to the source record.
                 episode_id_value = str(episode_data.get("id") or "").strip()
@@ -389,7 +387,8 @@ class NETFLIX_CDL_API:
                     episode_name=episode_title,
                     available_dubs=available_dubs,
                     available_subs=available_subs,
-                    available_qualities=available_qualities
+                    available_video_qualities=available_video_qualities,
+                    available_audio_qualities=available_audio_qualities
                 )
 
             if episodes_dict == {}:

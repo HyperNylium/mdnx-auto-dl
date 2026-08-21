@@ -41,6 +41,24 @@ def select_subs(service: str, episode: Episode, sub_overrides: list[str] | None 
     return tool_module.select_subs(service_obj, episode, sub_overrides)
 
 
+def select_video(service: str, episode: Episode):
+    """Dispatch video-quality selection to the right per-tool module."""
+
+    service_obj, tool_module = _resolve(service)
+    if service_obj is None or service_obj.tool != "cardinaldl":
+        return None
+    return tool_module.select_video(service_obj, episode)
+
+
+def select_audio(service: str, episode: Episode, selected_dubs):
+    """Dispatch audio-quality selection to the right per-tool module."""
+
+    service_obj, tool_module = _resolve(service)
+    if service_obj is None or service_obj.tool != "cardinaldl":
+        return None
+    return tool_module.select_audio(service_obj, episode, selected_dubs)
+
+
 def get_wanted_dubs_and_subs(service: str, series_id: str, season_id: str | None) -> tuple[set, set]:
     """Dispatch wanted-tracks lookup to the right per-tool module."""
 

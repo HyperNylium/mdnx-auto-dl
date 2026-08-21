@@ -12,7 +12,7 @@ from appdata.modules.API.MDNX._shared import (
     update_mdnx_config
 )
 from appdata.modules.API.CardinalDL._shared import (
-    CDL_SERVICE_BIN_PATH, check_cdl_signed_in
+    CDL_SERVICE_BIN_PATH, check_cdl_signed_in, load_defaults
 )
 from appdata.modules.Vars import (
     config,
@@ -78,6 +78,8 @@ def app():
             if not cdl_signed_in:
                 log_manager.critical(cdl_error)
                 sys.exit(1)
+
+            load_defaults(storage_path)
 
         log_manager.info("CardinalDL checks completed. All good!")
 
