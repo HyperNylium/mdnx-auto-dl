@@ -146,7 +146,7 @@ def check_cdl_signed_in(storage_path: str) -> tuple[bool, str]:
 
     for required_key in ("account", "accountDeviceId", "accountDeviceProofKeyV2"):
         if required_key not in stored_values:
-            return (False, f"You are not signed into CardinalDL. The storage database at {storage_path} has no '{required_key}'.\nPlease sign in with the CardinalDL GUI, or run:\n./cardinaldl --login --username 'your_provided_CDL_username' --password 'your_provided_CDL_password' --configPath '/path/to/storage.db'")
+            return (False, f"You are not signed into CardinalDL. The storage database at {storage_path} has no '{required_key}'.\nPlease sign in with the CardinalDL GUI, or run:\n./cardinaldl --login --username 'your_provided_CDL_username' --password 'your_provided_CDL_password' --configpath '/path/to/storage.db'")
 
     # the CLI stores every value as JSON so the device key should come back as an object
     try:
@@ -160,7 +160,7 @@ def check_cdl_signed_in(storage_path: str) -> tuple[bool, str]:
     # linux builds have no secret protector so a key protected on windows can never be unlocked here
     key_provider = device_key.get("provider")
     if key_provider != "plain":
-        return (False, f"The CardinalDL storage DB at {storage_path} has the device key provider '{key_provider}', but linux builds can only read 'plain'.\nIt seems like you copy-pasted your DB from windows to linux without running the login command as you have the wrong auth provider.\nPlease 'docker compose down' this container and run:\n./cardinaldl --login --username 'your_provided_CDL_username' --password 'your_provided_CDL_password' --configPath '/path/to/storage.db'")
+        return (False, f"The CardinalDL storage DB at {storage_path} has the device key provider '{key_provider}', but linux builds can only read 'plain'.\nIt seems like you copy-pasted your DB from windows to linux without running the login command as you have the wrong auth provider.\nPlease 'docker compose down' this container and run:\n./cardinaldl --login --username 'your_provided_CDL_username' --password 'your_provided_CDL_password' --configpath '/path/to/storage.db'")
 
     return (True, "")
 
@@ -276,7 +276,7 @@ def select_dubs(service: Service, episode: Episode, dub_overrides: list[str] | N
     cdl_service_config = service.config
 
     desired_cdl_dubs = []
-    for language_code in cdl_service_config.dubLang:
+    for language_code in cdl_service_config.dublang:
         normalized = language_code.strip().upper()
         if normalized == "":
             continue
@@ -396,7 +396,7 @@ def get_wanted_dubs_and_subs(service: Service, series_id: str, season_id: str | 
     if season_monitor is not None and season_monitor.dub_overrides is not None:
         dub_source = season_monitor.dub_overrides
     else:
-        dub_source = cdl_service_config.dubLang
+        dub_source = cdl_service_config.dublang
 
     if season_monitor is not None and season_monitor.sub_overrides is not None:
         sub_source = season_monitor.sub_overrides

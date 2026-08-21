@@ -136,16 +136,21 @@ class MdnxConfig(BaseModel):
 
 class CdlServiceConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
-
-    quality: str = Field("1080p@avc", pattern=r"^(\d{3,4}p?(@(avc|hvc|dvh|vp9|av1|hybrid))?)?$")
-    qualityfallback: bool = True
-    dubLang: list[str] = ["JP", "EN"]
+    videoquality: str = Field("1080p@@sdr", pattern=r"^(?:(?:\d{3,4}p?|highest)?(?:@(?:h264|hevc|vp8|vp9|av1)?(?:@(?:dv-hdr10\+?|hdr10\+?|hlg|sdr|dv)?)?)?)?$")
+    # for audioquality allow LANG:format@channels but dont allow @bitrate
+    audioquality: str = Field("aac@2.0", pattern=r"^(?:(?:[A-Za-z][A-Za-z-]*:)?(?:(?:atmos|eac3|ac3|aac)(?:@(?:7\.1|5\.1|2\.0|1\.0))?|@(?:7\.1|5\.1|2\.0|1\.0))(?:,(?:[A-Za-z][A-Za-z-]*:)?(?:(?:atmos|eac3|ac3|aac)(?:@(?:7\.1|5\.1|2\.0|1\.0))?|@(?:7\.1|5\.1|2\.0|1\.0)))*)?$")
+    fallback: bool = True
+    # keep hybrid as None so that if the user ticked the box to enable it in the GUI, it will be True, but if they didnt, it will be None and the default behavior will be used without us having to pass --hybrid to the CLI
+    hybrid: bool | None = None
+    outputformat: str = Field("mkv", pattern=r"^(?:mkv|mp4)?$")
+    dectool: str = Field("shaka", pattern=r"^(?:mp4decrypt|shaka)?$")
+    dublang: list[str] = ["JP", "EN"]
     dlsubs: list[str] = ["EN"]
-    forceSubFormat: str = Field("", pattern="^(srt|ass|vtt|auto|raw|original)?$")
+    forcesubformat: str = Field("", pattern="^(srt|ass|vtt|auto|raw|original)?$")
     backup_dubs: list[str] = Field(default_factory=list)
     dlpath: str = "/app/appdata/temp"
-    tempPath: str = "/tmp"
-    configPath: str = "/app/appdata/bin/cardinaldl/config/storage/storage.db"
+    temppath: str = "/tmp"
+    configpath: str = "/app/appdata/bin/cardinaldl/config/storage/storage.db"
 
 
 class CdlConfig(BaseModel):

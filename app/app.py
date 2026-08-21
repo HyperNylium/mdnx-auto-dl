@@ -71,7 +71,7 @@ def app():
         storage_paths = set()
         for cdl_service in SERVICES.cardinaldl.all():
             if cdl_service.enabled:
-                storage_paths.add(cdl_service.config.configPath)
+                storage_paths.add(cdl_service.config.configpath)
 
         for storage_path in sorted(storage_paths):
             cdl_signed_in, cdl_error = check_cdl_signed_in(storage_path)

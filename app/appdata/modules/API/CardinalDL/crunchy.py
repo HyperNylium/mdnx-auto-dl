@@ -47,7 +47,7 @@ class CR_CDL_API:
         if os.path.isfile(self.json_path):
             os.remove(self.json_path)
 
-        tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--jsonOutput", self.json_path, "--configPath", self.service_config.configPath]
+        tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--jsonoutput", self.json_path, "--configpath", self.service_config.configpath]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8", cwd=self.cdl_working_dir)
         log_manager.debug(f"Console output for start_monitor process:\n{result.stdout}")
 
@@ -89,7 +89,7 @@ class CR_CDL_API:
         if os.path.isfile(self.json_path):
             os.remove(self.json_path)
 
-        tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--jsonOutput", self.json_path, "--configPath", self.service_config.configPath]
+        tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--jsonoutput", self.json_path, "--configpath", self.service_config.configpath]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8", cwd=self.cdl_working_dir)
         log_manager.debug(f"Console output for update_monitor process:\n{result.stdout}")
 
@@ -155,7 +155,7 @@ class CR_CDL_API:
             return False
 
         if not dub_override:
-            log_manager.info("No dubLang values were selected for this episode, skipping download.")
+            log_manager.info("No dublang values were selected for this episode, skipping download.")
             return False
 
         tmp_cmd = [
@@ -166,31 +166,52 @@ class CR_CDL_API:
             "--episode", episode_number
         ]
 
-        quality_value = self.service_config.quality.strip()
-        if quality_value != "":
-            tmp_cmd += ["--quality", quality_value]
-            log_manager.info(f"Using quality override: {quality_value}")
+        videoquality_value = self.service_config.videoquality.strip()
+        if videoquality_value != "":
+            tmp_cmd += ["--videoquality", videoquality_value]
+            log_manager.info(f"Using videoquality override: {videoquality_value}")
 
-        tmp_cmd += ["--qualityfallback", str(self.service_config.qualityfallback).lower()]
-        log_manager.info(f"Using qualityfallback override: {str(self.service_config.qualityfallback).lower()}")
+        audioquality_value = self.service_config.audioquality.strip()
+        if audioquality_value != "":
+            tmp_cmd += ["--audioquality", audioquality_value]
+            log_manager.info(f"Using audioquality override: {audioquality_value}")
+
+        if self.service_config.fallback:
+            tmp_cmd += ["--fallback"]
+            log_manager.info("Using fallback flag.")
+
+        # only add the hybrid flag if it is explicitly set to True or False.
+        # If it is None, we leave it out and let CardinalDL's GUI settings decide.
+        if self.service_config.hybrid is not None:
+            hybrid_value = str(self.service_config.hybrid).lower()
+            tmp_cmd += ["--hybrid", hybrid_value]
+            log_manager.info(f"Using hybrid override: {hybrid_value}")
+
+        if self.service_config.outputformat:
+            tmp_cmd += ["--outputformat", self.service_config.outputformat]
+            log_manager.info(f"Using outputformat override: {self.service_config.outputformat}")
+
+        if self.service_config.dectool:
+            tmp_cmd += ["--dectool", self.service_config.dectool]
+            log_manager.info(f"Using dectool override: {self.service_config.dectool}")
 
         joined_dubs = ",".join(dub_override)
-        tmp_cmd += ["--dubLang", joined_dubs]
-        log_manager.info(f"Using dubLang override: {joined_dubs}")
+        tmp_cmd += ["--dublang", joined_dubs]
+        log_manager.info(f"Using dublang override: {joined_dubs}")
 
         if sub_override:
             joined_subs = ",".join(sub_override)
             tmp_cmd += ["--dlsubs", joined_subs]
             log_manager.info(f"Using dlsubs override: {joined_subs}")
 
-        if self.service_config.forceSubFormat:
-            tmp_cmd += ["--forceSubFormat", self.service_config.forceSubFormat]
-            log_manager.info(f"Using forceSubFormat override: {self.service_config.forceSubFormat}")
+        if self.service_config.forcesubformat:
+            tmp_cmd += ["--forcesubformat", self.service_config.forcesubformat]
+            log_manager.info(f"Using forcesubformat override: {self.service_config.forcesubformat}")
 
-        tmp_cmd += ["--fileName", "output"]
+        tmp_cmd += ["--filename", "output"]
         tmp_cmd += ["--dlpath", self.service_config.dlpath]
-        tmp_cmd += ["--tempPath", self.service_config.tempPath]
-        tmp_cmd += ["--configPath", self.service_config.configPath]
+        tmp_cmd += ["--temppath", self.service_config.temppath]
+        tmp_cmd += ["--configpath", self.service_config.configpath]
 
         if self.stdbuf_exists:
             cmd = ["stdbuf", "-oL", "-eL", *tmp_cmd]
@@ -274,7 +295,7 @@ class CR_CDL_API:
             result["returncode"] = returncode
 
     def _process_json_payload(self, parsed_payload: dict, add2queue: bool = True, requested_series_id: str | None = None):
-        """Convert the structured JSON payload from --jsonOutput to queue db format."""
+        """Convert the structured JSON payload from --jsonoutput to queue db format."""
 
         log_manager.debug("Processing CardinalDL JSON payload...")
 
