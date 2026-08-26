@@ -389,6 +389,76 @@ def dedupe_casefold(items):
     return dedupe_preserve_order(items, key=lambda value: value.casefold())
 
 
+def eval_subs(wanted_tokens: set[str], local_tokens: set[str], available_tokens: set[str]) -> tuple[set[str], bool]:
+    """Work out which wanted subtitle tracks are still missing and grabbable and whether the episode is satisfied."""
+
+    def split_presence(tokens: set[str], derive_base: bool) -> tuple[set[str], set[str]]:
+        # derive_base also keeps the base language so things like ES-419 satisfies a plain ES want
+        full_codes = set()
+        cc_codes = set()
+        for token in tokens:
+            code, _, variant = token.partition(":")
+            bucket = cc_codes if variant == "cc" else full_codes
+            bucket.add(code)
+            if derive_base and "-" in code:
+                bucket.add(code.split("-")[0])
+        return full_codes, cc_codes
+
+    local_full, local_cc = split_presence(local_tokens, True)
+    avail_full, avail_cc = split_presence(available_tokens, False)
+
+    missing_to_download = set()
+    all_satisfied = True
+
+    for wanted_token in wanted_tokens:
+        code, _, variant = wanted_token.partition(":")
+
+        # a bare code is happy with any variant that is on disk
+        if variant == "":  # bare code like "EN"
+            if code in local_full or code in local_cc:
+                continue
+
+            all_satisfied = False
+            if code in avail_full or code in avail_cc:
+                missing_to_download.add(code)
+            continue
+
+        # an explicit variant wants specific tracks. both wants two of them
+        match variant:
+            case "both":
+                needed_variants = ("full", "cc")
+            case "cc":
+                needed_variants = ("cc",)
+            case _:
+                needed_variants = ("full",)
+
+        for needed_variant in needed_variants:
+            if needed_variant == "cc":
+                have_track = code in local_cc
+                offered = code in avail_cc
+                download_token = f"{code}:cc"
+            else:
+                have_track = code in local_full
+                offered = code in avail_full
+                download_token = code
+
+            if have_track:
+                continue
+
+            language_on_disk = code in local_full or code in local_cc
+
+            # we have the language but not this exact variant and the service does not offer it.
+            # there is nothing to chase so let it count as satisfied
+            if language_on_disk and not offered:
+                continue
+
+            all_satisfied = False
+            if offered:
+                missing_to_download.add(download_token)
+
+    return missing_to_download, all_satisfied
+
+
 def format_duration(seconds: int) -> str:
     """Format a duration in seconds into a human-readable string."""
 

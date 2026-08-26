@@ -296,18 +296,30 @@ def normalize_audio_qualities(raw_audios) -> dict[str, list[str]]:
 def normalize_subtitles(raw_subtitles: list) -> list[str]:
     cleaned = []
     for raw_subtitle in raw_subtitles:
-        code = str(raw_subtitle).strip()
+        if not isinstance(raw_subtitle, dict):
+            continue
+
+        code = str(raw_subtitle.get("code") or "").strip()
+        variant = str(raw_subtitle.get("variant") or "full").strip().lower()
+
         if code == "":
             continue
 
         if code not in VALID_CDL_CODES:
             _log(
-                f"CardinalDL CLI output unknown subtitle code '{raw_subtitle}'. Skipping it.\nIf you believe this is a mistake, please open an issue with details about the subtitle language and service it was found in so it can be added to the mapping.",
+                f"CardinalDL CLI output unknown subtitle code '{code}'. Skipping it.\nIf you believe this is a mistake, please open an issue with details about the subtitle language and service it was found in so it can be added to the mapping.",
                 level="warning"
             )
             continue
 
-        cleaned.append(code)
+        # forced tracks are added by CardinalDL on their own so we do not monitor them
+        if variant == "forced":
+            continue
+
+        if variant in ("cc", "sdh", "caption"):
+            cleaned.append(f"{code}:cc")
+        else:
+            cleaned.append(code)
 
     return dedupe_casefold(cleaned)
 
@@ -464,41 +476,55 @@ def select_dubs(service: Service, episode: Episode, dub_overrides: list[str] | N
 def select_subs(service: Service, episode: Episode, sub_overrides: list[str] | None = None):
     cdl_service_config = service.config
 
-    available_cdl_subs = set()
-    for locale_code in episode.available_subs:
-        normalized = locale_code.strip().upper()
-        if normalized == "":
+    available_full = set()
+    available_cc = set()
+    for available_token in episode.available_subs:
+        code, _, variant = available_token.strip().upper().partition(":")
+        if code == "":
             continue
-        available_cdl_subs.add(normalized)
-
-    _log(f"Available CardinalDL subs: {available_cdl_subs}", level="debug")
+        if variant == "CC":
+            available_cc.add(code)
+        else:
+            available_full.add(code)
 
     if sub_overrides is None:
-        desired_sub_source = []
-        for locale_code in cdl_service_config.dlsubs:
-            desired_sub_source.append(locale_code)
+        desired_sub_source = list(cdl_service_config.dlsubs)
         _log(f"Using CardinalDL default subs from config: {desired_sub_source}", level="debug")
     else:
-        desired_sub_source = []
-        for locale_code in sub_overrides:
-            desired_sub_source.append(locale_code)
+        desired_sub_source = list(sub_overrides)
         _log(f"Using CardinalDL season sub overrides: {desired_sub_source}", level="debug")
 
     requested_cli_subs = []
     matched_subs = []
 
-    for locale_code in desired_sub_source:
-        normalized = locale_code.strip().upper()
-        if normalized == "":
+    for desired_token in desired_sub_source:
+        code, _, variant = desired_token.strip().upper().partition(":")
+        if code == "":
+            continue
+        if code not in VALID_CDL_CODES:
             continue
 
-        if normalized not in VALID_CDL_CODES:
-            continue
+        # sdh and caption are cc aliases
+        variant = variant.lower()
+        if variant in ("sdh", "caption"):
+            variant = "cc"
+        if variant in ("full", "cc", "both"):
+            cli_token = f"{code}:{variant}"
+        else:
+            cli_token = code
 
-        requested_cli_subs.append(normalized)
+        requested_cli_subs.append(cli_token)
 
-        if normalized in available_cdl_subs:
-            matched_subs.append(normalized)
+        match variant:
+            case "cc":
+                track_available = code in available_cc
+            case "full":
+                track_available = code in available_full
+            case _:
+                track_available = code in available_full or code in available_cc
+
+        if track_available:
+            matched_subs.append(cli_token)
 
     matched_subs = dedupe_casefold(matched_subs)
     requested_cli_subs = dedupe_casefold(requested_cli_subs)
@@ -638,10 +664,19 @@ def get_wanted_dubs_and_subs(service: Service, series_id: str, season_id: str | 
             wanted_dubs.add(normalized)
 
     wanted_subs = set()
-    for locale_code in sub_source:
-        normalized = locale_code.strip().upper()
-        if normalized:
-            wanted_subs.add(normalized)
+    for sub_token in sub_source:
+        code, _, variant = sub_token.strip().partition(":")
+        code = code.upper()
+        if code == "":
+            continue
+        variant = variant.strip().lower()
+        match variant:
+            case "sdh" | "caption" | "cc":
+                wanted_subs.add(f"{code}:cc")
+            case "full" | "both":
+                wanted_subs.add(f"{code}:{variant}")
+            case _:
+                wanted_subs.add(code)
 
     _log(f"Effective wanted CardinalDL tracks for {service.service_name} {series_id}/{season_id}: dubs={wanted_dubs}, subs={wanted_subs}", level="debug")
 
@@ -683,7 +718,20 @@ def probe_streams(file_path: str) -> tuple[set, set]:
                     audio_langs.add(mapped_code)
             case "subtitle":
                 if mapped_code is not None:
-                    sub_langs.add(mapped_code)
+                    # CC/SDH show up as a [CC]/[SDH] title tag or the hearing_impaired flag
+                    raw_title = ffprobe_title.lower()
+                    disposition = stream.get("disposition", {})
+
+                    if "[forced]" in raw_title or disposition.get("forced") == 1:
+                        continue
+
+                    caption_tags = ("[cc]", "[sdh]", "[sdh/cc]")
+                    is_caption = disposition.get("hearing_impaired") == 1 or any(tag in raw_title for tag in caption_tags)
+
+                    if is_caption:
+                        sub_langs.add(f"{mapped_code}:cc")
+                    else:
+                        sub_langs.add(mapped_code)
             case _:
                 continue
 

@@ -526,7 +526,7 @@ class HIDIVE_MDNX_API:
 
             if not download_map:
                 # fall back to sequential download numbering later
-                log_manager.debug(f"No flat map matched for {season_key}; falling back to 1..N.")
+                log_manager.debug(f"No flat map matched for {season_key}. Falling back to 1..N.")
 
             # produce a list of download indices in tree order
             if download_map:

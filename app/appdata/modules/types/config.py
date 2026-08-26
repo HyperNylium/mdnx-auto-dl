@@ -1,4 +1,9 @@
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Annotated
+
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+
+# a subtitle token is a language code with an optional variant like EN or EN:cc
+SubToken = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"(?i)^[A-Za-z][A-Za-z0-9-]*(:(full|cc|sdh|caption|both))?$")]
 
 
 class DestinationConfig(BaseModel):
@@ -96,7 +101,7 @@ class SeasonMonitorConfig(BaseModel):
     blacklists: list[str] | None = None
     season_override: str | None = None
     dub_overrides: list[str] | None = None
-    sub_overrides: list[str] | None = None
+    sub_overrides: list[SubToken] | None = None
 
 
 class MdnxBinPath(BaseModel):
@@ -145,7 +150,7 @@ class CdlServiceConfig(BaseModel):
     outputformat: str = Field("mkv", pattern=r"^(?:mkv|mp4)?$")
     dectool: str = Field("shaka", pattern=r"^(?:mp4decrypt|shaka)?$")
     dublang: list[str] = ["JP", "EN"]
-    dlsubs: list[str] = ["EN"]
+    dlsubs: list[SubToken] = ["EN"]
     forcesubformat: str = Field("", pattern="^(srt|ass|vtt|auto|raw|original)?$")
     backup_dubs: list[str] = Field(default_factory=list)
     dlpath: str = "/app/appdata/temp"
