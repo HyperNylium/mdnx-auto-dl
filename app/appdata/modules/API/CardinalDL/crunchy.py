@@ -47,7 +47,7 @@ class CR_CDL_API:
         if os.path.isfile(self.json_path):
             os.remove(self.json_path)
 
-        tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--jsonoutput", self.json_path, "--configpath", self.service_config.configpath]
+        tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--full", "--workers", "3", "--jsonoutput", self.json_path, "--configpath", self.service_config.configpath]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8", cwd=self.cdl_working_dir)
         log_manager.debug(f"Console output for start_monitor process:\n{result.stdout}")
 
@@ -89,7 +89,7 @@ class CR_CDL_API:
         if os.path.isfile(self.json_path):
             os.remove(self.json_path)
 
-        tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--jsonoutput", self.json_path, "--configpath", self.service_config.configpath]
+        tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--full", "--workers", "3", "--jsonoutput", self.json_path, "--configpath", self.service_config.configpath]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8", cwd=self.cdl_working_dir)
         log_manager.debug(f"Console output for update_monitor process:\n{result.stdout}")
 
