@@ -20,7 +20,7 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     with op.batch_alter_table("episodes", schema=None) as batch_op:
         batch_op.alter_column("available_qualities", new_column_name="available_video_qualities")
-        batch_op.add_column(sa.Column("available_audio_qualities", sa.Text(), nullable=False, server_default=sa.text("'{}'")))
+        batch_op.add_column(sa.Column("available_audio_qualities", sa.Text(), nullable=False, server_default=sa.text("'{}'")), insert_after="available_qualities")
 
     # the old available_qualities held a list, the new column holds a dict, so reset both to an empty dict.
     # the queue is regenerated data and refills on the next refresh anyways.
