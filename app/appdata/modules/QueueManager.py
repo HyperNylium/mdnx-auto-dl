@@ -56,6 +56,17 @@ class QueueManager:
                 # update only the SeriesInfo blob, leave existing seasons alone for merge
                 existing_series.series = new_series.series
 
+                # only for multi-downloader-nx ADN to handle their no season ID BS
+                preserved_by_episode_id: dict[str, tuple[bool, bool]] = {}
+                if bucket_name == "ADN":
+                    for old_season in existing_series.seasons.values():
+                        for old_episode in old_season.episodes.values():
+                            if old_episode.episode_id:
+                                preserved_by_episode_id[old_episode.episode_id] = (
+                                    old_episode.episode_downloaded,
+                                    old_episode.has_all_dubs_subs
+                                )
+
                 # collapse any existing duplicates in current seasons by season_id
                 seen: dict[str, str] = {}
                 for old_key, old_season in list(existing_series.seasons.items()):
@@ -104,7 +115,11 @@ class QueueManager:
 
                     for episode_key, new_episode in new_season.episodes.items():
                         old_episode = existing_season.episodes.get(episode_key)
-                        if old_episode is not None:
+                        if new_episode.episode_id and new_episode.episode_id in preserved_by_episode_id:
+                            new_episode.episode_downloaded, new_episode.has_all_dubs_subs = (
+                                preserved_by_episode_id[new_episode.episode_id]
+                            )
+                        elif old_episode is not None:
                             new_episode.episode_downloaded = old_episode.episode_downloaded
                             new_episode.has_all_dubs_subs = old_episode.has_all_dubs_subs
                         existing_season.episodes[episode_key] = new_episode
