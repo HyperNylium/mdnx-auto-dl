@@ -89,7 +89,7 @@ purge_folder() {
   local pattern
 
   for pattern in "$@"; do
-    if ! find "$target_dir" -maxdepth 1 -type f -name "$pattern" -delete 2>/dev/null; then
+    if ! find "$target_dir" -maxdepth 1 -regextype posix-extended -type f -regex ".*/$pattern" -delete 2>/dev/null; then
       echo "[entrypoint] WARNING: Could not purge '$pattern' files in $target_dir (permission issue). Continuing..."
     fi
   done
@@ -116,8 +116,8 @@ if ! getent passwd "$USERNAME" >/dev/null; then
 fi
 
 # Purge old log files in the logs directories for both mdnx and cardinaldl tools.
-purge_folder "$BIN_DIR/mdnx/logs" "latest.log" "[0-9]*.[0-9][0-9][0-9][0-9].log"
-purge_folder "$BIN_DIR/cardinaldl/config/logs" "combined.log" "error.log"
+purge_folder "$BIN_DIR/mdnx/logs" "latest\.log" "[0-9]+\.[0-9]+\.log"
+purge_folder "$BIN_DIR/cardinaldl/config/logs" "combined\.log" "error\.log"
 
 echo "[entrypoint] Applying ownership and permissions to /app. This can take a moment..."
 chown -R "$USER_ID:$GROUP_ID" /app
