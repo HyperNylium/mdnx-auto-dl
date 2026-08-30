@@ -1,54 +1,40 @@
-"""rename zlo to cardinaldl
+"""rename cardinaldl quality flags
 
-Revision ID: 0005
-Revises: 0004
-Create Date: 2026-08-05 00:00:00.000000
+Revision ID: 0006
+Revises: 0005
+Create Date: 2026-08-20 00:00:00.000000
 
 """
 import os
 import json
 import shutil
 from typing import Sequence, Union
-from alembic import op
 from ruamel.yaml import YAML
 from ruamel.yaml.comments import CommentedMap
 
-revision: str = "0005"
-down_revision: Union[str, None] = "0004"
+revision: str = "0006"
+down_revision: Union[str, None] = "0005"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
-TOP_LEVEL_RENAMED_KEYS = {
-    "zlo": "cardinaldl",
-    "zlo_cr_monitor_series_id": "cdl_cr_monitor_series_id",
-    "zlo_hidive_monitor_series_id": "cdl_hidive_monitor_series_id",
-    "zlo_adn_monitor_series_id": "cdl_adn_monitor_series_id"
+OLD_DEFAULT_QUALITY = "1080p@avc"
+NEW_DEFAULT_VIDEOQUALITY = "1080p@@sdr"
+
+CODEC_RENAMES = {
+    "avc": "h264",
+    "hvc": "hevc",
+    "vp9": "vp9",
+    "av1": "av1"
 }
 
-APP_RENAMED_KEYS = {
-    "ZLO_CR_ENABLED": "CDL_CR_ENABLED",
-    "ZLO_HIDIVE_ENABLED": "CDL_HIDIVE_ENABLED",
-    "ZLO_ADN_ENABLED": "CDL_ADN_ENABLED"
+CONFIG_RENAMES = {
+    "qualityfallback": "fallback",
+    "dubLang": "dublang",
+    "forceSubFormat": "forcesubformat",
+    "tempPath": "temppath",
+    "configPath": "configpath"
 }
-
-DESTINATION_RENAMED_KEYS = {
-    "zlo-crunchyroll": "cdl-crunchyroll",
-    "zlo-hidive": "cdl-hidive",
-    "zlo-adn": "cdl-adn"
-}
-
-RENAMED_QUEUE_BUCKETS = {
-    "ZLO-Crunchyroll": "CDL-Crunchyroll",
-    "ZLO-HiDive": "CDL-HiDive",
-    "ZLO-ADN": "CDL-ADN"
-}
-
-# every table that stores a service name in a "service" column
-QUEUE_TABLES = ("series", "seasons", "episodes")
-
-OLD_BIN_FOLDER = "/bin/zlo/"
-NEW_BIN_FOLDER = "/bin/cardinaldl/"
 
 
 def _resolve_config_path() -> str:
@@ -141,11 +127,41 @@ def _rename_keys(target: dict, renamed_keys: dict[str, str]) -> bool:
     return mutated
 
 
-def upgrade():
-    for table_name in QUEUE_TABLES:
-        for old_bucket, new_bucket in RENAMED_QUEUE_BUCKETS.items():
-            op.execute(f"UPDATE {table_name} SET service = '{new_bucket}' WHERE service = '{old_bucket}'")
+def _migrate_quality(old_quality) -> tuple[str, bool | None]:
+    """Convert the old quality string into the new videoquality string and determine if hybrid should be set."""
 
+    text = str(old_quality).strip()
+
+    # if the old default quality is present, we want to change it to the new default videoquality
+    if text == OLD_DEFAULT_QUALITY:
+        return NEW_DEFAULT_VIDEOQUALITY, None
+
+    if text == "":
+        return "", None
+
+    parts = text.split("@")
+    resolution = parts[0].strip()
+    codec = parts[1].strip().lower() if len(parts) > 1 else ""
+
+    # tbh i cant remember if the pre-3.9.24 CLIs supported hybrid or not, but if they did it was a literal @hybrid suffix so we can just check for that
+    if codec == "hybrid":
+        return resolution, True
+
+    # dvh meant hevc with dolby vision so it splits into a codec slot and a range slot now
+    if codec == "dvh":
+        return f"{resolution}@hevc@dv", None
+
+    if codec in CODEC_RENAMES:
+        return f"{resolution}@{CODEC_RENAMES[codec]}", None
+
+    if codec == "":
+        return resolution, None
+
+    # an unknown codec is left as it was so the config pattern check can flag it later
+    return text, None
+
+
+def upgrade():
     config_path = _resolve_config_path()
 
     if not os.path.isfile(config_path):
@@ -155,34 +171,36 @@ def upgrade():
     if on_disk_config is None:
         return
 
-    mutated = _rename_keys(on_disk_config, TOP_LEVEL_RENAMED_KEYS)
-
-    app_section = on_disk_config.get("app")
-    if isinstance(app_section, dict):
-        if _rename_keys(app_section, APP_RENAMED_KEYS):
-            mutated = True
-
-    destinations_section = on_disk_config.get("destinations")
-    if isinstance(destinations_section, dict):
-        if _rename_keys(destinations_section, DESTINATION_RENAMED_KEYS):
-            mutated = True
-
-    # the binary folder moved, so any storage path still aimed at the old one has to follow it
     cardinaldl_section = on_disk_config.get("cardinaldl")
-    if isinstance(cardinaldl_section, dict):
-        for service_config in cardinaldl_section.values():
-            if not isinstance(service_config, dict):
-                continue
+    if not isinstance(cardinaldl_section, dict):
+        return
 
-            storage_path = service_config.get("configPath")
-            if isinstance(storage_path, str) and OLD_BIN_FOLDER in storage_path:
-                service_config["configPath"] = storage_path.replace(OLD_BIN_FOLDER, NEW_BIN_FOLDER)
-                mutated = True
+    mutated = False
+
+    for service_config in cardinaldl_section.values():
+        if not isinstance(service_config, dict):
+            continue
+
+        # quality -> videoquality translating the value along the way
+        if "quality" in service_config and "videoquality" not in service_config:
+            new_videoquality, hybrid_flag = _migrate_quality(service_config.get("quality"))
+            _rename_keys(service_config, {"quality": "videoquality"})
+            service_config["videoquality"] = new_videoquality
+
+            # only a leftover @hybrid gives us a hybrid flag to write
+            if hybrid_flag is not None and "hybrid" not in service_config:
+                service_config["hybrid"] = hybrid_flag
+
+            mutated = True
+
+        # the rest just change name and keep their value
+        if _rename_keys(service_config, CONFIG_RENAMES):
+            mutated = True
 
     if not mutated:
         return
 
-    backup_path = f"{config_path}.0005-3.1.3.bak"
+    backup_path = f"{config_path}.0006-3.2.1.bak"
     shutil.copyfile(config_path, backup_path)
 
     _write_config(config_path, on_disk_config)

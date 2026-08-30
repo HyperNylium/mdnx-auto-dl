@@ -20,7 +20,8 @@ class Episode(BaseModel):
 
     available_dubs: list[str] = Field(default_factory=list)
     available_subs: list[str] = Field(default_factory=list)
-    available_qualities: list[str] = Field(default_factory=list)
+    available_video_qualities: dict[str, list[str]] = Field(default_factory=dict)
+    available_audio_qualities: dict[str, list[str]] = Field(default_factory=dict)
 
     episode_downloaded: bool = False
     episode_skip: bool = False

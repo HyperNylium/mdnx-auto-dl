@@ -101,7 +101,8 @@ def load_queue(conn: sqlite3.Connection) -> Queue:
             episode_name=episode_row["episode_name"],
             available_dubs=json.loads(episode_row["available_dubs"]),
             available_subs=json.loads(episode_row["available_subs"]),
-            available_qualities=json.loads(episode_row["available_qualities"]),
+            available_video_qualities=json.loads(episode_row["available_video_qualities"]),
+            available_audio_qualities=json.loads(episode_row["available_audio_qualities"]),
             episode_downloaded=bool(episode_row["episode_downloaded"]),
             episode_skip=bool(episode_row["episode_skip"]),
             has_all_dubs_subs=bool(episode_row["has_all_dubs_subs"])
@@ -180,9 +181,9 @@ def upsert_series(conn: sqlite3.Connection, service: str, series_id: str, series
                         "INSERT INTO episodes "
                         "(service, series_id, season_key, episode_key, episode_id, "
                         "episode_number, episode_number_download, episode_name, "
-                        "available_dubs, available_subs, available_qualities, "
+                        "available_dubs, available_subs, available_video_qualities, available_audio_qualities, "
                         "episode_downloaded, episode_skip, has_all_dubs_subs) "
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (
                             service,
                             series_id,
@@ -194,7 +195,8 @@ def upsert_series(conn: sqlite3.Connection, service: str, series_id: str, series
                             episode.episode_name,
                             json.dumps(episode.available_dubs),
                             json.dumps(episode.available_subs),
-                            json.dumps(episode.available_qualities),
+                            json.dumps(episode.available_video_qualities),
+                            json.dumps(episode.available_audio_qualities),
                             int(episode.episode_downloaded),
                             int(episode.episode_skip),
                             int(episode.has_all_dubs_subs)

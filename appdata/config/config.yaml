@@ -71,54 +71,72 @@ mdnx:
 
 cardinaldl:
     crunchyroll:
-        quality: "1080p@avc"
-        qualityfallback: true
-        dubLang:
+        videoquality: "1080p@@sdr"
+        audioquality: "aac@2.0"
+        fallback: true
+        outputformat: "mkv"
+        dectool: "shaka"
+        dublang:
             - "JP"
             - "EN"
         dlsubs:
             - "EN"
 
     hidive:
-        quality: "1080p@avc"
-        qualityfallback: true
-        dubLang:
+        videoquality: "1080p@@sdr"
+        audioquality: "aac@2.0"
+        fallback: true
+        outputformat: "mkv"
+        dectool: "shaka"
+        dublang:
             - "JP"
             - "EN"
         dlsubs:
             - "EN"
 
     adn:
-        quality: "1080p@avc"
-        qualityfallback: true
-        dubLang:
+        videoquality: "1080p@@sdr"
+        audioquality: "aac@2.0"
+        fallback: true
+        outputformat: "mkv"
+        dectool: "shaka"
+        dublang:
             - "JP"
             - "EN"
         dlsubs:
             - "EN"
 
     disney:
-        quality: "1080p@avc"
-        qualityfallback: true
-        dubLang:
+        videoquality: "1080p@@sdr"
+        audioquality: "aac@2.0"
+        fallback: true
+        outputformat: "mkv"
+        dectool: "shaka"
+        dublang:
             - "JP"
             - "EN"
         dlsubs:
             - "EN"
 
     netflix:
-        quality: "1080p@avc"
-        qualityfallback: true
-        dubLang:
+        videoquality: "1080p@@sdr"
+        audioquality: "aac@2.0"
+        fallback: true
+        outputformat: "mkv"
+        dectool: "shaka"
+        dublang:
             - "JP"
             - "EN"
         dlsubs:
             - "EN"
 
     amazon:
-        quality: "1080p@avc"
-        qualityfallback: true
-        dubLang:
+        videoquality: "1080p@@sdr"
+        audioquality: "aac@2.0"
+        fallback: true
+        outputformat: "mkv"
+        dectool: "shaka"
+        dublang:
             - "JP"
             - "EN"
         dlsubs:

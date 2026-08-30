@@ -201,7 +201,7 @@ class HIDIVE_MDNX_API:
             if self.download_proc is proc:
                 self.download_proc = None
 
-    def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list[str] | None = None, sub_override: list[str] | None = None) -> bool:
+    def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list[str] | None = None, sub_override: list[str] | None = None, video_override: str | None = None, audio_override: str | None = None) -> bool:
         """Downloads a specific episode using the MDNX service."""
 
         log_manager.info(f"Downloading episode {episode_number} for series {series_id} season {season_id}")
@@ -526,7 +526,7 @@ class HIDIVE_MDNX_API:
 
             if not download_map:
                 # fall back to sequential download numbering later
-                log_manager.debug(f"No flat map matched for {season_key}; falling back to 1..N.")
+                log_manager.debug(f"No flat map matched for {season_key}. Falling back to 1..N.")
 
             # produce a list of download indices in tree order
             if download_map:

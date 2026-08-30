@@ -5,9 +5,9 @@ from zoneinfo import ZoneInfo
 
 from .MediaServerManager import mediaserver_scan_library
 from .Globals import file_manager, queue_manager, log_manager, remote_specials, stop_event
-from .ServiceHelper import get_wanted_dubs_and_subs, probe_streams, select_dubs, select_subs
+from .ServiceHelper import get_wanted_dubs_and_subs, probe_streams, select_dubs, select_subs, select_video, select_audio
 from .Vars import (
-    config,
+    config, eval_subs,
     JELLY_CONFIGURED, PLEX_CONFIGURED, SERVICES, TEMP_DIR, TZ,
     format_duration, get_episode_file_path, get_season_monitor_config, iter_episodes
 )
@@ -130,11 +130,6 @@ class MainLoop:
 
         try:
             after_dubs, after_subs = probe_streams(file_path, service)
-            derived = set(after_subs)
-            for loc in list(after_subs):
-                if "-" in loc:
-                    derived.add(loc.split("-")[0])
-            after_subs = derived
         except Exception:
             after_dubs = set()
             after_subs = set()
@@ -390,13 +385,16 @@ class MainLoop:
 
             dub_override = select_dubs(service, episode, dub_overrides)
             sub_override = select_subs(service, episode, sub_overrides)
+            video_override = select_video(service, episode)
+            audio_override = select_audio(service, episode, dub_override)
 
             if self.dry_run and dub_override is not False:
                 log_manager.info(f"[{service_label}] DRY_RUN is True. Would have downloaded {season_key}{episode_key} '{episode.episode_name}'.\nNaming it: {episode_basename}\nStoring it at: {file_path}")
 
             dl_start = time.perf_counter()
             download_successful = mdnx_api.download_episode(
-                series_id, season.season_id, episode.episode_number_download, dub_override, sub_override
+                series_id, season.season_id, episode.episode_number_download,
+                dub_override, sub_override, video_override, audio_override
             )
             dl_end = time.perf_counter()
             dl_elapsed = dl_end - dl_start
@@ -476,16 +474,11 @@ class MainLoop:
 
             local_dubs, local_subs = probe_streams(file_path, service)
 
-            derived = set(local_subs)
-            for loc in list(local_subs):
-                if "-" in loc:
-                    derived.add(loc.split("-")[0])
-            local_subs = derived
-
+            # dubs stay language only. subs are variant aware through eval_subs
             missing_dubs = wanted_dubs - local_dubs
-            missing_subs = wanted_subs - local_subs
+            effective_missing_subs, subs_satisfied = eval_subs(wanted_subs, local_subs, set(episode.available_subs))
 
-            if not missing_dubs and not missing_subs:
+            if not missing_dubs and subs_satisfied:
                 log_manager.info(f"[{service_label}] {episode_basename} is up to date. All requested dubs and subs are locally present. No download needed.")
                 queue_manager.update_episode_has_all_dubs_subs(series_id, season_key, episode_key, True, service)
                 continue
@@ -494,19 +487,10 @@ class MainLoop:
             for dub in episode.available_dubs:
                 avail_dubs.add(dub.lower())
 
-            avail_subs = set()
-            for sub in episode.available_subs:
-                avail_subs.add(sub.lower())
-
             effective_missing_dubs = set()
             for dub in missing_dubs:
                 if dub.lower() in avail_dubs:
                     effective_missing_dubs.add(dub)
-
-            effective_missing_subs = set()
-            for sub in missing_subs:
-                if sub.lower() in avail_subs:
-                    effective_missing_subs.add(sub)
 
             skip_download = False
             if not effective_missing_dubs and not effective_missing_subs:
@@ -520,7 +504,7 @@ class MainLoop:
                 f"downloading={','.join(effective_missing_dubs) or 'None'}\n"
                 f"subs: wanted={','.join(wanted_subs) or 'None'} "
                 f"present={','.join(local_subs) or 'None'} "
-                f"available={','.join(avail_subs) or 'None'} "
+                f"available={','.join(episode.available_subs) or 'None'} "
                 f"downloading={','.join(effective_missing_subs) or 'None'}\n"
             )
 
@@ -542,13 +526,16 @@ class MainLoop:
 
             dub_override = select_dubs(service, episode, dub_overrides)
             sub_override = select_subs(service, episode, sub_overrides)
+            video_override = select_video(service, episode)
+            audio_override = select_audio(service, episode, dub_override)
 
             if self.dry_run and dub_override is not False:
                 log_manager.info(f"[{service_label}] DRY_RUN is True. Would have re-downloaded {episode_basename} to pick up missing dubs={','.join(effective_missing_dubs) or 'None'} and subs={','.join(effective_missing_subs) or 'None'}.\nOverwriting the file at {file_path}.")
 
             dl_start = time.perf_counter()
             download_successful = mdnx_api.download_episode(
-                series_id, season.season_id, episode.episode_number_download, dub_override, sub_override
+                series_id, season.season_id, episode.episode_number_download,
+                dub_override, sub_override, video_override, audio_override
             )
             dl_end = time.perf_counter()
             dl_elapsed = dl_end - dl_start

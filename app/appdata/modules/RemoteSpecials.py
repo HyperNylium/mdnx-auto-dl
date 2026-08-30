@@ -1,9 +1,9 @@
 import os
 import re
-import yaml
 import requests
 from collections.abc import Callable
 from pydantic import ValidationError
+from ruamel.yaml import YAML, YAMLError
 
 from .Globals import log_manager
 from .types.remote_specials import (
@@ -105,8 +105,8 @@ class RemoteSpecials:
         """Turn specials YAML text into a validated config."""
 
         try:
-            raw = yaml.safe_load(text)
-        except yaml.YAMLError as parse_error:
+            raw = YAML(typ="safe").load(text)
+        except YAMLError as parse_error:
             log_manager.warning(f"YAML parse failed for {source_label} file: {parse_error}.")
             return None
 

@@ -6,7 +6,7 @@ import threading
 from appdata.modules.Globals import queue_manager, log_manager
 from appdata.modules.API.CardinalDL._shared import (
     CDL_SERVICE_BIN_PATH,
-    normalize_cdl_dubs, normalize_cdl_subtitles, normalize_cdl_qualities
+    normalize_audio_qualities, normalize_subtitles, normalize_video_qualities
 )
 from appdata.modules.Vars import (
     config,
@@ -47,7 +47,7 @@ class DISNEY_CDL_API:
         if os.path.isfile(self.json_path):
             os.remove(self.json_path)
 
-        tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--full", "--workers", "1", "--jsonOutput", self.json_path, "--configPath", self.service_config.configPath]
+        tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--full", "--workers", "1", "--jsonoutput", self.json_path, "--configpath", self.service_config.configpath]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8", cwd=self.cdl_working_dir)
         log_manager.debug(f"Console output for start_monitor process:\n{result.stdout}")
 
@@ -89,7 +89,7 @@ class DISNEY_CDL_API:
         if os.path.isfile(self.json_path):
             os.remove(self.json_path)
 
-        tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--full", "--workers", "1", "--jsonOutput", self.json_path, "--configPath", self.service_config.configPath]
+        tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--full", "--workers", "1", "--jsonoutput", self.json_path, "--configpath", self.service_config.configpath]
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8", cwd=self.cdl_working_dir)
         log_manager.debug(f"Console output for update_monitor process:\n{result.stdout}")
 
@@ -145,17 +145,13 @@ class DISNEY_CDL_API:
             if self.download_proc is proc:
                 self.download_proc = None
 
-    def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list[str] | None = None, sub_override: list[str] | None = None) -> bool:
+    def download_episode(self, series_id: str, season_id: str, episode_number: str, dub_override: list[str] | None = None, sub_override: list[str] | None = None, video_override: str | None = None, audio_override: str | None = None) -> bool:
         """Download a specific episode using the CardinalDL service."""
 
         log_manager.info(f"Downloading episode {episode_number} for series {series_id} season {season_id}")
 
         if dub_override is False:
             log_manager.info("No dubs were found for this episode, skipping download.")
-            return False
-
-        if not dub_override:
-            log_manager.info("No dubLang values were selected for this episode, skipping download.")
             return False
 
         tmp_cmd = [
@@ -166,31 +162,53 @@ class DISNEY_CDL_API:
             "--episode", episode_number
         ]
 
-        quality_value = self.service_config.quality.strip()
-        if quality_value != "":
-            tmp_cmd += ["--quality", quality_value]
-            log_manager.info(f"Using quality override: {quality_value}")
+        if video_override:
+            tmp_cmd += ["--videoquality", video_override]
+            log_manager.info(f"Using videoquality override: {video_override}")
 
-        tmp_cmd += ["--qualityfallback", str(self.service_config.qualityfallback).lower()]
-        log_manager.info(f"Using qualityfallback override: {str(self.service_config.qualityfallback).lower()}")
+        if audio_override:
+            tmp_cmd += ["--audioquality", audio_override]
+            log_manager.info(f"Using audioquality override: {audio_override}")
 
-        joined_dubs = ",".join(dub_override)
-        tmp_cmd += ["--dubLang", joined_dubs]
-        log_manager.info(f"Using dubLang override: {joined_dubs}")
+        if self.service_config.fallback:
+            tmp_cmd += ["--fallback"]
+            log_manager.info("Using fallback flag.")
+
+        # only add the hybrid flag if it is explicitly set to True or False.
+        # If it is None, we leave it out and let CardinalDL's GUI settings decide.
+        if self.service_config.hybrid is not None:
+            hybrid_value = str(self.service_config.hybrid).lower()
+            tmp_cmd += ["--hybrid", hybrid_value]
+            log_manager.info(f"Using hybrid override: {hybrid_value}")
+
+        if self.service_config.outputformat:
+            tmp_cmd += ["--outputformat", self.service_config.outputformat]
+            log_manager.info(f"Using outputformat override: {self.service_config.outputformat}")
+
+        if self.service_config.dectool:
+            tmp_cmd += ["--dectool", self.service_config.dectool]
+            log_manager.info(f"Using dectool override: {self.service_config.dectool}")
+
+        if dub_override:
+            joined_dubs = ",".join(dub_override)
+            tmp_cmd += ["--dublang", joined_dubs]
+            log_manager.info(f"Using dublang override: {joined_dubs}")
+        else:
+            log_manager.info("No dublang override selected. Letting CardinalDL use its storage defaults.")
 
         if sub_override:
             joined_subs = ",".join(sub_override)
             tmp_cmd += ["--dlsubs", joined_subs]
             log_manager.info(f"Using dlsubs override: {joined_subs}")
 
-        if self.service_config.forceSubFormat:
-            tmp_cmd += ["--forceSubFormat", self.service_config.forceSubFormat]
-            log_manager.info(f"Using forceSubFormat override: {self.service_config.forceSubFormat}")
+        if self.service_config.forcesubformat:
+            tmp_cmd += ["--forcesubformat", self.service_config.forcesubformat]
+            log_manager.info(f"Using forcesubformat override: {self.service_config.forcesubformat}")
 
-        tmp_cmd += ["--fileName", "output"]
+        tmp_cmd += ["--filename", "output"]
         tmp_cmd += ["--dlpath", self.service_config.dlpath]
-        tmp_cmd += ["--tempPath", self.service_config.tempPath]
-        tmp_cmd += ["--configPath", self.service_config.configPath]
+        tmp_cmd += ["--temppath", self.service_config.temppath]
+        tmp_cmd += ["--configpath", self.service_config.configpath]
 
         if self.stdbuf_exists:
             cmd = ["stdbuf", "-oL", "-eL", *tmp_cmd]
@@ -274,7 +292,7 @@ class DISNEY_CDL_API:
             result["returncode"] = returncode
 
     def _process_json_payload(self, parsed_payload: dict, add2queue: bool = True, requested_series_id: str | None = None):
-        """Convert the structured JSON payload from --jsonOutput to queue db format."""
+        """Convert the structured JSON payload from --jsonoutput to queue db format."""
 
         log_manager.debug("Processing CardinalDL JSON payload...")
 
@@ -352,9 +370,10 @@ class DISNEY_CDL_API:
                 kept_episode_count += 1
                 episode_key = f"E{kept_episode_count}"
 
-                available_dubs = normalize_cdl_dubs(episode_data.get("audios") or [])
-                available_subs = normalize_cdl_subtitles(episode_data.get("subtitles") or [])
-                available_qualities = normalize_cdl_qualities(episode_data.get("qualities") or [])
+                available_audio_qualities = normalize_audio_qualities(episode_data.get("audios") or {})
+                available_dubs = list(available_audio_qualities)
+                available_subs = normalize_subtitles(episode_data.get("subtitles") or [])
+                available_video_qualities = normalize_video_qualities(episode_data.get("qualities") or {})
 
                 # Pull the CardinalDL id straight from the JSON so the queue points back to the source record.
                 episode_id_value = str(episode_data.get("id") or "").strip()
@@ -368,7 +387,8 @@ class DISNEY_CDL_API:
                     episode_name=episode_title,
                     available_dubs=available_dubs,
                     available_subs=available_subs,
-                    available_qualities=available_qualities
+                    available_video_qualities=available_video_qualities,
+                    available_audio_qualities=available_audio_qualities
                 )
 
             if episodes_dict == {}:

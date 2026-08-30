@@ -84,9 +84,12 @@
     },
     "cardinaldl": {
         "crunchyroll": {
-            "quality": "1080p@avc",
-            "qualityfallback": true,
-            "dubLang": [
+            "videoquality": "1080p@@sdr",
+            "audioquality": "aac@2.0",
+            "fallback": true,
+            "outputformat": "mkv",
+            "dectool": "shaka",
+            "dublang": [
                 "JP",
                 "EN"
             ],
@@ -95,9 +98,12 @@
             ]
         },
         "hidive": {
-            "quality": "1080p@avc",
-            "qualityfallback": true,
-            "dubLang": [
+            "videoquality": "1080p@@sdr",
+            "audioquality": "aac@2.0",
+            "fallback": true,
+            "outputformat": "mkv",
+            "dectool": "shaka",
+            "dublang": [
                 "JP",
                 "EN"
             ],
@@ -106,9 +112,12 @@
             ]
         },
         "adn": {
-            "quality": "1080p@avc",
-            "qualityfallback": true,
-            "dubLang": [
+            "videoquality": "1080p@@sdr",
+            "audioquality": "aac@2.0",
+            "fallback": true,
+            "outputformat": "mkv",
+            "dectool": "shaka",
+            "dublang": [
                 "JP",
                 "EN"
             ],
@@ -117,9 +126,12 @@
             ]
         },
         "disney": {
-            "quality": "1080p@avc",
-            "qualityfallback": true,
-            "dubLang": [
+            "videoquality": "1080p@@sdr",
+            "audioquality": "aac@2.0",
+            "fallback": true,
+            "outputformat": "mkv",
+            "dectool": "shaka",
+            "dublang": [
                 "EN"
             ],
             "dlsubs": [
@@ -127,9 +139,12 @@
             ]
         },
         "netflix": {
-            "quality": "1080p@avc",
-            "qualityfallback": true,
-            "dubLang": [
+            "videoquality": "1080p@@sdr",
+            "audioquality": "aac@2.0",
+            "fallback": true,
+            "outputformat": "mkv",
+            "dectool": "shaka",
+            "dublang": [
                 "EN"
             ],
             "dlsubs": [
@@ -137,9 +152,12 @@
             ]
         },
         "amazon": {
-            "quality": "1080p@avc",
-            "qualityfallback": true,
-            "dubLang": [
+            "videoquality": "1080p@@sdr",
+            "audioquality": "aac@2.0",
+            "fallback": true,
+            "outputformat": "mkv",
+            "dectool": "shaka",
+            "dublang": [
                 "EN"
             ],
             "dlsubs": [
