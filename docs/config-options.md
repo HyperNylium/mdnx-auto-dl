@@ -72,15 +72,19 @@ Standard YAML formatting still applies:
             - [`CDL_NETFLIX_ENABLED`](#CDL_NETFLIX_ENABLED)
             - [`CDL_AMAZON_ENABLED`](#CDL_AMAZON_ENABLED)
         - [CardinalDL per-service options](#cardinaldl-per-service-options)
-            - [`quality`](#cdl-quality)
-            - [`qualityfallback`](#cdl-qualityfallback)
-            - [`dubLang`](#cdl-dublang)
+            - [`videoquality`](#cdl-videoquality)
+            - [`audioquality`](#cdl-audioquality)
+            - [`fallback`](#cdl-fallback)
+            - [`hybrid`](#cdl-hybrid)
+            - [`outputformat`](#cdl-outputformat)
+            - [`dectool`](#cdl-dectool)
+            - [`dublang`](#cdl-dublang)
             - [`dlsubs`](#cdl-dlsubs)
-            - [`forceSubFormat`](#cdl-forcesubformat)
+            - [`forcesubformat`](#cdl-forcesubformat)
             - [`backup_dubs`](#cdl-backup_dubs)
             - [`dlpath`](#cdl-dlpath)
-            - [`tempPath`](#cdl-temppath)
-            - [`configPath`](#cdl-configpath)
+            - [`temppath`](#cdl-temppath)
+            - [`configpath`](#cdl-configpath)
 - [Series to monitor](#series-to-monitor)
     - [`cr_monitor_series_id`](#cr_monitor_series_id)
     - [`hidive_monitor_series_id`](#hidive_monitor_series_id)
@@ -545,11 +549,11 @@ mdnx:
 
 ### CardinalDL
 
-The services that download through the `cardinaldl` binary. Enable each one you want, then tune its download settings.
+The services that download through CardinalDL. Enable each one you want, then tune its download settings.
 
 #### CardinalDL services
 
-The three `CDL_*_ENABLED` flags turn on the matching CardinalDL service. They all need a working `cardinaldl` linux CLI binary and an already-signed-in `.cardinaldl` config folder. See [cardinaldl-get-started.md](cardinaldl-get-started.md) for setup steps.
+The `CDL_*_ENABLED` flags turn on the matching CardinalDL service. They all need a working CardinalDL linux CLI binary and an already-signed-in `.cardinaldl` config folder. See [cardinaldl-get-started.md](cardinaldl-get-started.md) for setup steps.
 
 CardinalDL expects the user to handle auth from the GUI or CLI. So in order to use mdnx-auto-dl with CardinalDL, you need to do a manual login for each service you want to use, then copy your `.cardinaldl` config folder to whatever folder you mounted `/app/appdata/bin/cardinaldl/config` to.  
 mdnx-auto-dl **does NOT** log you into CardinalDL. It only runs the binary. On startup it reads the CardinalDL storage database (`storage/storage.db`) to confirm a signed-in account, a device id, and a readable device proof key are present, and refuses to start a CardinalDL service if any of them are missing.
@@ -668,17 +672,17 @@ app:
 
 The `cardinaldl` section in the config file has one subsection per CardinalDL service: `crunchyroll`, `hidive`, `adn`, `disney`, `netflix`, and `amazon`. Each subsection takes the same keys, listed below.
 
-##### cdl-quality
+##### cdl-videoquality
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `1080p@avc` | string | Quality passed to the `cardinaldl` binary (as `--quality`). The format is `"{resolution}@{codec}"`. The codec has to be one of `avc`, `hvc`, `dvh`, `vp9`, `av1`, or `hybrid`, in lowercase. Examples: `1080p@avc`, `720p@hvc`, `1080p@dvh`, `1080p@vp9`, `1080@av1`, `2160p@hybrid`, or a plain `1080p`. Set it to `""` to let `cardinaldl` pick. The value is checked when your config loads, so anything outside this format stops the app on startup. Which qualities are actually available depends on the service. |
+| `1080p@@sdr` | string | Video quality passed to CardinalDL (as `--videoquality`). The format is `"{resolution}@{codec}@{range}"`. Resolution is a height like `1080p`, `720p`, or `2160p` (the `p` is optional), or the word `highest`. Codec is one of `h264`, `hevc`, `vp8`, `vp9`, or `av1`. Range is one of `sdr`, `hdr10`, `hdr10+`, `hlg`, `dv`, or `dv-hdr10+`. Any part may be left empty: `1080p@@sdr` is 1080p SDR with any codec, `1080p@hevc` is 1080p HEVC with any range, and a plain `1080p` (or `""`) lets CardinalDL pick the rest. Examples: `1080p@@sdr`, `720p@hevc`, `2160p@hevc@dv`, `highest@av1@hdr10`. The value is checked when your config loads, so anything outside this format stops the app on startup. Which qualities are actually available depends on the service. |
 
 JSON:
 ```json
 "cardinaldl": {
     "crunchyroll": {
-        "quality": "1080p@avc"
+        "videoquality": "1080p@@sdr"
     }
 }
 ```
@@ -686,20 +690,20 @@ YAML:
 ```yaml
 cardinaldl:
     crunchyroll:
-        quality: "1080p@avc"
+        videoquality: "1080p@@sdr"
 ```
 
-##### cdl-qualityfallback
+##### cdl-audioquality
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `true` | boolean | Quality fallback (passed to `cardinaldl` as `--qualityfallback`). When `true`, `cardinaldl` falls back to the next-best available quality if the requested one is missing. The fallback order is `1080p@avc -> 1080p@hvc -> 1080p@dvh -> 720p@avc -> 720p@hvc -> 720p@dvh -> ...` |
+| `aac@2.0` | string | Audio codec and channel layout passed to CardinalDL (as `--audioquality`). The format is `"{codec}@{channels}"`. Codec is one of `atmos`, `eac3`, `ac3`, or `aac`. Channels is one of `7.1`, `5.1`, `2.0`, or `1.0`. Put a language in front to pin a codec to one dub, like `EN:eac3@5.1`, and comma-separate to list more than one, like `EN:eac3@5.1, aac@2.0`. Set it to `""` to let CardinalDL pick. Examples: `aac@2.0`, `eac3@5.1`, `EN:atmos@7.1`. |
 
 JSON:
 ```json
 "cardinaldl": {
     "crunchyroll": {
-        "qualityfallback": true
+        "audioquality": "aac@2.0"
     }
 }
 ```
@@ -707,20 +711,20 @@ YAML:
 ```yaml
 cardinaldl:
     crunchyroll:
-        qualityfallback: true
+        audioquality: "aac@2.0"
 ```
 
-##### cdl-dubLang
+##### cdl-fallback
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `["JP", "EN"]` | array of strings | Dub language codes you want for CardinalDL downloads. CardinalDL uses its own two-letter codes (for example, `JP`, `EN`, `DE`, `FR`, `ES`) as shown in the GUI. |
+| `true` | boolean | Quality fallback (passed to CardinalDL as `--fallback`). When `true`, CardinalDL falls back to the next-best available video and audio quality if the exact one you asked for is missing. When `false`, mdnx-auto-dl only asks for a quality it can see is available, and otherwise lets CardinalDL choose automatically. |
 
 JSON:
 ```json
 "cardinaldl": {
     "crunchyroll": {
-        "dubLang": ["JP", "EN"]
+        "fallback": true
     }
 }
 ```
@@ -728,7 +732,91 @@ YAML:
 ```yaml
 cardinaldl:
     crunchyroll:
-        dubLang:
+        fallback: true
+```
+
+##### cdl-hybrid
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| unset | boolean | When `true`, ask CardinalDL to build a hybrid video track (passed as `--hybrid`). Leave it out entirely (the default) to keep CardinalDL's normal behavior. mdnx-auto-dl only passes `--hybrid` when you explicitly set this to `true`. |
+
+JSON:
+```json
+"cardinaldl": {
+    "crunchyroll": {
+        "hybrid": true
+    }
+}
+```
+YAML:
+```yaml
+cardinaldl:
+    crunchyroll:
+        hybrid: true
+```
+
+##### cdl-outputformat
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `mkv` | string | Container format for the finished file (passed as `--outputformat`). One of `mkv` or `mp4`. |
+
+JSON:
+```json
+"cardinaldl": {
+    "crunchyroll": {
+        "outputformat": "mkv"
+    }
+}
+```
+YAML:
+```yaml
+cardinaldl:
+    crunchyroll:
+        outputformat: "mkv"
+```
+
+##### cdl-dectool
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `shaka` | string | Which decryption tool CardinalDL uses (passed as `--dectool`). One of `shaka` or `mp4decrypt`. |
+
+JSON:
+```json
+"cardinaldl": {
+    "crunchyroll": {
+        "dectool": "shaka"
+    }
+}
+```
+YAML:
+```yaml
+cardinaldl:
+    crunchyroll:
+        dectool: "shaka"
+```
+
+##### cdl-dublang
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `["JP", "EN"]` | array of strings | Dub language codes you want for CardinalDL downloads (passed as `--dublang`). CardinalDL uses its own two-letter codes (for example, `JP`, `EN`, `DE`, `FR`, `ES`) as shown in the GUI. |
+
+JSON:
+```json
+"cardinaldl": {
+    "crunchyroll": {
+        "dublang": ["JP", "EN"]
+    }
+}
+```
+YAML:
+```yaml
+cardinaldl:
+    crunchyroll:
+        dublang:
             - "JP"
             - "EN"
 ```
@@ -737,13 +825,13 @@ cardinaldl:
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `["EN"]` | array of strings | Subtitle language codes you want. Same code format as `dubLang`. |
+| `["EN"]` | array of strings | Subtitle language codes you want (passed as `--dlsubs`). Same two-letter codes as `dublang`. Each entry can carry a variant tag after a colon: `EN:full` (full subtitles), `EN:cc` (closed captions / SDH), or `EN:both` for both. `sdh` and `caption` are accepted as aliases for `cc`, so `EN:sdh` and `EN:caption` mean the same as `EN:cc`. A plain `EN` with no tag leaves the choice to CardinalDL. |
 
 JSON:
 ```json
 "cardinaldl": {
     "crunchyroll": {
-        "dlsubs": ["EN"]
+        "dlsubs": ["EN:cc"]
     }
 }
 ```
@@ -752,20 +840,30 @@ YAML:
 cardinaldl:
     crunchyroll:
         dlsubs:
-            - "EN"
+            - "EN:cc"
 ```
 
-##### cdl-forceSubFormat
+> [!NOTE]
+> The variant tag also changes what mdnx-auto-dl **monitors** for when it checks an episode for missing subtitles (see [`CHECK_MISSING_DUB_SUB`](#CHECK_MISSING_DUB_SUB)), not just what it asks CardinalDL to download:
+>
+> - `EN:cc`: CC/SDH only. mdnx-auto-dl requests the CC/SDH track and is only satisfied once that track is present on disk.
+> - `EN:full`: full/regular subtitles only. It requests the full track and monitors for it.
+> - `EN:both`: both full and CC. It requests both and is only satisfied once both are present.
+> - `EN` (bare code): any variant. It passes the bare code, so CardinalDL's own default decides which variant gets downloaded, and any English sub already on disk (full or CC) counts as satisfied.
+>
+> `sdh` and `caption` behave the same as `cc`. The per-variant default CardinalDL uses for a bare code lives in the CardinalDL GUI under **Settings > Quality > Track preferences > SDH/CC subtitles**.
+
+##### cdl-forcesubformat
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `""` | string | Force subtitles into a specific format. Allowed values: `""` (leave the format as-is), `srt`, `ass`, `vtt`, `auto`, `raw`, or `original`. When set, it is passed to `cardinaldl` as `--forceSubFormat`. |
+| `""` | string | Force subtitles into a specific format. Allowed values: `""` (leave the format as-is), `srt`, `ass`, `vtt`, `auto`, `raw`, or `original`. When set, it is passed to CardinalDL as `--forcesubformat`. |
 
 JSON:
 ```json
 "cardinaldl": {
     "crunchyroll": {
-        "forceSubFormat": "ass"
+        "forcesubformat": "ass"
     }
 }
 ```
@@ -773,14 +871,14 @@ YAML:
 ```yaml
 cardinaldl:
     crunchyroll:
-        forceSubFormat: "ass"
+        forcesubformat: "ass"
 ```
 
 ##### cdl-backup_dubs
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `[]` | array of strings | Backup dubs to fall back to per CardinalDL service if none of the desired `dubLang` are available. |
+| `[]` | array of strings | Backup dubs to fall back to per CardinalDL service if none of the desired `dublang` are available. |
 
 JSON:
 ```json
@@ -802,7 +900,7 @@ cardinaldl:
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `/app/appdata/temp` | string | Where `cardinaldl` writes the downloaded MKV before mdnx-auto-dl picks it up. |
+| `/app/appdata/temp` | string | Where CardinalDL writes the downloaded file before mdnx-auto-dl picks it up (passed as `--dlpath`). |
 
 JSON:
 ```json
@@ -819,17 +917,17 @@ cardinaldl:
         dlpath: "/app/appdata/temp"
 ```
 
-##### cdl-tempPath
+##### cdl-temppath
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `/tmp` | string | Scratch directory the `cardinaldl` binary uses for in-progress download segments. |
+| `/tmp` | string | Scratch directory CardinalDL uses for in-progress download segments (passed as `--temppath`). |
 
 JSON:
 ```json
 "cardinaldl": {
     "crunchyroll": {
-        "tempPath": "/tmp"
+        "temppath": "/tmp"
     }
 }
 ```
@@ -837,20 +935,20 @@ YAML:
 ```yaml
 cardinaldl:
     crunchyroll:
-        tempPath: "/tmp"
+        temppath: "/tmp"
 ```
 
-##### cdl-configPath
+##### cdl-configpath
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `/app/appdata/bin/cardinaldl/config/storage/storage.db` | string | Path (inside the container) to the CardinalDL `storage.db` file that holds your signed-in CardinalDL account. Passed to `cardinaldl` as `--configPath`. This lives under the CardinalDL config directory you bind-mount, and mdnx-auto-dl also reads it on startup to confirm you are signed in. You normally do not need to change this. |
+| `/app/appdata/bin/cardinaldl/config/storage/storage.db` | string | Path (inside the container) to the CardinalDL `storage.db` file that holds your signed-in CardinalDL account. Passed to CardinalDL as `--configpath`. This lives under the CardinalDL config directory you bind-mount, and mdnx-auto-dl also reads it on startup to confirm you are signed in. You normally do not need to change this. |
 
 JSON:
 ```json
 "cardinaldl": {
     "crunchyroll": {
-        "configPath": "/app/appdata/bin/cardinaldl/config/storage/storage.db"
+        "configpath": "/app/appdata/bin/cardinaldl/config/storage/storage.db"
     }
 }
 ```
@@ -858,7 +956,7 @@ YAML:
 ```yaml
 cardinaldl:
     crunchyroll:
-        configPath: "/app/appdata/bin/cardinaldl/config/storage/storage.db"
+        configpath: "/app/appdata/bin/cardinaldl/config/storage/storage.db"
 ```
 
 ---

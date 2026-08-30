@@ -1,6 +1,6 @@
 # How-to: Configure CardinalDL downloads
 
-CardinalDL is a separate downloader from multi-downloader-nx. It uses its own `cardinaldl` binary and its own `.cardinaldl` config folder, and you sign in through the CardinalDL GUI (mdnx-auto-dl never logs you in).
+CardinalDL is a separate downloader from multi-downloader-nx. It uses its own CardinalDL binary and its own `.cardinaldl` config folder, and you sign in through the CardinalDL GUI (mdnx-auto-dl never logs you in).
 
 This guide covers **tuning** CardinalDL downloads. 
 
@@ -38,11 +38,14 @@ JSON:
 ```json
 "cardinaldl": {
     "crunchyroll": {
-        "quality": "1080p@avc",
-        "qualityfallback": true,
-        "dubLang": ["JP", "EN"],
+        "videoquality": "1080p@@sdr",
+        "audioquality": "aac@2.0",
+        "fallback": true,
+        "outputformat": "mkv",
+        "dectool": "shaka",
+        "dublang": ["JP", "EN"],
         "dlsubs": ["EN"],
-        "forceSubFormat": "",
+        "forcesubformat": "",
         "backup_dubs": []
     }
 }
@@ -51,33 +54,39 @@ YAML:
 ```yaml
 cardinaldl:
     crunchyroll:
-        quality: "1080p@avc"
-        qualityfallback: true
-        dubLang:
+        videoquality: "1080p@@sdr"
+        audioquality: "aac@2.0"
+        fallback: true
+        outputformat: "mkv"
+        dectool: "shaka"
+        dublang:
             - "JP"
             - "EN"
         dlsubs:
             - "EN"
-        forceSubFormat: ""
+        forcesubformat: ""
         backup_dubs: []
 ```
 
-- [`quality`](../config-options.md#cdl-quality): quality string, format `"{resolution}@{codec}"` (for example, `1080p@avc`, `720p@hvc`).
-- [`qualityfallback`](../config-options.md#cdl-qualityfallback): when `true`, fall back to the next-best quality if the requested one is missing.
-- [`dubLang`](../config-options.md#cdl-dublang): dub language codes you want, using CardinalDL's own two-letter codes (`JP`, `EN`, `DE`, `FR`, `ES`, ...).
-- [`dlsubs`](../config-options.md#cdl-dlsubs): subtitle language codes, same code format as `dubLang`.
-- [`forceSubFormat`](../config-options.md#cdl-forcesubformat): force subtitles into `srt`, `ass`, `vtt`, `auto`, `raw`, or `original`. Leave `""` to keep the source format.
-- [`backup_dubs`](../config-options.md#cdl-backup_dubs): dubs to fall back to if none of your `dubLang` are available.
+- [`videoquality`](../config-options.md#cdl-videoquality): video quality string, format `"{resolution}@{codec}@{range}"` (for example, `1080p@@sdr`, `720p@hevc`, `2160p@hevc@dv`). Use `highest` for the resolution to take the best available.
+- [`audioquality`](../config-options.md#cdl-audioquality): audio codec and channel layout, format `"{codec}@{channels}"` (for example, `aac@2.0`, `eac3@5.1`). Prefix a language like `EN:eac3@5.1` and comma-separate to list more than one.
+- [`fallback`](../config-options.md#cdl-fallback): when `true`, fall back to the next-best quality if the requested one is missing.
+- [`outputformat`](../config-options.md#cdl-outputformat): container for the finished file, `mkv` or `mp4`.
+- [`dectool`](../config-options.md#cdl-dectool): decryption tool, `shaka` or `mp4decrypt`.
+- [`dublang`](../config-options.md#cdl-dublang): dub language codes you want, using CardinalDL's own two-letter codes (`JP`, `EN`, `DE`, `FR`, `ES`, ...).
+- [`dlsubs`](../config-options.md#cdl-dlsubs): subtitle language codes, same codes as `dublang`. Add a variant tag like `EN:cc`, `EN:full`, or `EN:both` to pick a specific subtitle track. The tag also controls what mdnx-auto-dl treats as complete when it checks for missing subs. A bare `EN` accepts any variant. See the [`dlsubs` reference](../config-options.md#cdl-dlsubs) for the full breakdown.
+- [`forcesubformat`](../config-options.md#cdl-forcesubformat): force subtitles into `srt`, `ass`, `vtt`, `auto`, `raw`, or `original`. Leave `""` to keep the source format.
+- [`backup_dubs`](../config-options.md#cdl-backup_dubs): dubs to fall back to if none of your `dublang` are available.
 
 ---
 
 ## Paths (advanced)
 
-You normally do not need to touch these. They control where `cardinaldl` writes files and where it reads your sign-in from.
+You normally do not need to touch these. They control where CardinalDL writes files and where it reads your sign-in from.
 
-- [`dlpath`](../config-options.md#cdl-dlpath): where `cardinaldl` writes the downloaded MKV before mdnx-auto-dl picks it up.
-- [`tempPath`](../config-options.md#cdl-temppath): scratch directory for in-progress segments.
-- [`configPath`](../config-options.md#cdl-configpath): path to the CardinalDL `storage.db` that holds your signed-in account. This is inside the config folder you bind-mount.  
+- [`dlpath`](../config-options.md#cdl-dlpath): where CardinalDL writes the downloaded file before mdnx-auto-dl picks it up.
+- [`temppath`](../config-options.md#cdl-temppath): scratch directory for in-progress segments.
+- [`configpath`](../config-options.md#cdl-configpath): path to the CardinalDL `storage.db` that holds your signed-in account. This is inside the config folder you bind-mount.  
   mdnx-auto-dl also reads it on startup to confirm you are signed in.
 
 For the full list of every CardinalDL option and its default, see the [CardinalDL per-service options reference](../config-options.md#cardinaldl-per-service-options).

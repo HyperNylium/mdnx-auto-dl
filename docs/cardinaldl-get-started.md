@@ -3,7 +3,7 @@
 This guide sets up mdnx-auto-dl using **CardinalDL** (the `cardinaldl` binary) as the downloader for Crunchyroll, HiDive, ADN, Disney, Netflix, and Amazon.  
 If you want to use multi-downloader-nx instead, or mix the two, see [mdnx-get-started.md](mdnx-get-started.md).
 
-CardinalDL is a separate downloader from multi-downloader-nx. It uses its own `cardinaldl` binary and its own `.cardinaldl` config folder, and you sign in through the CardinalDL GUI or CLI. mdnx-auto-dl only runs the binary. It does not log you in.
+CardinalDL is a separate downloader from multi-downloader-nx. It uses its own CardinalDL binary and its own `.cardinaldl` config folder, and you sign in through the CardinalDL GUI or CLI. mdnx-auto-dl only runs the binary. It does not log you in.
 
 On startup it reads the CardinalDL storage database and will refuse to start a CardinalDL service unless it finds a signed-in account, a device id, and a device proof key that this machine can actually read.
 
@@ -15,7 +15,7 @@ If you copied your `.cardinaldl` folder over from a Windows machine, the device 
 
 Run that against the same config folder you bind-mount, then start the container again.
 
-So you must already have a working `cardinaldl` binary and a signed-in `.cardinaldl` config folder before you begin.
+So you must already have a working CardinalDL binary and a signed-in `.cardinaldl` config folder before you begin.
 
 ### 1) Download `docker-compose.yaml` to your server
 Save the [`docker-compose.yaml`](https://github.com/HyperNylium/mdnx-auto-dl/blob/master/docker-compose.yaml) file:
@@ -39,7 +39,7 @@ CardinalDL is a paid tool, and you have to obtain the Linux CLI binary yourself 
 If you have issues getting the binary, feel free to reach out to me either through a github issue or on my [Discord server](https://discord.gg/XAAfYJ5ABk).
 
 ### 4) Mount the cardinaldl binary and config folder
-Place your `cardinaldl` binary at `./appdata/cardinaldl/cardinaldl` (`cardinaldl` being the binary name) and your already-signed-in CardinalDL `.cardinaldl` config folder content at `./appdata/cardinaldl/config`. The `.cardinaldl` folder usually containes a `logs` and `storage` folder. Make sure both of them are in that `./appdata/cardinaldl/config` folder.  
+Place your CardinalDL binary at `./appdata/cardinaldl/cardinaldl` (`cardinaldl` being the binary name) and your already-signed-in CardinalDL `.cardinaldl` config folder content at `./appdata/cardinaldl/config`. The `.cardinaldl` folder usually containes a `logs` and `storage` folder. Make sure both of them are in that `./appdata/cardinaldl/config` folder.  
 The `.cardinaldl` folder is created by the CardinalDL GUI and can be found at `C:\Users\<your username>\.cardinaldl` on Windows, or `~/.cardinaldl` on Linux. It must contain `storage/storage.db`, which is where CardinalDL keeps your sign-in.
 
 Then uncomment the **CardinalDL config** bind-mounts in `docker-compose.yaml`:

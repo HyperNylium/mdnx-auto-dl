@@ -3,7 +3,7 @@
 mdnx-auto-dl supports two downloaders, and they are interchangeable. You can pick one, or mix them per service (for example CardinalDL for HiDive and multi-downloader-nx for Crunchyroll).
 
 - **[Get started with multi-downloader-nx](mdnx-get-started.md)** uses the aniDL binary. It needs your own CDM (Widevine or Playready) and the aniDL binary.
-- **[Get started with CardinalDL](cardinaldl-get-started.md)** uses the `cardinaldl` binary and a signed-in `.cardinaldl` config folder. No CDM required.
+- **[Get started with CardinalDL](cardinaldl-get-started.md)** uses the CardinalDL binary and a signed-in `.cardinaldl` config folder. No CDM required.
 
 If you want to mix them, follow one guide all the way through, then add the other downloader's binary and provider steps from its guide.
 

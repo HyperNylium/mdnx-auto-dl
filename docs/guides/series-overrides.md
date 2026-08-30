@@ -49,7 +49,7 @@ Everything under a season is optional. A season with an empty `{}` is just monit
 
 - **`blacklists`**: skip episodes (see below).
 - **`season_override`**: change the season number used in the file name when the source has it wrong (for example, the service says `S03E01` but you want `S01E01`). It only changes how the file is named and organized, not the download command.
-- **`dub_overrides`** / **`sub_overrides`**: replace the per-service `dubLang` and `dlsubs` for that one season.
+- **`dub_overrides`** / **`sub_overrides`**: replace the per-service dub and subtitle languages (aniDL `dubLang` / CardinalDL `dublang`, and `dlsubs`) for that one season.
 
 ---
 
@@ -185,7 +185,7 @@ cr_monitor_series_id:
 
 ## Overriding dubs and subs per season
 
-`dub_overrides` and `sub_overrides` replace the service's normal `dubLang` / `dlsubs` for that one season only.  
+`dub_overrides` and `sub_overrides` replace the service's normal dub and subtitle languages for that one season only.  
 This is useful when a specific season has a dub the rest of the series does not:
 ```json
 {
@@ -211,4 +211,4 @@ cr_monitor_series_id:
                 - "en"
 ```
 
-Use the same language code format as the service's own `dubLang` / `dlsubs` (ISO 639-3 like `jpn`/`eng` for aniDL services, CardinalDL's two-letter codes like `JP`/`EN` for CardinalDL services).
+Use the same language code format as the service's own dub/subtitle settings: ISO 639-3 like `jpn`/`eng` for aniDL services (`dubLang` / `dlsubs`), and CardinalDL's two-letter codes like `JP`/`EN` for CardinalDL services (`dublang` / `dlsubs`). For CardinalDL, `sub_overrides` entries can also carry a subtitle variant tag like `EN:cc`, `EN:full`, or `EN:both`.
