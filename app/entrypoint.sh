@@ -81,18 +81,32 @@ purge_folder() {
   shift  # remove the first argument (target_dir) from the list of arguments
 
   if [[ ! -d "$target_dir" ]]; then
+    echo "[entrypoint] Log directory $target_dir does not exist. Nothing to purge."
     return
   fi
 
-  echo "[entrypoint] Purging $target_dir"
+  echo "[entrypoint] Purging log files in $target_dir"
 
   local pattern
+  local matches
+  local count
+  local total=0
 
   for pattern in "$@"; do
-    if ! find "$target_dir" -maxdepth 1 -regextype posix-extended -type f -regex ".*/$pattern" -delete 2>/dev/null; then
-      echo "[entrypoint] WARNING: Could not purge '$pattern' files in $target_dir (permission issue). Continuing..."
+    mapfile -t matches < <(find "$target_dir" -maxdepth 1 -regextype posix-extended -type f -regex ".*/$pattern" 2>/dev/null)
+    count=${#matches[@]}
+    total=$((total + count))
+
+    echo "[entrypoint]   Found $count file(s) matching '$pattern' in $target_dir"
+
+    if (( count > 0 )); then
+      if ! find "$target_dir" -maxdepth 1 -regextype posix-extended -type f -regex ".*/$pattern" -delete 2>/dev/null; then
+        echo "[entrypoint]   WARNING: Could not purge '$pattern' files in $target_dir (permission issue). Continuing..."
+      fi
     fi
   done
+
+  echo "[entrypoint]   Purged $total file(s) total from $target_dir"
 }
 
 # Extract BIN_DIR (falls back to /app/appdata/bin if the key is null/absent)
