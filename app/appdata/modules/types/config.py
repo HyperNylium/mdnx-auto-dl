@@ -153,6 +153,8 @@ class CdlServiceConfig(BaseModel):
     dlsubs: list[SubToken] = ["EN"]
     forcesubformat: str = Field("", pattern="^(srt|ass|vtt|auto|raw|original)?$")
     backup_dubs: list[str] = Field(default_factory=list)
+    full_listing: bool = True
+    workers: int | None = Field(None, ge=1)
     dlpath: str = "/app/appdata/temp"
     temppath: str = "/tmp"
     configpath: str = "/app/appdata/bin/cardinaldl/config/storage/storage.db"
