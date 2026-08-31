@@ -9,7 +9,7 @@ from .Vars import (
 )
 from .db.connection import open_connection
 from .db.queue_repo import (
-    checkpoint_wal, delete_series, load_queue, set_episode_field, clear_queue, upsert_series
+    checkpoint_wal, delete_series, load_queue, set_episode_field, clear_queue, upsert_series, vacuum_db
 )
 from .types.queue import Queue, Season, Series, ServiceBucket
 
@@ -31,6 +31,9 @@ class QueueManager:
             update_app_config("CLEAR_QUEUE", False)
             log_manager.info("CLEAR_QUEUE is True. Cleared the queue and flipped CLEAR_QUEUE back to False. Exiting to restart with a clean slate.")
             sys.exit(0)
+
+        # vacuum the database on startup to reclaim free pages left by migrations and deletes.
+        self.vacuum()
 
     def add(self, new_data: dict[str, Series], service: str) -> None:
         """Add or update series in the queue for the specified service."""
@@ -193,6 +196,18 @@ class QueueManager:
             log_manager.debug("Queue DB checkpoint complete.")
         except Exception as e:
             log_manager.error(f"Failed to checkpoint queue DB: {e}", exc_info=e)
+
+    def vacuum(self) -> None:
+        """Vacuum the database to reclaim free pages."""
+
+        try:
+            page_size = self.conn.execute("PRAGMA page_size").fetchone()[0]
+            pages_before = self.conn.execute("PRAGMA page_count").fetchone()[0]
+            vacuum_db(self.conn)
+            pages_after = self.conn.execute("PRAGMA page_count").fetchone()[0]
+            log_manager.info(f"Queue DB vacuum complete. Size {page_size * pages_before // 1024}KB -> {page_size * pages_after // 1024}KB.")
+        except Exception as e:
+            log_manager.error(f"Failed to vacuum queue DB: {e}", exc_info=e)
 
     def close(self) -> None:
         """Close the database connection."""

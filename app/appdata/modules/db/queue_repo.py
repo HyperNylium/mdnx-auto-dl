@@ -118,6 +118,14 @@ def checkpoint_wal(conn: sqlite3.Connection) -> None:
         conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
 
 
+def vacuum_db(conn: sqlite3.Connection) -> None:
+    """Rebuild the db file to give free pages left by migrations and deletes back to the disk."""
+
+    with _write_lock:
+        conn.execute("VACUUM")
+        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+
+
 def clear_queue(conn: sqlite3.Connection) -> None:
     """Delete all rows from all tables."""
 
