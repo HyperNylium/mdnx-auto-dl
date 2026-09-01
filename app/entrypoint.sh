@@ -148,9 +148,8 @@ ln -sfn "/usr/bin/mkvmerge" "/app/appdata/bin/cardinaldl/static/mkvmerge/mkvmerg
 ln -sfn "/usr/bin/mkvpropedit" "/app/appdata/bin/cardinaldl/static/mkvmerge/mkvpropedit"
 
 # Check if any CardinalDL services are enabled in the config to determine if we need to fix permissions on CardinalDL paths.
-# TODO: remove ZLO-* keys on v3.2.1. they are only needed for the migration from v3.1.3 to v3.2.0, and should be removed in a future release (v3.2.1)
 CDL_ENABLED=false
-for cdl_flag in CDL_CR_ENABLED CDL_HIDIVE_ENABLED CDL_ADN_ENABLED CDL_DISNEY_ENABLED CDL_NETFLIX_ENABLED CDL_AMAZON_ENABLED ZLO_CR_ENABLED ZLO_HIDIVE_ENABLED ZLO_ADN_ENABLED; do
+for cdl_flag in CDL_CR_ENABLED CDL_HIDIVE_ENABLED CDL_ADN_ENABLED CDL_DISNEY_ENABLED CDL_NETFLIX_ENABLED CDL_AMAZON_ENABLED; do
   flag_value="$(read_config "$cdl_flag" "false")"
   if [[ "${flag_value,,}" == "true" ]]; then
     CDL_ENABLED=true
