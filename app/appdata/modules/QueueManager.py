@@ -9,7 +9,7 @@ from .Vars import (
 )
 from .db.connection import open_connection
 from .db.queue_repo import (
-    checkpoint_wal, delete_series, load_queue, set_episode_field, clear_queue, upsert_series, vacuum_db
+    checkpoint_wal, delete_series, load_queue, set_episode_field, set_episode_local_tracks, clear_queue, upsert_series, vacuum_db
 )
 from .types.queue import Queue, Season, Series, ServiceBucket
 
@@ -60,14 +60,16 @@ class QueueManager:
                 existing_series.series = new_series.series
 
                 # only for multi-downloader-nx ADN to handle their no season ID BS
-                preserved_by_episode_id: dict[str, tuple[bool, bool]] = {}
+                preserved_by_episode_id: dict[str, tuple[bool, bool, list[str] | None, list[str] | None]] = {}
                 if bucket_name == "ADN":
                     for old_season in existing_series.seasons.values():
                         for old_episode in old_season.episodes.values():
                             if old_episode.episode_id:
                                 preserved_by_episode_id[old_episode.episode_id] = (
                                     old_episode.episode_downloaded,
-                                    old_episode.has_all_dubs_subs
+                                    old_episode.has_all_dubs_subs,
+                                    old_episode.local_dubs,
+                                    old_episode.local_subs
                                 )
 
                 # collapse any existing duplicates in current seasons by season_id
@@ -119,12 +121,17 @@ class QueueManager:
                     for episode_key, new_episode in new_season.episodes.items():
                         old_episode = existing_season.episodes.get(episode_key)
                         if new_episode.episode_id and new_episode.episode_id in preserved_by_episode_id:
-                            new_episode.episode_downloaded, new_episode.has_all_dubs_subs = (
-                                preserved_by_episode_id[new_episode.episode_id]
-                            )
+                            (
+                                new_episode.episode_downloaded,
+                                new_episode.has_all_dubs_subs,
+                                new_episode.local_dubs,
+                                new_episode.local_subs
+                            ) = preserved_by_episode_id[new_episode.episode_id]
                         elif old_episode is not None:
                             new_episode.episode_downloaded = old_episode.episode_downloaded
                             new_episode.has_all_dubs_subs = old_episode.has_all_dubs_subs
+                            new_episode.local_dubs = old_episode.local_dubs
+                            new_episode.local_subs = old_episode.local_subs
                         existing_season.episodes[episode_key] = new_episode
 
                     # drop episodes the service no longer lists for this season
@@ -175,6 +182,47 @@ class QueueManager:
         """Update the has_all_dubs_subs flag for an episode."""
 
         self._set_flag(series_id, season_key, episode_key, "has_all_dubs_subs", status, service)
+
+    def update_episode_local_tracks(self, series_id: str, season_key: str, episode_key: str, dubs, subs, service: str) -> None:
+        """Update the local_dubs and local_subs lists for an episode."""
+
+        bucket_name = self._normalize_service(service)
+        if bucket_name is None:
+            return
+
+        # store a sorted list so the saved value is stable.
+        # None stays None for not probed yet.
+        dubs_list = None
+        if dubs is not None:
+            dubs_list = sorted(dubs)
+
+        subs_list = None
+        if subs is not None:
+            subs_list = sorted(subs)
+
+        with self._lock:
+            bucket = self.queue.buckets.setdefault(bucket_name, ServiceBucket())
+
+            series_obj = bucket.series.get(series_id)
+            if series_obj is None:
+                log_manager.warning(f"Series '{series_id}' not found in '{bucket_name}'.")
+                return
+
+            season_obj = series_obj.seasons.get(season_key)
+            if season_obj is None:
+                log_manager.warning(f"Season '{season_key}' not found in series '{series_id}' ({bucket_name}).")
+                return
+
+            episode_obj = season_obj.episodes.get(episode_key)
+            if episode_obj is None:
+                log_manager.warning(f"Episode '{episode_key}' not found in season '{season_key}' for series '{series_id}' ({bucket_name}).")
+                return
+
+            episode_obj.local_dubs = dubs_list
+            episode_obj.local_subs = subs_list
+            set_episode_local_tracks(self.conn, bucket_name, series_id, season_key, episode_key, dubs_list, subs_list)
+
+        log_manager.debug(f"Saved local tracks for episode '{episode_key}' in series '{series_id}', season '{season_key}' ({bucket_name}): dubs={dubs_list}, subs={subs_list}.")
 
     def output(self, service: str | None = None) -> Queue | ServiceBucket | None:
         """Return the whole queue, the bucket for one service, or None if the service is unknown."""

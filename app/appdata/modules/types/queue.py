@@ -23,6 +23,9 @@ class Episode(BaseModel):
     available_video_qualities: dict[str, list[str]] = Field(default_factory=dict)
     available_audio_qualities: dict[str, list[str]] = Field(default_factory=dict)
 
+    local_dubs: list[str] | None = None
+    local_subs: list[str] | None = None
+
     episode_downloaded: bool = False
     episode_skip: bool = False
     has_all_dubs_subs: bool = False

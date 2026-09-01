@@ -42,6 +42,7 @@ class AppConfig(BaseModel):
     backup_dubs: list[str] = Field(["zho"], alias="BACKUP_DUBS")
 
     check_missing_dub_sub: bool = Field(True, alias="CHECK_MISSING_DUB_SUB")
+    cache_dubs_subs: bool = Field(True, alias="CACHE_DUBS_SUBS")
     check_for_updates_interval: int = Field(3600, alias="CHECK_FOR_UPDATES_INTERVAL")
     episode_dl_delay: int = Field(30, alias="EPISODE_DL_DELAY")
 

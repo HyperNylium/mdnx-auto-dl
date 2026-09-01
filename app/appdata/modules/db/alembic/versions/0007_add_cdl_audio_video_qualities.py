@@ -18,7 +18,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    with op.batch_alter_table("episodes", schema=None) as batch_op:
+    with op.batch_alter_table("episodes", schema=None, recreate="always") as batch_op:
         batch_op.alter_column("available_qualities", new_column_name="available_video_qualities")
         batch_op.add_column(sa.Column("available_audio_qualities", sa.Text(), nullable=False, server_default=sa.text("'{}'")), insert_after="available_qualities")
 
@@ -29,7 +29,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    with op.batch_alter_table("episodes", schema=None) as batch_op:
+    with op.batch_alter_table("episodes", schema=None, recreate="always") as batch_op:
         batch_op.drop_column("available_audio_qualities")
         batch_op.alter_column("available_video_qualities", new_column_name="available_qualities")
 

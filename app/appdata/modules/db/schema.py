@@ -50,6 +50,8 @@ episodes = Table(
     Column("available_subs", Text, nullable=False),
     Column("available_video_qualities", Text, nullable=False),
     Column("available_audio_qualities", Text, nullable=False),
+    Column("local_dubs", Text, nullable=True),
+    Column("local_subs", Text, nullable=True),
     Column("episode_downloaded", Integer, nullable=False, server_default="0"),
     Column("episode_skip", Integer, nullable=False, server_default="0"),
     Column("has_all_dubs_subs", Integer, nullable=False, server_default="0"),
