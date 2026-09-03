@@ -20,6 +20,7 @@ class MainLoop:
         self.notifiers = notifiers
 
         self.check_missing_dub_sub = config.app.check_missing_dub_sub
+        self.cache_dubs_subs = config.app.cache_dubs_subs
         self.loop_timeout = config.app.check_for_updates_interval
         self.between_episode_timeout = config.app.episode_dl_delay
         self.only_create_queue = config.app.only_create_queue
@@ -123,16 +124,21 @@ class MainLoop:
         time_taken: float,
         action_label: str,
         service: str,
+        after_dubs: set | None = None,
+        after_subs: set | None = None,
         before_dubs: set | None = None,
         before_subs: set | None = None
     ) -> dict:
         """Build a dict snapshot for the notification buffer."""
 
-        try:
-            after_dubs, after_subs = probe_streams(file_path, service)
-        except Exception:
-            after_dubs = set()
-            after_subs = set()
+        # if we already probed the file and have the after_dubs/after_subs, use those.
+        # otherwise probe the file one time to get them.
+        if after_dubs is None:
+            try:
+                after_dubs, after_subs = probe_streams(file_path, service)
+            except Exception:
+                after_dubs = set()
+                after_subs = set()
 
         if before_dubs is None:
             before_dubs = set()
@@ -408,9 +414,16 @@ class MainLoop:
                 if file_manager.transfer(temp_path, file_path):
                     log_manager.info(f"[{service_label}] Transfer complete.")
                     queue_manager.update_episode_status(series_id, season_key, episode_key, True, service)
+
+                    # cache the local dubs/subs for this episode so we do not have to probe it again later when doing the dub/sub verification step.
+                    local_dubs, local_subs = probe_streams(file_path, service)
+                    if self.cache_dubs_subs:
+                        queue_manager.update_episode_local_tracks(series_id, season_key, episode_key, local_dubs, local_subs, service)
+
                     series_name = bucket.series[series_id].series.series_name
                     snapshot = self._snapshot_episode(
-                        series_name, episode, file_path, dl_elapsed, "new", service
+                        series_name, episode, file_path, dl_elapsed, "new", service,
+                        after_dubs=local_dubs, after_subs=local_subs
                     )
                     self.notifications_buffer.append(snapshot)
                 else:
@@ -472,7 +485,15 @@ class MainLoop:
 
             wanted_dubs, wanted_subs = get_wanted_dubs_and_subs(service, series_id, season.season_id)
 
-            local_dubs, local_subs = probe_streams(file_path, service)
+            # instead of probing the file again, reuse the cached local dubs/subs if they are already stored in the queue.db for this episode.
+            # None/NULL means we have not probed the file yet, so probe it and store the results in the queue.db for future use.
+            if self.cache_dubs_subs and episode.local_dubs is not None and episode.local_subs is not None:
+                local_dubs = set(episode.local_dubs)
+                local_subs = set(episode.local_subs)
+            else:
+                local_dubs, local_subs = probe_streams(file_path, service)
+                if self.cache_dubs_subs:
+                    queue_manager.update_episode_local_tracks(series_id, season_key, episode_key, local_dubs, local_subs, service)
 
             # dubs stay language only. subs are variant aware through eval_subs
             missing_dubs = wanted_dubs - local_dubs
@@ -548,9 +569,16 @@ class MainLoop:
 
                 if file_manager.transfer(temp_path, file_path, overwrite=True):
                     log_manager.info(f"[{service_label}] Transfer complete.")
+
+                    # local file changed so probe it again to get the new dubs/subs and update the queue.db for this episode.
+                    new_local_dubs, new_local_subs = probe_streams(file_path, service)
+                    if self.cache_dubs_subs:
+                        queue_manager.update_episode_local_tracks(series_id, season_key, episode_key, new_local_dubs, new_local_subs, service)
+
                     series_name = bucket.series[series_id].series.series_name
                     snapshot = self._snapshot_episode(
                         series_name, episode, file_path, dl_elapsed, "updated", service,
+                        after_dubs=new_local_dubs, after_subs=new_local_subs,
                         before_dubs=local_dubs, before_subs=local_subs
                     )
                     self.notifications_buffer.append(snapshot)

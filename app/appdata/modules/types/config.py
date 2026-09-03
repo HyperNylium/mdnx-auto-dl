@@ -42,6 +42,7 @@ class AppConfig(BaseModel):
     backup_dubs: list[str] = Field(["zho"], alias="BACKUP_DUBS")
 
     check_missing_dub_sub: bool = Field(True, alias="CHECK_MISSING_DUB_SUB")
+    cache_dubs_subs: bool = Field(True, alias="CACHE_DUBS_SUBS")
     check_for_updates_interval: int = Field(3600, alias="CHECK_FOR_UPDATES_INTERVAL")
     episode_dl_delay: int = Field(30, alias="EPISODE_DL_DELAY")
 
@@ -153,6 +154,8 @@ class CdlServiceConfig(BaseModel):
     dlsubs: list[SubToken] = ["EN"]
     forcesubformat: str = Field("", pattern="^(srt|ass|vtt|auto|raw|original)?$")
     backup_dubs: list[str] = Field(default_factory=list)
+    full_listing: bool = True
+    workers: int | None = Field(None, ge=1)
     dlpath: str = "/app/appdata/temp"
     temppath: str = "/tmp"
     configpath: str = "/app/appdata/bin/cardinaldl/config/storage/storage.db"

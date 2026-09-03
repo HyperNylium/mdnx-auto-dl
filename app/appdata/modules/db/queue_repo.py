@@ -94,6 +94,9 @@ def load_queue(conn: sqlite3.Connection) -> Queue:
         if season_obj is None:
             continue
 
+        local_dubs_raw = episode_row["local_dubs"]
+        local_subs_raw = episode_row["local_subs"]
+
         season_obj.episodes[episode_row["episode_key"]] = Episode(
             episode_id=episode_row["episode_id"],
             episode_number=episode_row["episode_number"],
@@ -103,6 +106,8 @@ def load_queue(conn: sqlite3.Connection) -> Queue:
             available_subs=json.loads(episode_row["available_subs"]),
             available_video_qualities=json.loads(episode_row["available_video_qualities"]),
             available_audio_qualities=json.loads(episode_row["available_audio_qualities"]),
+            local_dubs=json.loads(local_dubs_raw) if local_dubs_raw is not None else None,
+            local_subs=json.loads(local_subs_raw) if local_subs_raw is not None else None,
             episode_downloaded=bool(episode_row["episode_downloaded"]),
             episode_skip=bool(episode_row["episode_skip"]),
             has_all_dubs_subs=bool(episode_row["has_all_dubs_subs"])
@@ -115,6 +120,14 @@ def checkpoint_wal(conn: sqlite3.Connection) -> None:
     """Move everything sitting in the WAL file back into the main db file."""
 
     with _write_lock:
+        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+
+
+def vacuum_db(conn: sqlite3.Connection) -> None:
+    """Rebuild the db file to give free pages left by migrations and deletes back to the disk."""
+
+    with _write_lock:
+        conn.execute("VACUUM")
         conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
 
 
@@ -177,13 +190,22 @@ def upsert_series(conn: sqlite3.Connection, service: str, series_id: str, series
                 )
 
                 for episode_key, episode in season.episodes.items():
+                    local_dubs_value = None
+                    if episode.local_dubs is not None:
+                        local_dubs_value = json.dumps(episode.local_dubs)
+
+                    local_subs_value = None
+                    if episode.local_subs is not None:
+                        local_subs_value = json.dumps(episode.local_subs)
+
                     conn.execute(
                         "INSERT INTO episodes "
                         "(service, series_id, season_key, episode_key, episode_id, "
                         "episode_number, episode_number_download, episode_name, "
                         "available_dubs, available_subs, available_video_qualities, available_audio_qualities, "
+                        "local_dubs, local_subs, "
                         "episode_downloaded, episode_skip, has_all_dubs_subs) "
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (
                             service,
                             series_id,
@@ -197,6 +219,8 @@ def upsert_series(conn: sqlite3.Connection, service: str, series_id: str, series
                             json.dumps(episode.available_subs),
                             json.dumps(episode.available_video_qualities),
                             json.dumps(episode.available_audio_qualities),
+                            local_dubs_value,
+                            local_subs_value,
                             int(episode.episode_downloaded),
                             int(episode.episode_skip),
                             int(episode.has_all_dubs_subs)
@@ -231,4 +255,23 @@ def set_episode_field(conn: sqlite3.Connection, service: str, series_id: str, se
             conn.execute(
                 f"UPDATE episodes SET {field} = ? WHERE service = ? AND series_id = ? AND season_key = ? AND episode_key = ?",
                 (int(value), service, series_id, season_key, episode_key)
+            )
+
+
+def set_episode_local_tracks(conn: sqlite3.Connection, service: str, series_id: str, season_key: str, episode_key: str, dubs: list[str] | None, subs: list[str] | None) -> None:
+    """Set the local dubs/subs of an episode."""
+
+    dubs_value = None
+    if dubs is not None:
+        dubs_value = json.dumps(dubs)
+
+    subs_value = None
+    if subs is not None:
+        subs_value = json.dumps(subs)
+
+    with _write_lock:
+        with conn:
+            conn.execute(
+                "UPDATE episodes SET local_dubs = ?, local_subs = ? WHERE service = ? AND series_id = ? AND season_key = ? AND episode_key = ?",
+                (dubs_value, subs_value, service, series_id, season_key, episode_key)
             )

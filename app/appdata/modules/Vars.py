@@ -445,13 +445,6 @@ def eval_subs(wanted_tokens: set[str], local_tokens: set[str], available_tokens:
             if have_track:
                 continue
 
-            language_on_disk = code in local_full or code in local_cc
-
-            # we have the language but not this exact variant and the service does not offer it.
-            # there is nothing to chase so let it count as satisfied
-            if language_on_disk and not offered:
-                continue
-
             all_satisfied = False
             if offered:
                 missing_to_download.add(download_token)

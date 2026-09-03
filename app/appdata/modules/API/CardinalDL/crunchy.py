@@ -24,6 +24,7 @@ class CR_CDL_API:
         self.cdl_service = "crunchy"
         self.queue_service = "cdl-crunchyroll"
         self.service_config = config.cardinaldl.crunchyroll
+        self.worker_count = str(self.service_config.workers if self.service_config.workers is not None else 3)
         self.download_filename = os.path.join(self.service_config.dlpath, "output.mkv")
         self.download_thread = None
         self.download_proc = None
@@ -47,7 +48,11 @@ class CR_CDL_API:
         if os.path.isfile(self.json_path):
             os.remove(self.json_path)
 
-        tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--full", "--workers", "3", "--jsonoutput", self.json_path, "--configpath", self.service_config.configpath]
+        tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--jsonoutput", self.json_path, "--configpath", self.service_config.configpath]
+
+        if self.service_config.full_listing:
+            tmp_cmd += ["--full", "--workers", self.worker_count]
+
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8", cwd=self.cdl_working_dir)
         log_manager.debug(f"Console output for start_monitor process:\n{result.stdout}")
 
@@ -89,7 +94,11 @@ class CR_CDL_API:
         if os.path.isfile(self.json_path):
             os.remove(self.json_path)
 
-        tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--full", "--workers", "3", "--jsonoutput", self.json_path, "--configpath", self.service_config.configpath]
+        tmp_cmd = [self.cdl_path, "--service", self.cdl_service, "--srz", series_id, "--jsonoutput", self.json_path, "--configpath", self.service_config.configpath]
+
+        if self.service_config.full_listing:
+            tmp_cmd += ["--full", "--workers", self.worker_count]
+
         result = subprocess.run(tmp_cmd, capture_output=True, text=True, encoding="utf-8", cwd=self.cdl_working_dir)
         log_manager.debug(f"Console output for update_monitor process:\n{result.stdout}")
 
