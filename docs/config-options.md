@@ -82,6 +82,8 @@ Standard YAML formatting still applies:
             - [`dlsubs`](#cdl-dlsubs)
             - [`forcesubformat`](#cdl-forcesubformat)
             - [`backup_dubs`](#cdl-backup_dubs)
+            - [`full_listing`](#cdl-full_listing)
+            - [`workers`](#cdl-workers)
             - [`dlpath`](#cdl-dlpath)
             - [`temppath`](#cdl-temppath)
             - [`configpath`](#cdl-configpath)
@@ -101,6 +103,7 @@ Standard YAML formatting still applies:
 - [Downloads and library](#downloads-and-library)
     - [`BACKUP_DUBS`](#BACKUP_DUBS)
     - [`CHECK_MISSING_DUB_SUB`](#CHECK_MISSING_DUB_SUB)
+    - [`CACHE_DUBS_SUBS`](#CACHE_DUBS_SUBS)
     - [`CHECK_FOR_UPDATES_INTERVAL`](#CHECK_FOR_UPDATES_INTERVAL)
     - [`EPISODE_DL_DELAY`](#EPISODE_DL_DELAY)
     - [`FALLBACK_TO_ANY_DUB`](#FALLBACK_TO_ANY_DUB)
@@ -896,6 +899,48 @@ cardinaldl:
             - "CN"
 ```
 
+##### cdl-full_listing
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `true` | boolean | Whether the listing step passes `--full` to CardinalDL. **Only affects Crunchyroll**, the one service that can list with or without `--full`. When `true` (the default), Crunchyroll is listed with `--full`, which is what lets mdnx-auto-dl see closed-caption / SDH subtitle variants and monitor them (see [`dlsubs`](#cdl-dlsubs) `EN:cc`), at the cost of a slower listing. Set it to `false` for the faster normal listing when you are not monitoring CC subtitles on Crunchyroll. Every other service always lists with `--full`, so this key has no effect on them. |
+
+JSON:
+```json
+"cardinaldl": {
+    "crunchyroll": {
+        "full_listing": true
+    }
+}
+```
+YAML:
+```yaml
+cardinaldl:
+    crunchyroll:
+        full_listing: true
+```
+
+##### cdl-workers
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| unset | number | Number of listing workers CardinalDL uses during the listing step (passed as `--workers`). Must be `1` or higher. Leave it unset to use the built-in default: `3` for Crunchyroll and HiDive, `1` for ADN, Disney, Netflix, and Amazon. `--workers` is only sent alongside `--full`, so on Crunchyroll it only takes effect while [`full_listing`](#cdl-full_listing) is `true`. |
+
+JSON:
+```json
+"cardinaldl": {
+    "crunchyroll": {
+        "workers": 3
+    }
+}
+```
+YAML:
+```yaml
+cardinaldl:
+    crunchyroll:
+        workers: 3
+```
+
 ##### cdl-dlpath
 
 | Default | Type | Description |
@@ -1307,6 +1352,24 @@ YAML:
 ```yaml
 app:
     CHECK_MISSING_DUB_SUB: true
+```
+
+### <a id="CACHE_DUBS_SUBS"></a>CACHE_DUBS_SUBS
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `true` | boolean | When `true`, mdnx-auto-dl caches each episode's local dub and subtitle tracks in `queue.db` after it downloads the episode, so the [`CHECK_MISSING_DUB_SUB`](#CHECK_MISSING_DUB_SUB) check can reuse them instead of re-probing the file with `ffprobe` on every loop. The cache is refreshed automatically whenever an episode is downloaded or re-downloaded, so it always reflects what is on disk. Set to `false` to probe every file with `ffprobe` on each loop instead. |
+
+JSON:
+```json
+"app": {
+    "CACHE_DUBS_SUBS": true
+}
+```
+YAML:
+```yaml
+app:
+    CACHE_DUBS_SUBS: true
 ```
 
 ### <a id="CHECK_FOR_UPDATES_INTERVAL"></a>CHECK_FOR_UPDATES_INTERVAL

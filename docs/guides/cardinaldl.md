@@ -80,6 +80,35 @@ cardinaldl:
 
 ---
 
+## Listing speed and CC subtitles (Crunchyroll)
+
+Before downloading, mdnx-auto-dl lists each series to see what episodes and tracks exist. On Crunchyroll this listing can run two ways:
+
+- **Full listing** (`--full`, the default): required to see closed-caption / SDH subtitle variants, so keep it on if you monitor `EN:cc` or `EN:both` subs on Crunchyroll. It is slower.
+- **Normal listing**: faster, but does not expose CC/SDH variants.
+
+If you are not monitoring CC subtitles on Crunchyroll, switch to the faster listing:
+
+JSON:
+```json
+"cardinaldl": {
+    "crunchyroll": {
+        "full_listing": false
+    }
+}
+```
+YAML:
+```yaml
+cardinaldl:
+    crunchyroll:
+        full_listing: false
+```
+
+- [`full_listing`](../config-options.md#cdl-full_listing): Crunchyroll only. `true` (default) lists with `--full` for CC subtitle support. `false` uses the faster normal listing. Since other services need `--full` to work, they do not honor this config option.
+- [`workers`](../config-options.md#cdl-workers): how many listing workers CardinalDL uses (`--workers`). Leave it unset for the built-in default (`3` for Crunchyroll and HiDive, `1` for the rest). On Crunchyroll it only applies while `full_listing` is `true`.
+
+---
+
 ## Paths (advanced)
 
 You normally do not need to touch these. They control where CardinalDL writes files and where it reads your sign-in from.
