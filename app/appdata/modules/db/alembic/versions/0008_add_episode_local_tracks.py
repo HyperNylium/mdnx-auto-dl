@@ -18,12 +18,12 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    with op.batch_alter_table("episodes", schema=None, recreate="always") as batch_op:
+    with op.batch_alter_table("episodes", schema=None, recreate="always", table_kwargs={"sqlite_with_rowid": False}) as batch_op:
         batch_op.add_column(sa.Column("local_dubs", sa.Text(), nullable=True), insert_after="available_audio_qualities")
         batch_op.add_column(sa.Column("local_subs", sa.Text(), nullable=True), insert_after="local_dubs")
 
 
 def downgrade() -> None:
-    with op.batch_alter_table("episodes", schema=None) as batch_op:
+    with op.batch_alter_table("episodes", schema=None, table_kwargs={"sqlite_with_rowid": False}) as batch_op:
         batch_op.drop_column("local_subs")
         batch_op.drop_column("local_dubs")
