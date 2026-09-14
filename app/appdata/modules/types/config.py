@@ -103,6 +103,8 @@ class SeasonMonitorConfig(BaseModel):
     season_override: str | None = None
     dub_overrides: list[str] | None = None
     sub_overrides: list[SubToken] | None = None
+    dir_override: str | None = None
+    folder_structure_override: str | None = None
 
 
 class MdnxBinPath(BaseModel):

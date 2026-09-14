@@ -993,7 +993,17 @@ def get_episode_file_path(bucket: ServiceBucket, series_id: str, season_key: str
 
     destination = config.destinations[service.service_name]
 
-    file_name = build_folder_structure(destination.dir, raw_series, season_number, episode_number, raw_episode_name, destination.folder_structure, extension, service.service_long, service.service_short)
+    season_monitor = get_season_monitor_config(service.service_name, series_id, season.season_id)
+
+    target_dir = destination.dir
+    if season_monitor is not None and season_monitor.dir_override is not None:
+        target_dir = season_monitor.dir_override
+
+    target_folder_structure = destination.folder_structure
+    if season_monitor is not None and season_monitor.folder_structure_override is not None:
+        target_folder_structure = season_monitor.folder_structure_override
+
+    file_name = build_folder_structure(target_dir, raw_series, season_number, episode_number, raw_episode_name, target_folder_structure, extension, service.service_long, service.service_short)
 
     _log(f"Built file path for series ID {series_id}, season {season_key}, episode {episode_key}: {file_name}", level="debug")
 
