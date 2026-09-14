@@ -14,7 +14,7 @@ from ruamel.yaml import YAML
 
 from .types.config import Config, AppConfig
 from .types.service import Service, MdnxServices, CdlServices, Services
-from .types.queue import Series, ServiceBucket
+from .types.queue import Series, ServiceBucket, TemplateFields
 
 
 def _log(message: str, level: str = "info", exc_info=None) -> None:
@@ -932,18 +932,19 @@ def update_app_config(config_key: str, new_value) -> bool:
     return True
 
 
-def build_folder_structure(base_dir: str, series_title: str, season: str, episode: str, episode_name: str, template_str: str, extension: str = ".mkv", service_long: str = "", service_short: str = "") -> str:
+def build_folder_structure(base_dir: str, template_str: str, fields: TemplateFields, extension: str = ".mkv") -> str:
     """Build the folder structure and file name based on the template the caller supplies."""
 
     substitutes = {
-        "seriesTitle": series_title,
-        "season": str(int(season)),
-        "seasonPadded": str(int(season)).zfill(2),
-        "episode": str(int(episode)),
-        "episodePadded": str(int(episode)).zfill(2),
-        "episodeName": episode_name,
-        "serviceLong": service_long,
-        "serviceShort": service_short
+        "seriesTitle": fields.series_title,
+        "season": str(int(fields.season)),
+        "seasonPadded": str(int(fields.season)).zfill(2),
+        "episode": str(int(fields.episode)),
+        "episodePadded": str(int(fields.episode)).zfill(2),
+        "episodeName": fields.episode_name,
+        "serviceLong": fields.service_long,
+        "serviceShort": fields.service_short,
+        "year": fields.year
     }
 
     raw_path = Template(template_str).safe_substitute(substitutes)
@@ -1003,7 +1004,17 @@ def get_episode_file_path(bucket: ServiceBucket, series_id: str, season_key: str
     if season_monitor is not None and season_monitor.folder_structure_override is not None:
         target_folder_structure = season_monitor.folder_structure_override
 
-    file_name = build_folder_structure(target_dir, raw_series, season_number, episode_number, raw_episode_name, target_folder_structure, extension, service.service_long, service.service_short)
+    fields = TemplateFields(
+        series_title=raw_series,
+        season=season_number,
+        episode=episode_number,
+        episode_name=raw_episode_name,
+        service_long=service.service_long,
+        service_short=service.service_short,
+        year=series.series.release_year
+    )
+
+    file_name = build_folder_structure(target_dir, target_folder_structure, fields, extension)
 
     _log(f"Built file path for series ID {series_id}, season {season_key}, episode {episode_key}: {file_name}", level="debug")
 

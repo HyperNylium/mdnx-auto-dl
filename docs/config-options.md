@@ -1297,6 +1297,7 @@ You only need entries for services you enable. You can drop the rest.
 | `${episode}`       | `1`                          | Episode number, no leading zeros. |
 | `${episodePadded}` | `01`                         | Episode number padded to two digits. |
 | `${episodeName}`   | `The Man Who Became a Kaiju` | Sanitized episode title. |
+| `${year}`          | `2023`                       | Series release year, taken from the CardinalDL listing. CardinalDL services only. It is the series-level year, so every season and episode of a series share it. |
 | `${serviceLong}`   | `Crunchyroll`                | Long, human-readable name of the source service. Values: `Crunchyroll`, `HiDive`, `ADN`, `Disney`, `Netflix`, `Amazon`. Same for the AniDL and CardinalDL variants of a service. Disney, Netflix and Amazon are CardinalDL-only. |
 | `${serviceShort}`  | `CR`                         | Short code for the source service. Values: `CR` (Crunchyroll), `HD` (HiDive), `ADN` (ADN), `DSNP` (Disney), `NF` (Netflix), `AMZN` (Amazon). Disney, Netflix and Amazon are CardinalDL-only. |
 

@@ -38,6 +38,7 @@ You can use any of these variables in a `folder_structure` template. See the [fu
 | `${season}` / `${seasonPadded}` | `1` / `01` | Season number, unpadded / padded to two digits. |
 | `${episode}` / `${episodePadded}` | `1` / `01` | Episode number, unpadded / padded to two digits. |
 | `${episodeName}` | `The Man Who Became a Kaiju` | Sanitized episode title. |
+| `${year}` | `2023` | Series release year. CardinalDL services only. |
 | `${serviceLong}` | `Crunchyroll` | Long service name: `Crunchyroll`, `HiDive`, `ADN`, `Disney`, `Netflix`, `Amazon`. |
 | `${serviceShort}` | `CR` | Short service code: `CR`, `HD`, `ADN`, `DSNP`, `NF`, `AMZN`. |
 

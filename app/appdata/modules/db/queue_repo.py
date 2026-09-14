@@ -52,7 +52,8 @@ def load_queue(conn: sqlite3.Connection) -> Queue:
                 series_name=series_row["series_name"],
                 series_id=series_id,
                 seasons_count=series_row["seasons_count"],
-                eps_count=series_row["eps_count"]
+                eps_count=series_row["eps_count"],
+                release_year=series_row["release_year"]
             ),
             seasons={}
         )
@@ -157,14 +158,15 @@ def upsert_series(conn: sqlite3.Connection, service: str, series_id: str, series
         try:
             conn.execute(
                 "INSERT OR REPLACE INTO series "
-                "(service, series_id, series_name, seasons_count, eps_count) "
-                "VALUES (?, ?, ?, ?, ?)",
+                "(service, series_id, series_name, seasons_count, eps_count, release_year) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
                 (
                     service,
                     series_id,
                     series.series.series_name,
                     series.series.seasons_count,
-                    series.series.eps_count
+                    series.series.eps_count,
+                    series.series.release_year
                 )
             )
 

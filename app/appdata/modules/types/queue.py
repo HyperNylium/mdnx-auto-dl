@@ -8,6 +8,7 @@ class SeriesInfo(BaseModel):
     series_id: str | None = None
     seasons_count: str | None = None
     eps_count: str | None = None
+    release_year: str = ""
 
 
 class Episode(BaseModel):
@@ -58,3 +59,15 @@ class Queue(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     buckets: dict[str, ServiceBucket] = Field(default_factory=dict)
+
+
+class TemplateFields(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    series_title: str
+    season: str
+    episode: str
+    episode_name: str
+    service_long: str = ""
+    service_short: str = ""
+    year: str = ""

@@ -12,6 +12,7 @@ series = Table(
     Column("series_name", Text, nullable=False),
     Column("seasons_count", Text, nullable=True),
     Column("eps_count", Text, nullable=True),
+    Column("release_year", Text, nullable=False, server_default=""),
     sqlite_with_rowid=False
 )
 

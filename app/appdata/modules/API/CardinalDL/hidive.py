@@ -317,11 +317,16 @@ class HIDIVE_CDL_API:
 
         series_title = sanitize(str(item_info.get("title") or "Unknown Series"))
 
+        # CDL exposes the year only at the series item level, used for the ${year} filename token
+        raw_release_year = item_info.get("year")
+        release_year = str(raw_release_year) if raw_release_year not in (None, "") else ""
+
         tmp_dict: dict[str, Series] = {
             series_id: Series(
                 series=SeriesInfo(
                     series_name=series_title,
-                    series_id=series_id
+                    series_id=series_id,
+                    release_year=release_year
                 ),
                 seasons={}
             )
