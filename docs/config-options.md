@@ -16,7 +16,7 @@ Both formats accept the exact same keys and values. Every option in this doc sho
 The config file has a few top-level sections:
 - `app`: every UPPER_CASE option in this doc lives here.
 - `destinations`: where each service saves its files. One entry per service. Each entry has a `dir` and a `folder_structure`.
-- `cr_monitor_series_id`, `hidive_monitor_series_id`, `adn_monitor_series_id`, `cdl_cr_monitor_series_id`, `cdl_hidive_monitor_series_id`, `cdl_adn_monitor_series_id`, `cdl_disney_monitor_series_id`, `cdl_netflix_monitor_series_id`, `cdl_amazon_monitor_series_id`: top-level (not under `app`). These hold the series IDs you want to watch per service.
+- `mdnx_cr_monitor_series_id`, `mdnx_hidive_monitor_series_id`, `mdnx_adn_monitor_series_id`, `cdl_cr_monitor_series_id`, `cdl_hidive_monitor_series_id`, `cdl_adn_monitor_series_id`, `cdl_disney_monitor_series_id`, `cdl_netflix_monitor_series_id`, `cdl_amazon_monitor_series_id`: top-level (not under `app`). These hold the series IDs you want to watch per service.
 - `mdnx`: passthrough config for [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx). Anything valid in `cli-defaults.yml` is valid here, as long as the option's `cli-default Entry` in [multi-downloader-nx's documentation](https://github.com/anidl/multi-downloader-nx/blob/master/docs/DOCUMENTATION.md) is not `NaN`.
 - `cardinaldl`: per-service config for the CardinalDL downloader. Has subsections `crunchyroll`, `hidive`, `adn`, `disney`, `netflix`, and `amazon`.
 
@@ -88,9 +88,9 @@ Standard YAML formatting still applies:
             - [`temppath`](#cdl-temppath)
             - [`configpath`](#cdl-configpath)
 - [Series to monitor](#series-to-monitor)
-    - [`cr_monitor_series_id`](#cr_monitor_series_id)
-    - [`hidive_monitor_series_id`](#hidive_monitor_series_id)
-    - [`adn_monitor_series_id`](#adn_monitor_series_id)
+    - [`mdnx_cr_monitor_series_id`](#mdnx_cr_monitor_series_id)
+    - [`mdnx_hidive_monitor_series_id`](#mdnx_hidive_monitor_series_id)
+    - [`mdnx_adn_monitor_series_id`](#mdnx_adn_monitor_series_id)
     - [`cdl_cr_monitor_series_id`](#cdl_cr_monitor_series_id)
     - [`cdl_hidive_monitor_series_id`](#cdl_hidive_monitor_series_id)
     - [`cdl_adn_monitor_series_id`](#cdl_adn_monitor_series_id)
@@ -182,7 +182,7 @@ The services that download through the aniDL binary. Log in to each one you want
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `false` | boolean | When `true`, enable auth with the Crunchyroll multi-downloader-nx API and monitor any series IDs in `cr_monitor_series_id`. |
+| `false` | boolean | When `true`, enable auth with the Crunchyroll multi-downloader-nx API and monitor any series IDs in `mdnx_cr_monitor_series_id`. |
 
 JSON:
 ```json
@@ -274,7 +274,7 @@ app:
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `false` | boolean | When `true`, enable auth with the HiDive multi-downloader-nx API and monitor any series IDs in `hidive_monitor_series_id`. |
+| `false` | boolean | When `true`, enable auth with the HiDive multi-downloader-nx API and monitor any series IDs in `mdnx_hidive_monitor_series_id`. |
 
 JSON:
 ```json
@@ -366,7 +366,7 @@ app:
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `false` | boolean | When `true`, enable auth with the ADN (Animation Digital Network) multi-downloader-nx API and monitor any series IDs in `adn_monitor_series_id`. |
+| `false` | boolean | When `true`, enable auth with the ADN (Animation Digital Network) multi-downloader-nx API and monitor any series IDs in `mdnx_adn_monitor_series_id`. |
 
 JSON:
 ```json
@@ -1011,7 +1011,7 @@ cardinaldl:
 These keys live at the **top level** of the config file, not inside `app`. They map series IDs to per-season blacklist and override settings.  
 See [Blacklists & per-season overrides](guides/series-overrides.md) for the full format.
 
-### <a id="cr_monitor_series_id"></a>cr_monitor_series_id
+### <a id="mdnx_cr_monitor_series_id"></a>mdnx_cr_monitor_series_id
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -1020,18 +1020,18 @@ See [Blacklists & per-season overrides](guides/series-overrides.md) for the full
 JSON:
 ```json
 {
-    "cr_monitor_series_id": {
+    "mdnx_cr_monitor_series_id": {
         "GG5H5XQ7D": {}
     }
 }
 ```
 YAML:
 ```yaml
-cr_monitor_series_id:
+mdnx_cr_monitor_series_id:
     GG5H5XQ7D: {}
 ```
 
-### <a id="hidive_monitor_series_id"></a>hidive_monitor_series_id
+### <a id="mdnx_hidive_monitor_series_id"></a>mdnx_hidive_monitor_series_id
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -1040,18 +1040,18 @@ cr_monitor_series_id:
 JSON:
 ```json
 {
-    "hidive_monitor_series_id": {
+    "mdnx_hidive_monitor_series_id": {
         "1050": {}
     }
 }
 ```
 YAML:
 ```yaml
-hidive_monitor_series_id:
+mdnx_hidive_monitor_series_id:
     "1050": {}
 ```
 
-### <a id="adn_monitor_series_id"></a>adn_monitor_series_id
+### <a id="mdnx_adn_monitor_series_id"></a>mdnx_adn_monitor_series_id
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -1060,14 +1060,14 @@ hidive_monitor_series_id:
 JSON:
 ```json
 {
-    "adn_monitor_series_id": {
+    "mdnx_adn_monitor_series_id": {
         "442": {}
     }
 }
 ```
 YAML:
 ```yaml
-adn_monitor_series_id:
+mdnx_adn_monitor_series_id:
     "442": {}
 ```
 
@@ -1209,20 +1209,20 @@ Each entry has two keys:
 - `folder_structure`: the layout for series, seasons, and episodes under `dir`.  
  See [Options for `folder_structure`](#options-for-folder_structure) for the variables you can use.
 
-Valid keys are: `crunchyroll`, `hidive`, `adn`, `cdl-crunchyroll`, `cdl-hidive`, `cdl-adn`, `cdl-disney`, `cdl-netflix`, `cdl-amazon`.
+Valid keys are: `mdnx-crunchyroll`, `mdnx-hidive`, `mdnx-adn`, `cdl-crunchyroll`, `cdl-hidive`, `cdl-adn`, `cdl-disney`, `cdl-netflix`, `cdl-amazon`.
 
 JSON:
 ```json
 "destinations": {
-    "crunchyroll": {
+    "mdnx-crunchyroll": {
         "dir": "/data/Anime",
         "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
     },
-    "hidive": {
+    "mdnx-hidive": {
         "dir": "/data/Anime",
         "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
     },
-    "adn": {
+    "mdnx-adn": {
         "dir": "/data/Anime",
         "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
     },
@@ -1256,13 +1256,13 @@ JSON:
 YAML:
 ```yaml
 destinations:
-    crunchyroll:
+    mdnx-crunchyroll:
         dir: "/data/Anime"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
-    hidive:
+    mdnx-hidive:
         dir: "/data/Anime"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
-    adn:
+    mdnx-adn:
         dir: "/data/Anime"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
     cdl-crunchyroll:

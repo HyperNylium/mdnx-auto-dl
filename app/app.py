@@ -174,7 +174,7 @@ def app():
             continue
 
         match mdnx_service.service_name:
-            case "crunchyroll":
+            case "mdnx-crunchyroll":
                 log_manager.info("Starting CR_MDNX_API...")
                 from appdata.modules.API.MDNX.crunchy import CR_MDNX_API
                 mdnx_service.api = CR_MDNX_API()
@@ -191,7 +191,7 @@ def app():
                 else:
                     log_manager.info("cr_token.yml exists. Assuming user is already authenticated with CR MDNX service.")
 
-            case "hidive":
+            case "mdnx-hidive":
                 log_manager.info("Starting HIDIVE_MDNX_API...")
                 from appdata.modules.API.MDNX.hidive import HIDIVE_MDNX_API
                 mdnx_service.api = HIDIVE_MDNX_API()
@@ -208,7 +208,7 @@ def app():
                 else:
                     log_manager.info("hd_new_token.yml exists. Assuming user is already authenticated with HiDive MDNX service.")
 
-            case "adn":
+            case "mdnx-adn":
                 log_manager.info("Starting ADN_MDNX_API...")
                 from appdata.modules.API.MDNX.adn import ADN_MDNX_API
                 mdnx_service.api = ADN_MDNX_API()

@@ -7,12 +7,12 @@ Each entry has two keys:
 - `dir`: the folder **inside the container** where files are saved. This must match the right side of one of your bind-mounts in `docker-compose.yaml` (for example, `/data/Anime`).
 - `folder_structure`: the layout for series, seasons, and episodes under `dir`, built from the variables below.
 
-Valid destination keys: `crunchyroll`, `hidive`, `adn`, `cdl-crunchyroll`, `cdl-hidive`, `cdl-adn`, `cdl-disney`, `cdl-netflix`, `cdl-amazon`. You only need entries for the services you enable.
+Valid destination keys: `mdnx-crunchyroll`, `mdnx-hidive`, `mdnx-adn`, `cdl-crunchyroll`, `cdl-hidive`, `cdl-adn`, `cdl-disney`, `cdl-netflix`, `cdl-amazon`. You only need entries for the services you enable.
 
 JSON:
 ```json
 "destinations": {
-    "crunchyroll": {
+    "mdnx-crunchyroll": {
         "dir": "/data/Anime",
         "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
     }
@@ -21,7 +21,7 @@ JSON:
 YAML:
 ```yaml
 destinations:
-    crunchyroll:
+    mdnx-crunchyroll:
         dir: "/data/Anime"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
 ```

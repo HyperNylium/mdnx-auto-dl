@@ -107,7 +107,7 @@ For the full list of variables you can use inside `folder_structure`, see [Optio
   Keep in mind that `CR_ENABLED` must be set to `true` for Crunchyroll's API to be used. By default it is set to `false`.
 
   ### 2) Crunchyroll series IDs to monitor
-  Get the **series ID** from the Crunchyroll URL and add it under `cr_monitor_series_id`.
+  Get the **series ID** from the Crunchyroll URL and add it under `mdnx_cr_monitor_series_id`.
 
   Example URL:
   ```txt
@@ -120,14 +120,14 @@ For the full list of variables you can use inside `folder_structure`, see [Optio
   JSON:
   ```json
   {
-    "cr_monitor_series_id": {
+    "mdnx_cr_monitor_series_id": {
       "GG5H5XQ7D": {}
     }
   }
   ```
   YAML:
   ```yaml
-  cr_monitor_series_id:
+  mdnx_cr_monitor_series_id:
       "GG5H5XQ7D": {}
   ```
 </details>
@@ -159,7 +159,7 @@ For the full list of variables you can use inside `folder_structure`, see [Optio
   Keep in mind that `HIDIVE_ENABLED` must be set to `true` for HiDive's API to be used. By default it is set to `false`.
 
   ### 2) HiDive series IDs to monitor
-  Get the **series ID** from HiDive and add it under `hidive_monitor_series_id`.
+  Get the **series ID** from HiDive and add it under `mdnx_hidive_monitor_series_id`.
 
   Steps:
   1. Go to [HiDive's search site](https://www.hidive.com/search). No login required.
@@ -176,14 +176,14 @@ For the full list of variables you can use inside `folder_structure`, see [Optio
   JSON:
   ```json
   {
-    "hidive_monitor_series_id": {
+    "mdnx_hidive_monitor_series_id": {
       "1050": {}
     }
   }
   ```
   YAML:
   ```yaml
-  hidive_monitor_series_id:
+  mdnx_hidive_monitor_series_id:
       "1050": {}
   ```
 </details>
@@ -215,7 +215,7 @@ For the full list of variables you can use inside `folder_structure`, see [Optio
   Keep in mind that `ADN_ENABLED` must be set to `true` for ADN's API to be used. By default it is set to `false`.
 
   ### 2) ADN series IDs to monitor
-  Get the **series ID** from the ADN URL (the numeric ID in the series path) and add it under `adn_monitor_series_id`.
+  Get the **series ID** from the ADN URL (the numeric ID in the series path) and add it under `mdnx_adn_monitor_series_id`.
 
   Example URL:
   ```txt
@@ -228,14 +228,14 @@ For the full list of variables you can use inside `folder_structure`, see [Optio
   JSON:
   ```json
   {
-    "adn_monitor_series_id": {
+    "mdnx_adn_monitor_series_id": {
       "442": {}
     }
   }
   ```
   YAML:
   ```yaml
-  adn_monitor_series_id:
+  mdnx_adn_monitor_series_id:
       "442": {}
   ```
 </details>

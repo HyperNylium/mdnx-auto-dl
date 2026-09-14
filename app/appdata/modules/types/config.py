@@ -177,9 +177,9 @@ class CdlConfig(BaseModel):
 class Config(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    adn_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    mdnx_cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    mdnx_hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    mdnx_adn_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
 
     cdl_cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
     cdl_hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)

@@ -21,7 +21,7 @@ class HIDIVE_MDNX_API:
     def __init__(self) -> None:
         self.mdnx_path = MDNX_SERVICE_BIN_PATH
         self.mdnx_service = "hidive"
-        self.queue_service = "hidive"
+        self.queue_service = "mdnx-hidive"
         self.username = str(config.app.hidive_username)
         self.password = str(config.app.hidive_password)
         self.download_thread = None
@@ -583,7 +583,7 @@ class HIDIVE_MDNX_API:
                 )
 
             stored_season_number = meta["season_number"]
-            season_monitor = get_season_monitor_config("hidive", current_series_id, season_id)
+            season_monitor = get_season_monitor_config("mdnx-hidive", current_series_id, season_id)
             if season_monitor is not None and season_monitor.season_override is not None:
                 stored_season_number = str(season_monitor.season_override)
 
@@ -596,7 +596,7 @@ class HIDIVE_MDNX_API:
             )
 
         # apply per-series blacklist to mark episodes to skip
-        tmp_dict = apply_series_blacklist(tmp_dict, service="hidive")
+        tmp_dict = apply_series_blacklist(tmp_dict, service="mdnx-hidive")
 
         log_manager.debug("Console output processed.")
         if add2queue:

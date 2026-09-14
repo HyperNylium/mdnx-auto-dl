@@ -61,7 +61,7 @@ class QueueManager:
 
                 # only for multi-downloader-nx ADN to handle their no season ID BS
                 preserved_by_episode_id: dict[str, tuple[bool, bool, list[str] | None, list[str] | None]] = {}
-                if bucket_name == "ADN":
+                if bucket_name == "MDNX-ADN":
                     for old_season in existing_series.seasons.values():
                         for old_episode in old_season.episodes.values():
                             if old_episode.episode_id:

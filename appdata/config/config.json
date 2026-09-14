@@ -1,7 +1,7 @@
 {
-    "cr_monitor_series_id": {},
-    "hidive_monitor_series_id": {},
-    "adn_monitor_series_id": {},
+    "mdnx_cr_monitor_series_id": {},
+    "mdnx_hidive_monitor_series_id": {},
+    "mdnx_adn_monitor_series_id": {},
     "cdl_cr_monitor_series_id": {},
     "cdl_hidive_monitor_series_id": {},
     "cdl_adn_monitor_series_id": {},
@@ -9,15 +9,15 @@
     "cdl_netflix_monitor_series_id": {},
     "cdl_amazon_monitor_series_id": {},
     "destinations": {
-        "crunchyroll": {
+        "mdnx-crunchyroll": {
             "dir": "/data/Anime",
             "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
         },
-        "hidive": {
+        "mdnx-hidive": {
             "dir": "/data/Anime",
             "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
         },
-        "adn": {
+        "mdnx-adn": {
             "dir": "/data/Anime",
             "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
         },

@@ -31,7 +31,7 @@ class ADN_MDNX_API:
     def __init__(self) -> None:
         self.mdnx_path = MDNX_SERVICE_BIN_PATH
         self.mdnx_service = "adn"
-        self.queue_service = "adn"
+        self.queue_service = "mdnx-adn"
         self.username = str(config.app.adn_username)
         self.password = str(config.app.adn_password)
         self.download_thread = None
@@ -298,9 +298,9 @@ class ADN_MDNX_API:
                     available_subs=record["available_subs"]
                 )
 
-            # honor user season_override from adn_monitor_series_id if set.
+            # honor user season_override from mdnx_adn_monitor_series_id if set.
             stored_season_number = str(current_season_index)
-            season_monitor = get_season_monitor_config("adn", current_series_id, season_id)
+            season_monitor = get_season_monitor_config("mdnx-adn", current_series_id, season_id)
             if season_monitor is not None and season_monitor.season_override is not None:
                 stored_season_number = str(season_monitor.season_override)
 
@@ -437,7 +437,7 @@ class ADN_MDNX_API:
             return tmp_dict
 
         # apply per-series blacklist to mark episodes to skip
-        tmp_dict = apply_series_blacklist(tmp_dict, service="adn")
+        tmp_dict = apply_series_blacklist(tmp_dict, service="mdnx-adn")
 
         log_manager.debug("Console output processed.")
         if add2queue:

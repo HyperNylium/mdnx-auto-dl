@@ -118,9 +118,9 @@ def output_effective_config(config: Config, max_chunk: int = 8000):
     defaults_dict = Config().model_dump(by_alias=True)
 
     SKIP_ORDERING_KEYS = {
-        "cr_monitor_series_id",
-        "hidive_monitor_series_id",
-        "adn_monitor_series_id",
+        "mdnx_cr_monitor_series_id",
+        "mdnx_hidive_monitor_series_id",
+        "mdnx_adn_monitor_series_id",
         "cdl_cr_monitor_series_id",
         "cdl_hidive_monitor_series_id",
         "cdl_adn_monitor_series_id",
@@ -184,39 +184,39 @@ del overrides
 SERVICES = Services(
     mdnx=MdnxServices(
         crunchyroll=Service(
-            service_name="crunchyroll",
-            queue_bucket="Crunchyroll",
-            display_name="Crunchyroll",
+            service_name="mdnx-crunchyroll",
+            queue_bucket="MDNX-Crunchyroll",
+            display_name="MDNX Crunchyroll",
             service_long="Crunchyroll",
             service_short="CR",
             tool="mdnx",
             config=config.mdnx,
-            monitor_series_id=config.cr_monitor_series_id,
-            monitor_config_key="cr_monitor_series_id",
+            monitor_series_id=config.mdnx_cr_monitor_series_id,
+            monitor_config_key="mdnx_cr_monitor_series_id",
             enabled=config.app.cr_enabled
         ),
         hidive=Service(
-            service_name="hidive",
-            queue_bucket="HiDive",
-            display_name="HiDive",
+            service_name="mdnx-hidive",
+            queue_bucket="MDNX-HiDive",
+            display_name="MDNX HiDive",
             service_long="HiDive",
             service_short="HD",
             tool="mdnx",
             config=config.mdnx,
-            monitor_series_id=config.hidive_monitor_series_id,
-            monitor_config_key="hidive_monitor_series_id",
+            monitor_series_id=config.mdnx_hidive_monitor_series_id,
+            monitor_config_key="mdnx_hidive_monitor_series_id",
             enabled=config.app.hidive_enabled
         ),
         adn=Service(
-            service_name="adn",
-            queue_bucket="ADN",
-            display_name="ADN",
+            service_name="mdnx-adn",
+            queue_bucket="MDNX-ADN",
+            display_name="MDNX ADN",
             service_long="ADN",
             service_short="ADN",
             tool="mdnx",
             config=config.mdnx,
-            monitor_series_id=config.adn_monitor_series_id,
-            monitor_config_key="adn_monitor_series_id",
+            monitor_series_id=config.mdnx_adn_monitor_series_id,
+            monitor_config_key="mdnx_adn_monitor_series_id",
             enabled=config.app.adn_enabled
         )
     ),
@@ -622,9 +622,9 @@ def validate_destinations() -> None:
 
     # map of destination key -> whether the service is enabled in app config.
     required_destinations = {
-        "crunchyroll": config.app.cr_enabled,
-        "hidive": config.app.hidive_enabled,
-        "adn": config.app.adn_enabled,
+        "mdnx-crunchyroll": config.app.cr_enabled,
+        "mdnx-hidive": config.app.hidive_enabled,
+        "mdnx-adn": config.app.adn_enabled,
         "cdl-crunchyroll": config.app.cdl_cr_enabled,
         "cdl-hidive": config.app.cdl_hidive_enabled,
         "cdl-adn": config.app.cdl_adn_enabled,
