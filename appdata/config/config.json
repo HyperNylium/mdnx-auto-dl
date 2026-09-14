@@ -47,15 +47,15 @@
         }
     },
     "app": {
-        "CR_ENABLED": false,
-        "CR_USERNAME": "",
-        "CR_PASSWORD": "",
-        "HIDIVE_ENABLED": false,
-        "HIDIVE_USERNAME": "",
-        "HIDIVE_PASSWORD": "",
-        "ADN_ENABLED": false,
-        "ADN_USERNAME": "",
-        "ADN_PASSWORD": "",
+        "MDNX_CR_ENABLED": false,
+        "MDNX_CR_USERNAME": "",
+        "MDNX_CR_PASSWORD": "",
+        "MDNX_HIDIVE_ENABLED": false,
+        "MDNX_HIDIVE_USERNAME": "",
+        "MDNX_HIDIVE_PASSWORD": "",
+        "MDNX_ADN_ENABLED": false,
+        "MDNX_ADN_USERNAME": "",
+        "MDNX_ADN_PASSWORD": "",
         "BACKUP_DUBS": [
             "zho"
         ],
