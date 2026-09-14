@@ -22,8 +22,8 @@ class HIDIVE_MDNX_API:
         self.mdnx_path = MDNX_SERVICE_BIN_PATH
         self.mdnx_service = "hidive"
         self.queue_service = "mdnx-hidive"
-        self.username = str(config.app.hidive_username)
-        self.password = str(config.app.hidive_password)
+        self.username = str(config.app.mdnx_hidive_username)
+        self.password = str(config.app.mdnx_hidive_password)
         self.download_thread = None
         self.download_proc = None
         self.download_lock = threading.Lock()
@@ -69,7 +69,7 @@ class HIDIVE_MDNX_API:
             self.stdbuf_exists = False
             log_manager.debug("stdbuf not found, using default command without buffering.")
 
-        if config.app.hidive_skip_api_test == False:
+        if config.app.mdnx_hidive_skip_api_test == False:
             self.test()
         else:
             log_manager.info("API test skipped by user.")

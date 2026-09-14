@@ -43,22 +43,22 @@ Standard YAML formatting still applies:
 - [Downloaders](#downloaders)
     - [multi-downloader-nx](#multi-downloader-nx)
         - [Crunchyroll](#crunchyroll)
-            - [`CR_ENABLED`](#CR_ENABLED)
-            - [`CR_USERNAME`](#CR_USERNAME)
-            - [`CR_PASSWORD`](#CR_PASSWORD)
-            - [`CR_FORCE_REAUTH`](#CR_FORCE_REAUTH)
-            - [`CR_SKIP_API_TEST`](#CR_SKIP_API_TEST)
+            - [`MDNX_CR_ENABLED`](#MDNX_CR_ENABLED)
+            - [`MDNX_CR_USERNAME`](#MDNX_CR_USERNAME)
+            - [`MDNX_CR_PASSWORD`](#MDNX_CR_PASSWORD)
+            - [`MDNX_CR_FORCE_REAUTH`](#MDNX_CR_FORCE_REAUTH)
+            - [`MDNX_CR_SKIP_API_TEST`](#MDNX_CR_SKIP_API_TEST)
         - [HiDive](#hidive)
-            - [`HIDIVE_ENABLED`](#HIDIVE_ENABLED)
-            - [`HIDIVE_USERNAME`](#HIDIVE_USERNAME)
-            - [`HIDIVE_PASSWORD`](#HIDIVE_PASSWORD)
-            - [`HIDIVE_FORCE_REAUTH`](#HIDIVE_FORCE_REAUTH)
-            - [`HIDIVE_SKIP_API_TEST`](#HIDIVE_SKIP_API_TEST)
+            - [`MDNX_HIDIVE_ENABLED`](#MDNX_HIDIVE_ENABLED)
+            - [`MDNX_HIDIVE_USERNAME`](#MDNX_HIDIVE_USERNAME)
+            - [`MDNX_HIDIVE_PASSWORD`](#MDNX_HIDIVE_PASSWORD)
+            - [`MDNX_HIDIVE_FORCE_REAUTH`](#MDNX_HIDIVE_FORCE_REAUTH)
+            - [`MDNX_HIDIVE_SKIP_API_TEST`](#MDNX_HIDIVE_SKIP_API_TEST)
         - [ADN](#adn)
-            - [`ADN_ENABLED`](#ADN_ENABLED)
-            - [`ADN_USERNAME`](#ADN_USERNAME)
-            - [`ADN_PASSWORD`](#ADN_PASSWORD)
-            - [`ADN_FORCE_REAUTH`](#ADN_FORCE_REAUTH)
+            - [`MDNX_ADN_ENABLED`](#MDNX_ADN_ENABLED)
+            - [`MDNX_ADN_USERNAME`](#MDNX_ADN_USERNAME)
+            - [`MDNX_ADN_PASSWORD`](#MDNX_ADN_PASSWORD)
+            - [`MDNX_ADN_FORCE_REAUTH`](#MDNX_ADN_FORCE_REAUTH)
         - [multi-downloader-nx options](#multi-downloader-nx-options)
             - [`bin-path`](#mdnx-bin-path)
             - [`dir-path`](#mdnx-dir-path)
@@ -178,7 +178,7 @@ The services that download through the aniDL binary. Log in to each one you want
 
 #### Crunchyroll
 
-##### <a id="CR_ENABLED"></a>CR_ENABLED
+##### <a id="MDNX_CR_ENABLED"></a>MDNX_CR_ENABLED
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -187,16 +187,16 @@ The services that download through the aniDL binary. Log in to each one you want
 JSON:
 ```json
 "app": {
-    "CR_ENABLED": true
+    "MDNX_CR_ENABLED": true
 }
 ```
 YAML:
 ```yaml
 app:
-    CR_ENABLED: true
+    MDNX_CR_ENABLED: true
 ```
 
-##### <a id="CR_USERNAME"></a>CR_USERNAME
+##### <a id="MDNX_CR_USERNAME"></a>MDNX_CR_USERNAME
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -205,16 +205,16 @@ app:
 JSON:
 ```json
 "app": {
-    "CR_USERNAME": "itsamemario@myemailprovider.com"
+    "MDNX_CR_USERNAME": "itsamemario@myemailprovider.com"
 }
 ```
 YAML:
 ```yaml
 app:
-    CR_USERNAME: "itsamemario@myemailprovider.com"
+    MDNX_CR_USERNAME: "itsamemario@myemailprovider.com"
 ```
 
-##### <a id="CR_PASSWORD"></a>CR_PASSWORD
+##### <a id="MDNX_CR_PASSWORD"></a>MDNX_CR_PASSWORD
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -223,16 +223,16 @@ app:
 JSON:
 ```json
 "app": {
-    "CR_PASSWORD": "thisismypassword123"
+    "MDNX_CR_PASSWORD": "thisismypassword123"
 }
 ```
 YAML:
 ```yaml
 app:
-    CR_PASSWORD: "thisismypassword123"
+    MDNX_CR_PASSWORD: "thisismypassword123"
 ```
 
-##### <a id="CR_FORCE_REAUTH"></a>CR_FORCE_REAUTH
+##### <a id="MDNX_CR_FORCE_REAUTH"></a>MDNX_CR_FORCE_REAUTH
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -241,16 +241,16 @@ app:
 JSON:
 ```json
 "app": {
-    "CR_FORCE_REAUTH": true
+    "MDNX_CR_FORCE_REAUTH": true
 }
 ```
 YAML:
 ```yaml
 app:
-    CR_FORCE_REAUTH: true
+    MDNX_CR_FORCE_REAUTH: true
 ```
 
-##### <a id="CR_SKIP_API_TEST"></a>CR_SKIP_API_TEST
+##### <a id="MDNX_CR_SKIP_API_TEST"></a>MDNX_CR_SKIP_API_TEST
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -259,18 +259,18 @@ app:
 JSON:
 ```json
 "app": {
-    "CR_SKIP_API_TEST": true
+    "MDNX_CR_SKIP_API_TEST": true
 }
 ```
 YAML:
 ```yaml
 app:
-    CR_SKIP_API_TEST: true
+    MDNX_CR_SKIP_API_TEST: true
 ```
 
 #### HiDive
 
-##### <a id="HIDIVE_ENABLED"></a>HIDIVE_ENABLED
+##### <a id="MDNX_HIDIVE_ENABLED"></a>MDNX_HIDIVE_ENABLED
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -279,16 +279,16 @@ app:
 JSON:
 ```json
 "app": {
-    "HIDIVE_ENABLED": true
+    "MDNX_HIDIVE_ENABLED": true
 }
 ```
 YAML:
 ```yaml
 app:
-    HIDIVE_ENABLED: true
+    MDNX_HIDIVE_ENABLED: true
 ```
 
-##### <a id="HIDIVE_USERNAME"></a>HIDIVE_USERNAME
+##### <a id="MDNX_HIDIVE_USERNAME"></a>MDNX_HIDIVE_USERNAME
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -297,16 +297,16 @@ app:
 JSON:
 ```json
 "app": {
-    "HIDIVE_USERNAME": "itsamemario@myemailprovider.com"
+    "MDNX_HIDIVE_USERNAME": "itsamemario@myemailprovider.com"
 }
 ```
 YAML:
 ```yaml
 app:
-    HIDIVE_USERNAME: "itsamemario@myemailprovider.com"
+    MDNX_HIDIVE_USERNAME: "itsamemario@myemailprovider.com"
 ```
 
-##### <a id="HIDIVE_PASSWORD"></a>HIDIVE_PASSWORD
+##### <a id="MDNX_HIDIVE_PASSWORD"></a>MDNX_HIDIVE_PASSWORD
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -315,16 +315,16 @@ app:
 JSON:
 ```json
 "app": {
-    "HIDIVE_PASSWORD": "thisismypassword123"
+    "MDNX_HIDIVE_PASSWORD": "thisismypassword123"
 }
 ```
 YAML:
 ```yaml
 app:
-    HIDIVE_PASSWORD: "thisismypassword123"
+    MDNX_HIDIVE_PASSWORD: "thisismypassword123"
 ```
 
-##### <a id="HIDIVE_FORCE_REAUTH"></a>HIDIVE_FORCE_REAUTH
+##### <a id="MDNX_HIDIVE_FORCE_REAUTH"></a>MDNX_HIDIVE_FORCE_REAUTH
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -333,16 +333,16 @@ app:
 JSON:
 ```json
 "app": {
-    "HIDIVE_FORCE_REAUTH": true
+    "MDNX_HIDIVE_FORCE_REAUTH": true
 }
 ```
 YAML:
 ```yaml
 app:
-    HIDIVE_FORCE_REAUTH: true
+    MDNX_HIDIVE_FORCE_REAUTH: true
 ```
 
-##### <a id="HIDIVE_SKIP_API_TEST"></a>HIDIVE_SKIP_API_TEST
+##### <a id="MDNX_HIDIVE_SKIP_API_TEST"></a>MDNX_HIDIVE_SKIP_API_TEST
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -351,18 +351,18 @@ app:
 JSON:
 ```json
 "app": {
-    "HIDIVE_SKIP_API_TEST": true
+    "MDNX_HIDIVE_SKIP_API_TEST": true
 }
 ```
 YAML:
 ```yaml
 app:
-    HIDIVE_SKIP_API_TEST: true
+    MDNX_HIDIVE_SKIP_API_TEST: true
 ```
 
 #### ADN
 
-##### <a id="ADN_ENABLED"></a>ADN_ENABLED
+##### <a id="MDNX_ADN_ENABLED"></a>MDNX_ADN_ENABLED
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -371,16 +371,16 @@ app:
 JSON:
 ```json
 "app": {
-    "ADN_ENABLED": true
+    "MDNX_ADN_ENABLED": true
 }
 ```
 YAML:
 ```yaml
 app:
-    ADN_ENABLED: true
+    MDNX_ADN_ENABLED: true
 ```
 
-##### <a id="ADN_USERNAME"></a>ADN_USERNAME
+##### <a id="MDNX_ADN_USERNAME"></a>MDNX_ADN_USERNAME
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -389,16 +389,16 @@ app:
 JSON:
 ```json
 "app": {
-    "ADN_USERNAME": "itsamemario@myemailprovider.com"
+    "MDNX_ADN_USERNAME": "itsamemario@myemailprovider.com"
 }
 ```
 YAML:
 ```yaml
 app:
-    ADN_USERNAME: "itsamemario@myemailprovider.com"
+    MDNX_ADN_USERNAME: "itsamemario@myemailprovider.com"
 ```
 
-##### <a id="ADN_PASSWORD"></a>ADN_PASSWORD
+##### <a id="MDNX_ADN_PASSWORD"></a>MDNX_ADN_PASSWORD
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -407,16 +407,16 @@ app:
 JSON:
 ```json
 "app": {
-    "ADN_PASSWORD": "thisismypassword123"
+    "MDNX_ADN_PASSWORD": "thisismypassword123"
 }
 ```
 YAML:
 ```yaml
 app:
-    ADN_PASSWORD: "thisismypassword123"
+    MDNX_ADN_PASSWORD: "thisismypassword123"
 ```
 
-##### <a id="ADN_FORCE_REAUTH"></a>ADN_FORCE_REAUTH
+##### <a id="MDNX_ADN_FORCE_REAUTH"></a>MDNX_ADN_FORCE_REAUTH
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -425,13 +425,13 @@ app:
 JSON:
 ```json
 "app": {
-    "ADN_FORCE_REAUTH": true
+    "MDNX_ADN_FORCE_REAUTH": true
 }
 ```
 YAML:
 ```yaml
 app:
-    ADN_FORCE_REAUTH: true
+    MDNX_ADN_FORCE_REAUTH: true
 ```
 
 #### multi-downloader-nx options
@@ -1015,7 +1015,7 @@ See [Blacklists & per-season overrides](guides/series-overrides.md) for the full
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `{}` | object | Crunchyroll (AniDL) series IDs to monitor. Used when [`CR_ENABLED`](#CR_ENABLED) is `true`. |
+| `{}` | object | Crunchyroll (AniDL) series IDs to monitor. Used when [`MDNX_CR_ENABLED`](#MDNX_CR_ENABLED) is `true`. |
 
 JSON:
 ```json
@@ -1035,7 +1035,7 @@ mdnx_cr_monitor_series_id:
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `{}` | object | HiDive (AniDL) series IDs to monitor. Used when [`HIDIVE_ENABLED`](#HIDIVE_ENABLED) is `true`. |
+| `{}` | object | HiDive (AniDL) series IDs to monitor. Used when [`MDNX_HIDIVE_ENABLED`](#MDNX_HIDIVE_ENABLED) is `true`. |
 
 JSON:
 ```json
@@ -1055,7 +1055,7 @@ mdnx_hidive_monitor_series_id:
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `{}` | object | ADN (AniDL) series IDs to monitor. Used when [`ADN_ENABLED`](#ADN_ENABLED) is `true`. |
+| `{}` | object | ADN (AniDL) series IDs to monitor. Used when [`MDNX_ADN_ENABLED`](#MDNX_ADN_ENABLED) is `true`. |
 
 JSON:
 ```json

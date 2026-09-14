@@ -181,13 +181,13 @@ def app():
 
                 # authenticate with MDNX crunchyroll service if needed or force auth if user wants to
                 log_manager.info("Checking to see if user is authenticated with MDNX service (cr_token.yml exists?)...")
-                if not os.path.exists(MDNX_SERVICE_CR_TOKEN_PATH) or config.app.cr_force_reauth == True:
+                if not os.path.exists(MDNX_SERVICE_CR_TOKEN_PATH) or config.app.mdnx_cr_force_reauth == True:
                     log_manager.info("cr_token.yml not found or re-authentication forced. Starting authentication process...")
                     mdnx_service.api.auth()
 
-                    # Update the "CR_FORCE_REAUTH" config to False if needed
-                    if config.app.cr_force_reauth == True:
-                        update_app_config("CR_FORCE_REAUTH", False)
+                    # Update the "MDNX_CR_FORCE_REAUTH" config to False if needed
+                    if config.app.mdnx_cr_force_reauth == True:
+                        update_app_config("MDNX_CR_FORCE_REAUTH", False)
                 else:
                     log_manager.info("cr_token.yml exists. Assuming user is already authenticated with CR MDNX service.")
 
@@ -198,13 +198,13 @@ def app():
 
                 # authenticate with MDNX hidive service if needed or force auth if user wants to
                 log_manager.info("Checking to see if user is authenticated with MDNX service (hd_new_token.yml exists?)...")
-                if not os.path.exists(MDNX_SERVICE_HIDIVE_TOKEN_PATH) or config.app.hidive_force_reauth == True:
+                if not os.path.exists(MDNX_SERVICE_HIDIVE_TOKEN_PATH) or config.app.mdnx_hidive_force_reauth == True:
                     log_manager.info("hd_new_token.yml not found or re-authentication forced. Starting authentication process...")
                     mdnx_service.api.auth()
 
-                    # Update the "HIDIVE_FORCE_REAUTH" config to False if needed
-                    if config.app.hidive_force_reauth == True:
-                        update_app_config("HIDIVE_FORCE_REAUTH", False)
+                    # Update the "MDNX_HIDIVE_FORCE_REAUTH" config to False if needed
+                    if config.app.mdnx_hidive_force_reauth == True:
+                        update_app_config("MDNX_HIDIVE_FORCE_REAUTH", False)
                 else:
                     log_manager.info("hd_new_token.yml exists. Assuming user is already authenticated with HiDive MDNX service.")
 
@@ -215,13 +215,13 @@ def app():
 
                 # authenticate with MDNX adn service if needed or force auth if user wants to
                 log_manager.info("Checking to see if user is authenticated with MDNX service (adn_token.yml exists?)...")
-                if not os.path.exists(MDNX_SERVICE_ADN_TOKEN_PATH) or config.app.adn_force_reauth == True:
+                if not os.path.exists(MDNX_SERVICE_ADN_TOKEN_PATH) or config.app.mdnx_adn_force_reauth == True:
                     log_manager.info("adn_token.yml not found or re-authentication forced. Starting authentication process...")
                     mdnx_service.api.auth()
 
-                    # Update the "ADN_FORCE_REAUTH" config to False if needed
-                    if config.app.adn_force_reauth == True:
-                        update_app_config("ADN_FORCE_REAUTH", False)
+                    # Update the "MDNX_ADN_FORCE_REAUTH" config to False if needed
+                    if config.app.mdnx_adn_force_reauth == True:
+                        update_app_config("MDNX_ADN_FORCE_REAUTH", False)
                 else:
                     log_manager.info("adn_token.yml exists. Assuming user is already authenticated with ADN MDNX service.")
 

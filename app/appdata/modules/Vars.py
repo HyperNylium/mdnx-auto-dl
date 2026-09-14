@@ -193,7 +193,7 @@ SERVICES = Services(
             config=config.mdnx,
             monitor_series_id=config.mdnx_cr_monitor_series_id,
             monitor_config_key="mdnx_cr_monitor_series_id",
-            enabled=config.app.cr_enabled
+            enabled=config.app.mdnx_cr_enabled
         ),
         hidive=Service(
             service_name="mdnx-hidive",
@@ -205,7 +205,7 @@ SERVICES = Services(
             config=config.mdnx,
             monitor_series_id=config.mdnx_hidive_monitor_series_id,
             monitor_config_key="mdnx_hidive_monitor_series_id",
-            enabled=config.app.hidive_enabled
+            enabled=config.app.mdnx_hidive_enabled
         ),
         adn=Service(
             service_name="mdnx-adn",
@@ -217,7 +217,7 @@ SERVICES = Services(
             config=config.mdnx,
             monitor_series_id=config.mdnx_adn_monitor_series_id,
             monitor_config_key="mdnx_adn_monitor_series_id",
-            enabled=config.app.adn_enabled
+            enabled=config.app.mdnx_adn_enabled
         )
     ),
     cardinaldl=CdlServices(
@@ -323,13 +323,13 @@ JELLY_API_KEY = config.app.jelly_api_key
 PLEX_CONFIGURED = isinstance(PLEX_URL, str) and PLEX_URL.strip() != ""
 JELLY_CONFIGURED = isinstance(JELLY_URL, str) and JELLY_URL.strip() != "" and isinstance(JELLY_API_KEY, str) and JELLY_API_KEY.strip() != ""
 
-# This will look like: {"TEMP_DIR": "temp_dir", "CR_ENABLED": "cr_enabled", ...}
+# This will look like: {"TEMP_DIR": "temp_dir", "MDNX_CR_ENABLED": "mdnx_cr_enabled", ...}
 APP_ALIAS_KEY_TO_FIELD_NAME = {}
 for field_name, field_info in AppConfig.model_fields.items():
     alias_key = field_info.alias or field_name
     APP_ALIAS_KEY_TO_FIELD_NAME[alias_key] = field_name
 
-# This will look like: {"temp_dir": "TEMP_DIR", "cr_enabled": "CR_ENABLED", ...}
+# This will look like: {"temp_dir": "TEMP_DIR", "mdnx_cr_enabled": "MDNX_CR_ENABLED", ...}
 APP_FIELD_NAME_TO_ALIAS_KEY = {}
 for field_name, field_info in AppConfig.model_fields.items():
     alias_key = field_info.alias or field_name
@@ -622,9 +622,9 @@ def validate_destinations() -> None:
 
     # map of destination key -> whether the service is enabled in app config.
     required_destinations = {
-        "mdnx-crunchyroll": config.app.cr_enabled,
-        "mdnx-hidive": config.app.hidive_enabled,
-        "mdnx-adn": config.app.adn_enabled,
+        "mdnx-crunchyroll": config.app.mdnx_cr_enabled,
+        "mdnx-hidive": config.app.mdnx_hidive_enabled,
+        "mdnx-adn": config.app.mdnx_adn_enabled,
         "cdl-crunchyroll": config.app.cdl_cr_enabled,
         "cdl-hidive": config.app.cdl_hidive_enabled,
         "cdl-adn": config.app.cdl_adn_enabled,
@@ -882,8 +882,8 @@ def update_app_config(config_key: str, new_value) -> bool:
     Update one AppConfig option in config.json/yaml/yml under the 'app' section.
 
     config_key can be either:
-      - field name: "cr_force_reauth"
-      - alias key:  "CR_FORCE_REAUTH"
+      - field name: "mdnx_cr_force_reauth"
+      - alias key:  "MDNX_CR_FORCE_REAUTH"
     """
 
     global config

@@ -32,8 +32,8 @@ class ADN_MDNX_API:
         self.mdnx_path = MDNX_SERVICE_BIN_PATH
         self.mdnx_service = "adn"
         self.queue_service = "mdnx-adn"
-        self.username = str(config.app.adn_username)
-        self.password = str(config.app.adn_password)
+        self.username = str(config.app.mdnx_adn_username)
+        self.password = str(config.app.mdnx_adn_password)
         self.download_thread = None
         self.download_proc = None
         self.download_lock = threading.Lock()

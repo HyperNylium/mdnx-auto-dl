@@ -31,6 +31,23 @@ DESTINATION_RENAMED_KEYS = {
     "adn": "mdnx-adn"
 }
 
+APP_RENAMED_KEYS = {
+    "CR_ENABLED": "MDNX_CR_ENABLED",
+    "CR_USERNAME": "MDNX_CR_USERNAME",
+    "CR_PASSWORD": "MDNX_CR_PASSWORD",
+    "CR_FORCE_REAUTH": "MDNX_CR_FORCE_REAUTH",
+    "CR_SKIP_API_TEST": "MDNX_CR_SKIP_API_TEST",
+    "HIDIVE_ENABLED": "MDNX_HIDIVE_ENABLED",
+    "HIDIVE_USERNAME": "MDNX_HIDIVE_USERNAME",
+    "HIDIVE_PASSWORD": "MDNX_HIDIVE_PASSWORD",
+    "HIDIVE_FORCE_REAUTH": "MDNX_HIDIVE_FORCE_REAUTH",
+    "HIDIVE_SKIP_API_TEST": "MDNX_HIDIVE_SKIP_API_TEST",
+    "ADN_ENABLED": "MDNX_ADN_ENABLED",
+    "ADN_USERNAME": "MDNX_ADN_USERNAME",
+    "ADN_PASSWORD": "MDNX_ADN_PASSWORD",
+    "ADN_FORCE_REAUTH": "MDNX_ADN_FORCE_REAUTH"
+}
+
 RENAMED_QUEUE_BUCKETS = {
     "Crunchyroll": "MDNX-Crunchyroll",
     "HiDive": "MDNX-HiDive",
@@ -145,6 +162,11 @@ def upgrade():
         return
 
     mutated = _rename_keys(on_disk_config, TOP_LEVEL_RENAMED_KEYS)
+
+    app_section = on_disk_config.get("app")
+    if isinstance(app_section, dict):
+        if _rename_keys(app_section, APP_RENAMED_KEYS):
+            mutated = True
 
     destinations_section = on_disk_config.get("destinations")
     if isinstance(destinations_section, dict):

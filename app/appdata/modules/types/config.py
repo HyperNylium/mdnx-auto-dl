@@ -20,17 +20,17 @@ class AppConfig(BaseModel):
     bin_dir: str = Field("/app/appdata/bin", alias="BIN_DIR")
     log_dir: str = Field("/app/appdata/logs", alias="LOG_DIR")
 
-    cr_enabled: bool = Field(False, alias="CR_ENABLED")
-    cr_username: str = Field("", alias="CR_USERNAME")
-    cr_password: str = Field("", alias="CR_PASSWORD")
+    mdnx_cr_enabled: bool = Field(False, alias="MDNX_CR_ENABLED")
+    mdnx_cr_username: str = Field("", alias="MDNX_CR_USERNAME")
+    mdnx_cr_password: str = Field("", alias="MDNX_CR_PASSWORD")
 
-    hidive_enabled: bool = Field(False, alias="HIDIVE_ENABLED")
-    hidive_username: str = Field("", alias="HIDIVE_USERNAME")
-    hidive_password: str = Field("", alias="HIDIVE_PASSWORD")
+    mdnx_hidive_enabled: bool = Field(False, alias="MDNX_HIDIVE_ENABLED")
+    mdnx_hidive_username: str = Field("", alias="MDNX_HIDIVE_USERNAME")
+    mdnx_hidive_password: str = Field("", alias="MDNX_HIDIVE_PASSWORD")
 
-    adn_enabled: bool = Field(False, alias="ADN_ENABLED")
-    adn_username: str = Field("", alias="ADN_USERNAME")
-    adn_password: str = Field("", alias="ADN_PASSWORD")
+    mdnx_adn_enabled: bool = Field(False, alias="MDNX_ADN_ENABLED")
+    mdnx_adn_username: str = Field("", alias="MDNX_ADN_USERNAME")
+    mdnx_adn_password: str = Field("", alias="MDNX_ADN_PASSWORD")
 
     cdl_cr_enabled: bool = Field(False, alias="CDL_CR_ENABLED")
     cdl_hidive_enabled: bool = Field(False, alias="CDL_HIDIVE_ENABLED")
@@ -46,11 +46,11 @@ class AppConfig(BaseModel):
     check_for_updates_interval: int = Field(3600, alias="CHECK_FOR_UPDATES_INTERVAL")
     episode_dl_delay: int = Field(30, alias="EPISODE_DL_DELAY")
 
-    cr_force_reauth: bool = Field(False, alias="CR_FORCE_REAUTH")
-    cr_skip_api_test: bool = Field(False, alias="CR_SKIP_API_TEST")
-    hidive_force_reauth: bool = Field(False, alias="HIDIVE_FORCE_REAUTH")
-    hidive_skip_api_test: bool = Field(False, alias="HIDIVE_SKIP_API_TEST")
-    adn_force_reauth: bool = Field(False, alias="ADN_FORCE_REAUTH")
+    mdnx_cr_force_reauth: bool = Field(False, alias="MDNX_CR_FORCE_REAUTH")
+    mdnx_cr_skip_api_test: bool = Field(False, alias="MDNX_CR_SKIP_API_TEST")
+    mdnx_hidive_force_reauth: bool = Field(False, alias="MDNX_HIDIVE_FORCE_REAUTH")
+    mdnx_hidive_skip_api_test: bool = Field(False, alias="MDNX_HIDIVE_SKIP_API_TEST")
+    mdnx_adn_force_reauth: bool = Field(False, alias="MDNX_ADN_FORCE_REAUTH")
     clear_queue: bool = Field(False, alias="CLEAR_QUEUE")
 
     only_create_queue: bool = Field(False, alias="ONLY_CREATE_QUEUE")

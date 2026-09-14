@@ -90,21 +90,21 @@ For the full list of variables you can use inside `folder_structure`, see [Optio
   ```json
   {
     "app": {
-      "CR_ENABLED": true,
-      "CR_USERNAME": "itsamemario@myemailprovider.com",
-      "CR_PASSWORD": "thisismypassword123"
+      "MDNX_CR_ENABLED": true,
+      "MDNX_CR_USERNAME": "itsamemario@myemailprovider.com",
+      "MDNX_CR_PASSWORD": "thisismypassword123"
     }
   }
   ```
   YAML:
   ```yaml
   app:
-      CR_ENABLED: true
-      CR_USERNAME: "itsamemario@myemailprovider.com"
-      CR_PASSWORD: "thisismypassword123"
+      MDNX_CR_ENABLED: true
+      MDNX_CR_USERNAME: "itsamemario@myemailprovider.com"
+      MDNX_CR_PASSWORD: "thisismypassword123"
   ```
 
-  Keep in mind that `CR_ENABLED` must be set to `true` for Crunchyroll's API to be used. By default it is set to `false`.
+  Keep in mind that `MDNX_CR_ENABLED` must be set to `true` for Crunchyroll's API to be used. By default it is set to `false`.
 
   ### 2) Crunchyroll series IDs to monitor
   Get the **series ID** from the Crunchyroll URL and add it under `mdnx_cr_monitor_series_id`.
@@ -142,21 +142,21 @@ For the full list of variables you can use inside `folder_structure`, see [Optio
   ```json
   {
     "app": {
-      "HIDIVE_ENABLED": true,
-      "HIDIVE_USERNAME": "itsamemario@myemailprovider.com",
-      "HIDIVE_PASSWORD": "thisismypassword123"
+      "MDNX_HIDIVE_ENABLED": true,
+      "MDNX_HIDIVE_USERNAME": "itsamemario@myemailprovider.com",
+      "MDNX_HIDIVE_PASSWORD": "thisismypassword123"
     }
   }
   ```
   YAML:
   ```yaml
   app:
-      HIDIVE_ENABLED: true
-      HIDIVE_USERNAME: "itsamemario@myemailprovider.com"
-      HIDIVE_PASSWORD: "thisismypassword123"
+      MDNX_HIDIVE_ENABLED: true
+      MDNX_HIDIVE_USERNAME: "itsamemario@myemailprovider.com"
+      MDNX_HIDIVE_PASSWORD: "thisismypassword123"
   ```
 
-  Keep in mind that `HIDIVE_ENABLED` must be set to `true` for HiDive's API to be used. By default it is set to `false`.
+  Keep in mind that `MDNX_HIDIVE_ENABLED` must be set to `true` for HiDive's API to be used. By default it is set to `false`.
 
   ### 2) HiDive series IDs to monitor
   Get the **series ID** from HiDive and add it under `mdnx_hidive_monitor_series_id`.
@@ -198,21 +198,21 @@ For the full list of variables you can use inside `folder_structure`, see [Optio
   ```json
   {
     "app": {
-      "ADN_ENABLED": true,
-      "ADN_USERNAME": "itsamemario@myemailprovider.com",
-      "ADN_PASSWORD": "thisismypassword123"
+      "MDNX_ADN_ENABLED": true,
+      "MDNX_ADN_USERNAME": "itsamemario@myemailprovider.com",
+      "MDNX_ADN_PASSWORD": "thisismypassword123"
     }
   }
   ```
   YAML:
   ```yaml
   app:
-      ADN_ENABLED: true
-      ADN_USERNAME: "itsamemario@myemailprovider.com"
-      ADN_PASSWORD: "thisismypassword123"
+      MDNX_ADN_ENABLED: true
+      MDNX_ADN_USERNAME: "itsamemario@myemailprovider.com"
+      MDNX_ADN_PASSWORD: "thisismypassword123"
   ```
 
-  Keep in mind that `ADN_ENABLED` must be set to `true` for ADN's API to be used. By default it is set to `false`.
+  Keep in mind that `MDNX_ADN_ENABLED` must be set to `true` for ADN's API to be used. By default it is set to `false`.
 
   ### 2) ADN series IDs to monitor
   Get the **series ID** from the ADN URL (the numeric ID in the series path) and add it under `mdnx_adn_monitor_series_id`.
