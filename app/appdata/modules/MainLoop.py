@@ -12,6 +12,7 @@ from .Vars import (
     format_duration, get_episode_file_path, get_season_monitor_config, iter_episodes
 )
 from .types.queue import Episode, ServiceBucket
+from .ExtraFeatures.TrackForge import trackforge_resolve, trackforge_run
 
 
 class MainLoop:
@@ -411,7 +412,17 @@ class MainLoop:
             if download_successful:
                 temp_path = os.path.join(TEMP_DIR, "output.mkv")
 
-                if file_manager.transfer(temp_path, file_path):
+                # if configured run TrackForge on the file before we move it to storage
+                trackforge_job = trackforge_resolve(service, series_id, season.season_id)
+                trackforge_ok = True
+                if trackforge_job is not None:
+                    trackforge_ok = trackforge_run(temp_path, *trackforge_job)
+
+                if not trackforge_ok:
+                    log_manager.error(f"[{service_label}] TrackForge failed. Skipping transfer and will retry next loop.")
+                    queue_manager.update_episode_status(series_id, season_key, episode_key, False, service)
+
+                elif file_manager.transfer(temp_path, file_path):
                     log_manager.info(f"[{service_label}] Transfer complete.")
                     queue_manager.update_episode_status(series_id, season_key, episode_key, True, service)
 
@@ -567,7 +578,16 @@ class MainLoop:
             if download_successful:
                 temp_path = os.path.join(TEMP_DIR, "output.mkv")
 
-                if file_manager.transfer(temp_path, file_path, overwrite=True):
+                # run trackforge on the file before we move it to storage
+                trackforge_job = trackforge_resolve(service, series_id, season.season_id)
+                trackforge_ok = True
+                if trackforge_job is not None:
+                    trackforge_ok = trackforge_run(temp_path, *trackforge_job)
+
+                if not trackforge_ok:
+                    log_manager.error(f"[{service_label}] TrackForge failed. Keeping existing file and will retry next loop.")
+
+                elif file_manager.transfer(temp_path, file_path, overwrite=True):
                     log_manager.info(f"[{service_label}] Transfer complete.")
 
                     # local file changed so probe it again to get the new dubs/subs and update the queue.db for this episode.

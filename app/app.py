@@ -5,6 +5,7 @@ import signal
 from appdata.modules.MainLoop import MainLoop
 from appdata.modules.Globals import file_manager, log_manager, queue_manager
 from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
+from appdata.modules.ExtraFeatures.TrackForge import TRACKFORGE_BIN_PATH
 from appdata.modules.API.MDNX._shared import (
     MDNX_SERVICE_BIN_PATH,
     MDNX_SERVICE_CR_TOKEN_PATH, MDNX_SERVICE_HIDIVE_TOKEN_PATH, MDNX_SERVICE_ADN_TOKEN_PATH,
@@ -16,7 +17,7 @@ from appdata.modules.API.CardinalDL._shared import (
 )
 from appdata.modules.Vars import (
     config,
-    APP_VERSION, JELLY_CONFIGURED, MDNX_ENABLED, PLEX_CONFIGURED, SERVICES, CDL_ENABLED,
+    APP_VERSION, JELLY_CONFIGURED, MDNX_ENABLED, PLEX_CONFIGURED, SERVICES, CDL_ENABLED, TRACKFORGE_ENABLED,
     get_running_user, handle_exception, output_effective_config, update_app_config, validate_cdm, validate_destinations
 )
 
@@ -82,6 +83,12 @@ def app():
             load_defaults(storage_path)
 
         log_manager.info("CardinalDL checks completed. All good!")
+
+    if TRACKFORGE_ENABLED:
+        if not os.path.isfile(TRACKFORGE_BIN_PATH):
+            log_manager.critical(f"TrackForge is enabled for a service, but the TrackForge binary was not found at: {TRACKFORGE_BIN_PATH}\nPlease rebuild the image so the binary gets bundled and restart the application.")
+            sys.exit(1)
+        log_manager.info("TrackForge is enabled and the binary was found. All good!")
 
     if PLEX_CONFIGURED is True or JELLY_CONFIGURED is True:
         if PLEX_CONFIGURED is True:

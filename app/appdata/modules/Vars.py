@@ -316,6 +316,13 @@ for cdl_service in SERVICES.cardinaldl.all():
         CDL_ENABLED = True
         break
 
+# Whether any services have TrackForge enabled
+TRACKFORGE_ENABLED = False
+for trackforge_service in config.extra_features.trackforge.services.values():
+    if trackforge_service.enabled:
+        TRACKFORGE_ENABLED = True
+        break
+
 PLEX_URL = config.app.plex_url
 JELLY_URL = config.app.jelly_url
 JELLY_API_KEY = config.app.jelly_api_key

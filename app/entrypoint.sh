@@ -147,6 +147,11 @@ ln -sfn "/usr/local/bin/ffprobe" "/app/appdata/bin/cardinaldl/static/ffmpeg/ffpr
 ln -sfn "/usr/bin/mkvmerge" "/app/appdata/bin/cardinaldl/static/mkvmerge/mkvmerge"
 ln -sfn "/usr/bin/mkvpropedit" "/app/appdata/bin/cardinaldl/static/mkvmerge/mkvpropedit"
 
+# Make required symlinks for TrackForge support
+ln -sfn "/usr/local/bin/ffmpeg" "/app/appdata/bin/trackforge/static/ffmpeg/ffmpeg"
+ln -sfn "/usr/local/bin/ffprobe" "/app/appdata/bin/trackforge/static/ffprobe/ffprobe"
+ln -sfn "/usr/bin/mkvmerge" "/app/appdata/bin/trackforge/static/mkvmerge/mkvmerge"
+
 # Check if any CardinalDL services are enabled in the config to determine if we need to fix permissions on CardinalDL paths.
 CDL_ENABLED=false
 for cdl_flag in CDL_CR_ENABLED CDL_HIDIVE_ENABLED CDL_ADN_ENABLED CDL_DISNEY_ENABLED CDL_NETFLIX_ENABLED CDL_AMAZON_ENABLED; do
