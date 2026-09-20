@@ -173,11 +173,11 @@ def upgrade():
         if _rename_keys(destinations_section, DESTINATION_RENAMED_KEYS):
             mutated = True
 
-    # 0002 can add the old destination keys but we remove them here to keep the config clean.
-    for old_destination_key in DESTINATION_RENAMED_KEYS:
-        if old_destination_key in destinations_section:
-            del destinations_section[old_destination_key]
-            mutated = True
+        # 0002 can add the old destination keys but we remove them here to keep the config clean.
+        for old_destination_key in DESTINATION_RENAMED_KEYS:
+            if old_destination_key in destinations_section:
+                del destinations_section[old_destination_key]
+                mutated = True
 
     if not mutated:
         return
