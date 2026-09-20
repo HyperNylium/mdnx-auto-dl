@@ -194,10 +194,6 @@ class CR_CDL_API:
             tmp_cmd += ["--outputformat", self.service_config.outputformat]
             log_manager.info(f"Using outputformat override: {self.service_config.outputformat}")
 
-        if self.service_config.dectool:
-            tmp_cmd += ["--dectool", self.service_config.dectool]
-            log_manager.info(f"Using dectool override: {self.service_config.dectool}")
-
         if dub_override:
             joined_dubs = ",".join(dub_override)
             tmp_cmd += ["--dublang", joined_dubs]
@@ -320,11 +316,16 @@ class CR_CDL_API:
 
         series_title = sanitize(str(item_info.get("title") or "Unknown Series"))
 
+        # CDL exposes the year only at the series item level, used for the ${year} filename token
+        raw_release_year = item_info.get("year")
+        release_year = str(raw_release_year) if raw_release_year not in (None, "") else ""
+
         tmp_dict: dict[str, Series] = {
             series_id: Series(
                 series=SeriesInfo(
                     series_name=series_title,
-                    series_id=series_id
+                    series_id=series_id,
+                    release_year=release_year
                 ),
                 seasons={}
             )

@@ -5,6 +5,15 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 # a subtitle token is a language code with an optional variant like EN or EN:cc
 SubToken = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"(?i)^[A-Za-z][A-Za-z0-9-]*(:(full|cc|sdh|caption|both))?$")]
 
+# a cardinaldl video quality string like 1080p@@sdr
+VideoQuality = Annotated[str, StringConstraints(pattern=r"^(?:(?:\d{3,4}p?|highest)?(?:@(?:h264|hevc|vp8|vp9|av1)?(?:@(?:dv-hdr10\+?|hdr10\+?|hlg|sdr|dv)?)?)?)?$")]
+
+# a cardinaldl audio quality string like aac@2.0
+AudioQuality = Annotated[str, StringConstraints(pattern=r"^(?:(?:[A-Za-z][A-Za-z-]*:)?(?:(?:atmos|eac3|ac3|aac)(?:@(?:7\.1|5\.1|2\.0|1\.0))?|@(?:7\.1|5\.1|2\.0|1\.0))(?:,(?:[A-Za-z][A-Za-z-]*:)?(?:(?:atmos|eac3|ac3|aac)(?:@(?:7\.1|5\.1|2\.0|1\.0))?|@(?:7\.1|5\.1|2\.0|1\.0)))*)?$")]
+
+# a trackforge profile is a comma list of items like AAC:2.0, EOS:2.0 or ORIG
+TrackForgeProfile = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"(?i)^\s*(?:(?:AAC|AC3|EAC3|DTS|OPUS|FLAC|WAV|PCM|ORIG|EOS\+?(?:-(?:AAC|AC3|EAC3|DTS|OPUS|FLAC|WAV|PCM))?)(?::(?:1\.0|2\.0|5\.1|7\.1))?(?:\s*,\s*(?:AAC|AC3|EAC3|DTS|OPUS|FLAC|WAV|PCM|ORIG|EOS\+?(?:-(?:AAC|AC3|EAC3|DTS|OPUS|FLAC|WAV|PCM))?)(?::(?:1\.0|2\.0|5\.1|7\.1))?)*)?\s*$")]
+
 
 class DestinationConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
@@ -20,17 +29,17 @@ class AppConfig(BaseModel):
     bin_dir: str = Field("/app/appdata/bin", alias="BIN_DIR")
     log_dir: str = Field("/app/appdata/logs", alias="LOG_DIR")
 
-    cr_enabled: bool = Field(False, alias="CR_ENABLED")
-    cr_username: str = Field("", alias="CR_USERNAME")
-    cr_password: str = Field("", alias="CR_PASSWORD")
+    mdnx_cr_enabled: bool = Field(False, alias="MDNX_CR_ENABLED")
+    mdnx_cr_username: str = Field("", alias="MDNX_CR_USERNAME")
+    mdnx_cr_password: str = Field("", alias="MDNX_CR_PASSWORD")
 
-    hidive_enabled: bool = Field(False, alias="HIDIVE_ENABLED")
-    hidive_username: str = Field("", alias="HIDIVE_USERNAME")
-    hidive_password: str = Field("", alias="HIDIVE_PASSWORD")
+    mdnx_hidive_enabled: bool = Field(False, alias="MDNX_HIDIVE_ENABLED")
+    mdnx_hidive_username: str = Field("", alias="MDNX_HIDIVE_USERNAME")
+    mdnx_hidive_password: str = Field("", alias="MDNX_HIDIVE_PASSWORD")
 
-    adn_enabled: bool = Field(False, alias="ADN_ENABLED")
-    adn_username: str = Field("", alias="ADN_USERNAME")
-    adn_password: str = Field("", alias="ADN_PASSWORD")
+    mdnx_adn_enabled: bool = Field(False, alias="MDNX_ADN_ENABLED")
+    mdnx_adn_username: str = Field("", alias="MDNX_ADN_USERNAME")
+    mdnx_adn_password: str = Field("", alias="MDNX_ADN_PASSWORD")
 
     cdl_cr_enabled: bool = Field(False, alias="CDL_CR_ENABLED")
     cdl_hidive_enabled: bool = Field(False, alias="CDL_HIDIVE_ENABLED")
@@ -46,11 +55,11 @@ class AppConfig(BaseModel):
     check_for_updates_interval: int = Field(3600, alias="CHECK_FOR_UPDATES_INTERVAL")
     episode_dl_delay: int = Field(30, alias="EPISODE_DL_DELAY")
 
-    cr_force_reauth: bool = Field(False, alias="CR_FORCE_REAUTH")
-    cr_skip_api_test: bool = Field(False, alias="CR_SKIP_API_TEST")
-    hidive_force_reauth: bool = Field(False, alias="HIDIVE_FORCE_REAUTH")
-    hidive_skip_api_test: bool = Field(False, alias="HIDIVE_SKIP_API_TEST")
-    adn_force_reauth: bool = Field(False, alias="ADN_FORCE_REAUTH")
+    mdnx_cr_force_reauth: bool = Field(False, alias="MDNX_CR_FORCE_REAUTH")
+    mdnx_cr_skip_api_test: bool = Field(False, alias="MDNX_CR_SKIP_API_TEST")
+    mdnx_hidive_force_reauth: bool = Field(False, alias="MDNX_HIDIVE_FORCE_REAUTH")
+    mdnx_hidive_skip_api_test: bool = Field(False, alias="MDNX_HIDIVE_SKIP_API_TEST")
+    mdnx_adn_force_reauth: bool = Field(False, alias="MDNX_ADN_FORCE_REAUTH")
     clear_queue: bool = Field(False, alias="CLEAR_QUEUE")
 
     only_create_queue: bool = Field(False, alias="ONLY_CREATE_QUEUE")
@@ -103,6 +112,9 @@ class SeasonMonitorConfig(BaseModel):
     season_override: str | None = None
     dub_overrides: list[str] | None = None
     sub_overrides: list[SubToken] | None = None
+    dir_override: str | None = None
+    folder_structure_override: str | None = None
+    trackforge_profile: TrackForgeProfile | None = None
 
 
 class MdnxBinPath(BaseModel):
@@ -142,14 +154,13 @@ class MdnxConfig(BaseModel):
 
 class CdlServiceConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
-    videoquality: str = Field("1080p@@sdr", pattern=r"^(?:(?:\d{3,4}p?|highest)?(?:@(?:h264|hevc|vp8|vp9|av1)?(?:@(?:dv-hdr10\+?|hdr10\+?|hlg|sdr|dv)?)?)?)?$")
+    videoquality: VideoQuality = "1080p@@sdr"
     # for audioquality allow LANG:format@channels but dont allow @bitrate
-    audioquality: str = Field("aac@2.0", pattern=r"^(?:(?:[A-Za-z][A-Za-z-]*:)?(?:(?:atmos|eac3|ac3|aac)(?:@(?:7\.1|5\.1|2\.0|1\.0))?|@(?:7\.1|5\.1|2\.0|1\.0))(?:,(?:[A-Za-z][A-Za-z-]*:)?(?:(?:atmos|eac3|ac3|aac)(?:@(?:7\.1|5\.1|2\.0|1\.0))?|@(?:7\.1|5\.1|2\.0|1\.0)))*)?$")
+    audioquality: AudioQuality = "aac@2.0"
     fallback: bool = True
     # keep hybrid as None so that if the user ticked the box to enable it in the GUI, it will be True, but if they didnt, it will be None and the default behavior will be used without us having to pass --hybrid to the CLI
     hybrid: bool | None = None
     outputformat: str = Field("mkv", pattern=r"^(?:mkv|mp4)?$")
-    dectool: str = Field("shaka", pattern=r"^(?:mp4decrypt|shaka)?$")
     dublang: list[str] = ["JP", "EN"]
     dlsubs: list[SubToken] = ["EN"]
     forcesubformat: str = Field("", pattern="^(srt|ass|vtt|auto|raw|original)?$")
@@ -172,12 +183,33 @@ class CdlConfig(BaseModel):
     amazon: CdlServiceConfig = Field(default_factory=CdlServiceConfig)
 
 
+class TrackForgeServiceConfig(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    enabled: bool = False
+    workers: int = Field(1, ge=1)
+    muxer: str = Field("auto", pattern=r"^(auto|ffmpeg|mkvmerge)$")
+    profile: TrackForgeProfile = ""
+
+
+class TrackForgeConfig(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    services: dict[str, TrackForgeServiceConfig] = Field(default_factory=dict)
+
+
+class ExtraFeaturesConfig(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    trackforge: TrackForgeConfig = Field(default_factory=TrackForgeConfig)
+
+
 class Config(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    adn_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    mdnx_cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    mdnx_hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    mdnx_adn_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
 
     cdl_cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
     cdl_hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
@@ -191,3 +223,4 @@ class Config(BaseModel):
     app: AppConfig = Field(default_factory=AppConfig)
     mdnx: MdnxConfig = Field(default_factory=MdnxConfig)
     cardinaldl: CdlConfig = Field(default_factory=CdlConfig)
+    extra_features: ExtraFeaturesConfig = Field(default_factory=ExtraFeaturesConfig)

@@ -14,7 +14,7 @@ from ruamel.yaml import YAML
 
 from .types.config import Config, AppConfig
 from .types.service import Service, MdnxServices, CdlServices, Services
-from .types.queue import Series, ServiceBucket
+from .types.queue import Series, ServiceBucket, TemplateFields
 
 
 def _log(message: str, level: str = "info", exc_info=None) -> None:
@@ -118,9 +118,9 @@ def output_effective_config(config: Config, max_chunk: int = 8000):
     defaults_dict = Config().model_dump(by_alias=True)
 
     SKIP_ORDERING_KEYS = {
-        "cr_monitor_series_id",
-        "hidive_monitor_series_id",
-        "adn_monitor_series_id",
+        "mdnx_cr_monitor_series_id",
+        "mdnx_hidive_monitor_series_id",
+        "mdnx_adn_monitor_series_id",
         "cdl_cr_monitor_series_id",
         "cdl_hidive_monitor_series_id",
         "cdl_adn_monitor_series_id",
@@ -184,40 +184,40 @@ del overrides
 SERVICES = Services(
     mdnx=MdnxServices(
         crunchyroll=Service(
-            service_name="crunchyroll",
-            queue_bucket="Crunchyroll",
-            display_name="Crunchyroll",
+            service_name="mdnx-crunchyroll",
+            queue_bucket="MDNX-Crunchyroll",
+            display_name="MDNX Crunchyroll",
             service_long="Crunchyroll",
             service_short="CR",
             tool="mdnx",
             config=config.mdnx,
-            monitor_series_id=config.cr_monitor_series_id,
-            monitor_config_key="cr_monitor_series_id",
-            enabled=config.app.cr_enabled
+            monitor_series_id=config.mdnx_cr_monitor_series_id,
+            monitor_config_key="mdnx_cr_monitor_series_id",
+            enabled=config.app.mdnx_cr_enabled
         ),
         hidive=Service(
-            service_name="hidive",
-            queue_bucket="HiDive",
-            display_name="HiDive",
+            service_name="mdnx-hidive",
+            queue_bucket="MDNX-HiDive",
+            display_name="MDNX HiDive",
             service_long="HiDive",
             service_short="HD",
             tool="mdnx",
             config=config.mdnx,
-            monitor_series_id=config.hidive_monitor_series_id,
-            monitor_config_key="hidive_monitor_series_id",
-            enabled=config.app.hidive_enabled
+            monitor_series_id=config.mdnx_hidive_monitor_series_id,
+            monitor_config_key="mdnx_hidive_monitor_series_id",
+            enabled=config.app.mdnx_hidive_enabled
         ),
         adn=Service(
-            service_name="adn",
-            queue_bucket="ADN",
-            display_name="ADN",
+            service_name="mdnx-adn",
+            queue_bucket="MDNX-ADN",
+            display_name="MDNX ADN",
             service_long="ADN",
             service_short="ADN",
             tool="mdnx",
             config=config.mdnx,
-            monitor_series_id=config.adn_monitor_series_id,
-            monitor_config_key="adn_monitor_series_id",
-            enabled=config.app.adn_enabled
+            monitor_series_id=config.mdnx_adn_monitor_series_id,
+            monitor_config_key="mdnx_adn_monitor_series_id",
+            enabled=config.app.mdnx_adn_enabled
         )
     ),
     cardinaldl=CdlServices(
@@ -316,6 +316,13 @@ for cdl_service in SERVICES.cardinaldl.all():
         CDL_ENABLED = True
         break
 
+# Whether any services have TrackForge enabled
+TRACKFORGE_ENABLED = False
+for trackforge_service in config.extra_features.trackforge.services.values():
+    if trackforge_service.enabled:
+        TRACKFORGE_ENABLED = True
+        break
+
 PLEX_URL = config.app.plex_url
 JELLY_URL = config.app.jelly_url
 JELLY_API_KEY = config.app.jelly_api_key
@@ -323,13 +330,13 @@ JELLY_API_KEY = config.app.jelly_api_key
 PLEX_CONFIGURED = isinstance(PLEX_URL, str) and PLEX_URL.strip() != ""
 JELLY_CONFIGURED = isinstance(JELLY_URL, str) and JELLY_URL.strip() != "" and isinstance(JELLY_API_KEY, str) and JELLY_API_KEY.strip() != ""
 
-# This will look like: {"TEMP_DIR": "temp_dir", "CR_ENABLED": "cr_enabled", ...}
+# This will look like: {"TEMP_DIR": "temp_dir", "MDNX_CR_ENABLED": "mdnx_cr_enabled", ...}
 APP_ALIAS_KEY_TO_FIELD_NAME = {}
 for field_name, field_info in AppConfig.model_fields.items():
     alias_key = field_info.alias or field_name
     APP_ALIAS_KEY_TO_FIELD_NAME[alias_key] = field_name
 
-# This will look like: {"temp_dir": "TEMP_DIR", "cr_enabled": "CR_ENABLED", ...}
+# This will look like: {"temp_dir": "TEMP_DIR", "mdnx_cr_enabled": "MDNX_CR_ENABLED", ...}
 APP_FIELD_NAME_TO_ALIAS_KEY = {}
 for field_name, field_info in AppConfig.model_fields.items():
     alias_key = field_info.alias or field_name
@@ -622,9 +629,9 @@ def validate_destinations() -> None:
 
     # map of destination key -> whether the service is enabled in app config.
     required_destinations = {
-        "crunchyroll": config.app.cr_enabled,
-        "hidive": config.app.hidive_enabled,
-        "adn": config.app.adn_enabled,
+        "mdnx-crunchyroll": config.app.mdnx_cr_enabled,
+        "mdnx-hidive": config.app.mdnx_hidive_enabled,
+        "mdnx-adn": config.app.mdnx_adn_enabled,
         "cdl-crunchyroll": config.app.cdl_cr_enabled,
         "cdl-hidive": config.app.cdl_hidive_enabled,
         "cdl-adn": config.app.cdl_adn_enabled,
@@ -882,8 +889,8 @@ def update_app_config(config_key: str, new_value) -> bool:
     Update one AppConfig option in config.json/yaml/yml under the 'app' section.
 
     config_key can be either:
-      - field name: "cr_force_reauth"
-      - alias key:  "CR_FORCE_REAUTH"
+      - field name: "mdnx_cr_force_reauth"
+      - alias key:  "MDNX_CR_FORCE_REAUTH"
     """
 
     global config
@@ -932,18 +939,19 @@ def update_app_config(config_key: str, new_value) -> bool:
     return True
 
 
-def build_folder_structure(base_dir: str, series_title: str, season: str, episode: str, episode_name: str, template_str: str, extension: str = ".mkv", service_long: str = "", service_short: str = "") -> str:
+def build_folder_structure(base_dir: str, template_str: str, fields: TemplateFields, extension: str = ".mkv") -> str:
     """Build the folder structure and file name based on the template the caller supplies."""
 
     substitutes = {
-        "seriesTitle": series_title,
-        "season": str(int(season)),
-        "seasonPadded": str(int(season)).zfill(2),
-        "episode": str(int(episode)),
-        "episodePadded": str(int(episode)).zfill(2),
-        "episodeName": episode_name,
-        "serviceLong": service_long,
-        "serviceShort": service_short
+        "seriesTitle": fields.series_title,
+        "season": str(int(fields.season)),
+        "seasonPadded": str(int(fields.season)).zfill(2),
+        "episode": str(int(fields.episode)),
+        "episodePadded": str(int(fields.episode)).zfill(2),
+        "episodeName": fields.episode_name,
+        "serviceLong": fields.service_long,
+        "serviceShort": fields.service_short,
+        "year": fields.year
     }
 
     raw_path = Template(template_str).safe_substitute(substitutes)
@@ -993,7 +1001,27 @@ def get_episode_file_path(bucket: ServiceBucket, series_id: str, season_key: str
 
     destination = config.destinations[service.service_name]
 
-    file_name = build_folder_structure(destination.dir, raw_series, season_number, episode_number, raw_episode_name, destination.folder_structure, extension, service.service_long, service.service_short)
+    season_monitor = get_season_monitor_config(service.service_name, series_id, season.season_id)
+
+    target_dir = destination.dir
+    if season_monitor is not None and season_monitor.dir_override is not None:
+        target_dir = season_monitor.dir_override
+
+    target_folder_structure = destination.folder_structure
+    if season_monitor is not None and season_monitor.folder_structure_override is not None:
+        target_folder_structure = season_monitor.folder_structure_override
+
+    fields = TemplateFields(
+        series_title=raw_series,
+        season=season_number,
+        episode=episode_number,
+        episode_name=raw_episode_name,
+        service_long=service.service_long,
+        service_short=service.service_short,
+        year=series.series.release_year
+    )
+
+    file_name = build_folder_structure(target_dir, target_folder_structure, fields, extension)
 
     _log(f"Built file path for series ID {series_id}, season {season_key}, episode {episode_key}: {file_name}", level="debug")
 

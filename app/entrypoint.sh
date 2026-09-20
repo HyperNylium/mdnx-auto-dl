@@ -138,7 +138,6 @@ chown -R "$USER_ID:$GROUP_ID" /app
 chmod -R 775 /app
 
 # Make required symlinks for CardinalDL support
-ln -sfn "/app/appdata/bin/bento4/mp4decrypt" "/app/appdata/bin/cardinaldl/static/bento4/mp4decrypt"
 ln -sfn "/app/appdata/bin/shaka_packager/shaka" "/app/appdata/bin/cardinaldl/static/shaka_packager/shaka"
 ln -sfn "/app/appdata/bin/dovi_tool/dovi_tool" "/app/appdata/bin/cardinaldl/static/dovi_tool/dovi_tool"
 ln -sfn "/app/appdata/bin/hdr10plus_tool/hdr10plus_tool" "/app/appdata/bin/cardinaldl/static/hdr10plus_tool/hdr10plus_tool"
@@ -146,6 +145,11 @@ ln -sfn "/usr/local/bin/ffmpeg" "/app/appdata/bin/cardinaldl/static/ffmpeg/ffmpe
 ln -sfn "/usr/local/bin/ffprobe" "/app/appdata/bin/cardinaldl/static/ffmpeg/ffprobe"
 ln -sfn "/usr/bin/mkvmerge" "/app/appdata/bin/cardinaldl/static/mkvmerge/mkvmerge"
 ln -sfn "/usr/bin/mkvpropedit" "/app/appdata/bin/cardinaldl/static/mkvmerge/mkvpropedit"
+
+# Make required symlinks for TrackForge support
+ln -sfn "/usr/local/bin/ffmpeg" "/app/appdata/bin/trackforge/static/ffmpeg/ffmpeg"
+ln -sfn "/usr/local/bin/ffprobe" "/app/appdata/bin/trackforge/static/ffprobe/ffprobe"
+ln -sfn "/usr/bin/mkvmerge" "/app/appdata/bin/trackforge/static/mkvmerge/mkvmerge"
 
 # Check if any CardinalDL services are enabled in the config to determine if we need to fix permissions on CardinalDL paths.
 CDL_ENABLED=false

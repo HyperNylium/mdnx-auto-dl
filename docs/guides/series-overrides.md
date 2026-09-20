@@ -1,8 +1,8 @@
 # How-to: Blacklists & per-season overrides
 
-Inside each monitor map you can attach settings to a specific season of a series: skip episodes you do not want, renumber a season, or change which dubs/subs are downloaded for just that season.
+Inside each monitor map you can attach settings to a specific season of a series: skip episodes you do not want, renumber a season, change which dubs/subs are downloaded for just that season, or send that season to a different folder with a different folder structure.
 
-The examples below use [`cr_monitor_series_id`](../config-options.md#cr_monitor_series_id), but the same rules apply to every monitor map: [`hidive_monitor_series_id`](../config-options.md#hidive_monitor_series_id), [`adn_monitor_series_id`](../config-options.md#adn_monitor_series_id), [`cdl_cr_monitor_series_id`](../config-options.md#cdl_cr_monitor_series_id), [`cdl_hidive_monitor_series_id`](../config-options.md#cdl_hidive_monitor_series_id), [`cdl_adn_monitor_series_id`](../config-options.md#cdl_adn_monitor_series_id), [`cdl_disney_monitor_series_id`](../config-options.md#cdl_disney_monitor_series_id), [`cdl_netflix_monitor_series_id`](../config-options.md#cdl_netflix_monitor_series_id), and [`cdl_amazon_monitor_series_id`](../config-options.md#cdl_amazon_monitor_series_id).
+The examples below use [`mdnx_cr_monitor_series_id`](../config-options.md#mdnx_cr_monitor_series_id), but the same rules apply to every monitor map: [`mdnx_hidive_monitor_series_id`](../config-options.md#mdnx_hidive_monitor_series_id), [`mdnx_adn_monitor_series_id`](../config-options.md#mdnx_adn_monitor_series_id), [`cdl_cr_monitor_series_id`](../config-options.md#cdl_cr_monitor_series_id), [`cdl_hidive_monitor_series_id`](../config-options.md#cdl_hidive_monitor_series_id), [`cdl_adn_monitor_series_id`](../config-options.md#cdl_adn_monitor_series_id), [`cdl_disney_monitor_series_id`](../config-options.md#cdl_disney_monitor_series_id), [`cdl_netflix_monitor_series_id`](../config-options.md#cdl_netflix_monitor_series_id), and [`cdl_amazon_monitor_series_id`](../config-options.md#cdl_amazon_monitor_series_id).
 
 These maps are **top-level** keys, not under `app`.
 
@@ -11,7 +11,7 @@ These maps are **top-level** keys, not under `app`.
 ## The general format
 
 ```json
-"cr_monitor_series_id": {
+"mdnx_cr_monitor_series_id": {
     "series_id": {
         "season_id": {
             "blacklists": [
@@ -21,7 +21,9 @@ These maps are **top-level** keys, not under `app`.
             ],
             "season_override": "2",
             "dub_overrides": ["eng", "zho"],
-            "sub_overrides": ["en", "de"]
+            "sub_overrides": ["en", "de"],
+            "dir_override": "/data/special-shows",
+            "folder_structure_override": "${seriesTitle}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
         }
     }
 }
@@ -29,7 +31,7 @@ These maps are **top-level** keys, not under `app`.
 
 YAML:
 ```yaml
-cr_monitor_series_id:
+mdnx_cr_monitor_series_id:
     series_id:
         season_id:
             blacklists:
@@ -43,6 +45,8 @@ cr_monitor_series_id:
             sub_overrides:
                 - "en"
                 - "de"
+            dir_override: "/data/special-shows"
+            folder_structure_override: "${seriesTitle}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
 ```
 
 Everything under a season is optional. A season with an empty `{}` is just monitored normally.
@@ -50,6 +54,8 @@ Everything under a season is optional. A season with an empty `{}` is just monit
 - **`blacklists`**: skip episodes (see below).
 - **`season_override`**: change the season number used in the file name when the source has it wrong (for example, the service says `S03E01` but you want `S01E01`). It only changes how the file is named and organized, not the download command.
 - **`dub_overrides`** / **`sub_overrides`**: replace the per-service dub and subtitle languages (aniDL `dubLang` / CardinalDL `dublang`, and `dlsubs`) for that one season.
+- **`dir_override`**: save this season under a different base folder instead of the service `dir` from `destinations`. When it is not set, the global `dir` is used. This lets you send one series somewhere else without changing the global destination.
+- **`folder_structure_override`**: use a different folder and file name template for this season instead of the service `folder_structure` from `destinations`. When it is not set, the global `folder_structure` is used. It uses the same variables as `folder_structure` (see [organizing files](organizing-files.md)). `dir_override` and `folder_structure_override` are independent, so you can set just one.
 
 ---
 
@@ -73,7 +79,7 @@ Blacklisting still generates the queue data for the series. It just sets `episod
 Great for when you only want the simulcast season of a long series and want to skip all the others:
 ```json
 {
-    "cr_monitor_series_id": {
+    "mdnx_cr_monitor_series_id": {
         "GQWH0M1J3": {
             "GYE5CQNJ2": {
                 "blacklists": "*"
@@ -89,7 +95,7 @@ Great for when you only want the simulcast season of a long series and want to s
 ```
 YAML:
 ```yaml
-cr_monitor_series_id:
+mdnx_cr_monitor_series_id:
     GQWH0M1J3:
         GYE5CQNJ2:
             blacklists: "*"
@@ -103,7 +109,7 @@ Here `GYE5CQNJ2` and `GS00362336JAJP` are the season IDs to skip inside series `
 
 ```json
 {
-    "cr_monitor_series_id": {
+    "mdnx_cr_monitor_series_id": {
         "GQWH0M1J3": {
             "GYE5CQNJ2": {
                 "blacklists": ["3"]
@@ -120,7 +126,7 @@ Here `GYE5CQNJ2` and `GS00362336JAJP` are the season IDs to skip inside series `
 ```
 YAML:
 ```yaml
-cr_monitor_series_id:
+mdnx_cr_monitor_series_id:
     GQWH0M1J3:
         GYE5CQNJ2:
             blacklists:
@@ -139,7 +145,7 @@ cr_monitor_series_id:
 Skip everything at or below episode 3 and everything at or above episode 6, keeping only episodes 4 and 5:
 ```json
 {
-    "cr_monitor_series_id": {
+    "mdnx_cr_monitor_series_id": {
         "GQWH0M1J3": {
             "GYE5CQNJ2": {
                 "blacklists": ["*-3", "6-*"]
@@ -150,7 +156,7 @@ Skip everything at or below episode 3 and everything at or above episode 6, keep
 ```
 YAML:
 ```yaml
-cr_monitor_series_id:
+mdnx_cr_monitor_series_id:
     GQWH0M1J3:
         GYE5CQNJ2:
             blacklists:
@@ -166,7 +172,7 @@ When a service numbers a season differently from how you want it filed, use `sea
 The example below files the season's episodes as season 1 regardless of what the source says:
 ```json
 {
-    "cr_monitor_series_id": {
+    "mdnx_cr_monitor_series_id": {
         "GT00362335": {
             "GS00362336JAJP": {
                 "season_override": "1"
@@ -177,7 +183,7 @@ The example below files the season's episodes as season 1 regardless of what the
 ```
 YAML:
 ```yaml
-cr_monitor_series_id:
+mdnx_cr_monitor_series_id:
     GT00362335:
         GS00362336JAJP:
             season_override: "1"
@@ -189,7 +195,7 @@ cr_monitor_series_id:
 This is useful when a specific season has a dub the rest of the series does not:
 ```json
 {
-    "cr_monitor_series_id": {
+    "mdnx_cr_monitor_series_id": {
         "GQWH0M1J3": {
             "GYE5CQNJ2": {
                 "dub_overrides": ["eng", "jpn"],
@@ -201,7 +207,7 @@ This is useful when a specific season has a dub the rest of the series does not:
 ```
 YAML:
 ```yaml
-cr_monitor_series_id:
+mdnx_cr_monitor_series_id:
     GQWH0M1J3:
         GYE5CQNJ2:
             dub_overrides:

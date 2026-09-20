@@ -90,24 +90,24 @@ For the full list of variables you can use inside `folder_structure`, see [Optio
   ```json
   {
     "app": {
-      "CR_ENABLED": true,
-      "CR_USERNAME": "itsamemario@myemailprovider.com",
-      "CR_PASSWORD": "thisismypassword123"
+      "MDNX_CR_ENABLED": true,
+      "MDNX_CR_USERNAME": "itsamemario@myemailprovider.com",
+      "MDNX_CR_PASSWORD": "thisismypassword123"
     }
   }
   ```
   YAML:
   ```yaml
   app:
-      CR_ENABLED: true
-      CR_USERNAME: "itsamemario@myemailprovider.com"
-      CR_PASSWORD: "thisismypassword123"
+      MDNX_CR_ENABLED: true
+      MDNX_CR_USERNAME: "itsamemario@myemailprovider.com"
+      MDNX_CR_PASSWORD: "thisismypassword123"
   ```
 
-  Keep in mind that `CR_ENABLED` must be set to `true` for Crunchyroll's API to be used. By default it is set to `false`.
+  Keep in mind that `MDNX_CR_ENABLED` must be set to `true` for Crunchyroll's API to be used. By default it is set to `false`.
 
   ### 2) Crunchyroll series IDs to monitor
-  Get the **series ID** from the Crunchyroll URL and add it under `cr_monitor_series_id`.
+  Get the **series ID** from the Crunchyroll URL and add it under `mdnx_cr_monitor_series_id`.
 
   Example URL:
   ```txt
@@ -120,14 +120,14 @@ For the full list of variables you can use inside `folder_structure`, see [Optio
   JSON:
   ```json
   {
-    "cr_monitor_series_id": {
+    "mdnx_cr_monitor_series_id": {
       "GG5H5XQ7D": {}
     }
   }
   ```
   YAML:
   ```yaml
-  cr_monitor_series_id:
+  mdnx_cr_monitor_series_id:
       "GG5H5XQ7D": {}
   ```
 </details>
@@ -142,24 +142,24 @@ For the full list of variables you can use inside `folder_structure`, see [Optio
   ```json
   {
     "app": {
-      "HIDIVE_ENABLED": true,
-      "HIDIVE_USERNAME": "itsamemario@myemailprovider.com",
-      "HIDIVE_PASSWORD": "thisismypassword123"
+      "MDNX_HIDIVE_ENABLED": true,
+      "MDNX_HIDIVE_USERNAME": "itsamemario@myemailprovider.com",
+      "MDNX_HIDIVE_PASSWORD": "thisismypassword123"
     }
   }
   ```
   YAML:
   ```yaml
   app:
-      HIDIVE_ENABLED: true
-      HIDIVE_USERNAME: "itsamemario@myemailprovider.com"
-      HIDIVE_PASSWORD: "thisismypassword123"
+      MDNX_HIDIVE_ENABLED: true
+      MDNX_HIDIVE_USERNAME: "itsamemario@myemailprovider.com"
+      MDNX_HIDIVE_PASSWORD: "thisismypassword123"
   ```
 
-  Keep in mind that `HIDIVE_ENABLED` must be set to `true` for HiDive's API to be used. By default it is set to `false`.
+  Keep in mind that `MDNX_HIDIVE_ENABLED` must be set to `true` for HiDive's API to be used. By default it is set to `false`.
 
   ### 2) HiDive series IDs to monitor
-  Get the **series ID** from HiDive and add it under `hidive_monitor_series_id`.
+  Get the **series ID** from HiDive and add it under `mdnx_hidive_monitor_series_id`.
 
   Steps:
   1. Go to [HiDive's search site](https://www.hidive.com/search). No login required.
@@ -176,14 +176,14 @@ For the full list of variables you can use inside `folder_structure`, see [Optio
   JSON:
   ```json
   {
-    "hidive_monitor_series_id": {
+    "mdnx_hidive_monitor_series_id": {
       "1050": {}
     }
   }
   ```
   YAML:
   ```yaml
-  hidive_monitor_series_id:
+  mdnx_hidive_monitor_series_id:
       "1050": {}
   ```
 </details>
@@ -198,24 +198,24 @@ For the full list of variables you can use inside `folder_structure`, see [Optio
   ```json
   {
     "app": {
-      "ADN_ENABLED": true,
-      "ADN_USERNAME": "itsamemario@myemailprovider.com",
-      "ADN_PASSWORD": "thisismypassword123"
+      "MDNX_ADN_ENABLED": true,
+      "MDNX_ADN_USERNAME": "itsamemario@myemailprovider.com",
+      "MDNX_ADN_PASSWORD": "thisismypassword123"
     }
   }
   ```
   YAML:
   ```yaml
   app:
-      ADN_ENABLED: true
-      ADN_USERNAME: "itsamemario@myemailprovider.com"
-      ADN_PASSWORD: "thisismypassword123"
+      MDNX_ADN_ENABLED: true
+      MDNX_ADN_USERNAME: "itsamemario@myemailprovider.com"
+      MDNX_ADN_PASSWORD: "thisismypassword123"
   ```
 
-  Keep in mind that `ADN_ENABLED` must be set to `true` for ADN's API to be used. By default it is set to `false`.
+  Keep in mind that `MDNX_ADN_ENABLED` must be set to `true` for ADN's API to be used. By default it is set to `false`.
 
   ### 2) ADN series IDs to monitor
-  Get the **series ID** from the ADN URL (the numeric ID in the series path) and add it under `adn_monitor_series_id`.
+  Get the **series ID** from the ADN URL (the numeric ID in the series path) and add it under `mdnx_adn_monitor_series_id`.
 
   Example URL:
   ```txt
@@ -228,14 +228,14 @@ For the full list of variables you can use inside `folder_structure`, see [Optio
   JSON:
   ```json
   {
-    "adn_monitor_series_id": {
+    "mdnx_adn_monitor_series_id": {
       "442": {}
     }
   }
   ```
   YAML:
   ```yaml
-  adn_monitor_series_id:
+  mdnx_adn_monitor_series_id:
       "442": {}
   ```
 </details>

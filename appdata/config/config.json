@@ -1,7 +1,7 @@
 {
-    "cr_monitor_series_id": {},
-    "hidive_monitor_series_id": {},
-    "adn_monitor_series_id": {},
+    "mdnx_cr_monitor_series_id": {},
+    "mdnx_hidive_monitor_series_id": {},
+    "mdnx_adn_monitor_series_id": {},
     "cdl_cr_monitor_series_id": {},
     "cdl_hidive_monitor_series_id": {},
     "cdl_adn_monitor_series_id": {},
@@ -9,15 +9,15 @@
     "cdl_netflix_monitor_series_id": {},
     "cdl_amazon_monitor_series_id": {},
     "destinations": {
-        "crunchyroll": {
+        "mdnx-crunchyroll": {
             "dir": "/data/Anime",
             "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
         },
-        "hidive": {
+        "mdnx-hidive": {
             "dir": "/data/Anime",
             "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
         },
-        "adn": {
+        "mdnx-adn": {
             "dir": "/data/Anime",
             "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
         },
@@ -47,15 +47,15 @@
         }
     },
     "app": {
-        "CR_ENABLED": false,
-        "CR_USERNAME": "",
-        "CR_PASSWORD": "",
-        "HIDIVE_ENABLED": false,
-        "HIDIVE_USERNAME": "",
-        "HIDIVE_PASSWORD": "",
-        "ADN_ENABLED": false,
-        "ADN_USERNAME": "",
-        "ADN_PASSWORD": "",
+        "MDNX_CR_ENABLED": false,
+        "MDNX_CR_USERNAME": "",
+        "MDNX_CR_PASSWORD": "",
+        "MDNX_HIDIVE_ENABLED": false,
+        "MDNX_HIDIVE_USERNAME": "",
+        "MDNX_HIDIVE_PASSWORD": "",
+        "MDNX_ADN_ENABLED": false,
+        "MDNX_ADN_USERNAME": "",
+        "MDNX_ADN_PASSWORD": "",
         "BACKUP_DUBS": [
             "zho"
         ],
@@ -88,7 +88,6 @@
             "audioquality": "aac@2.0",
             "fallback": true,
             "outputformat": "mkv",
-            "dectool": "shaka",
             "dublang": [
                 "JP",
                 "EN"
@@ -102,7 +101,6 @@
             "audioquality": "aac@2.0",
             "fallback": true,
             "outputformat": "mkv",
-            "dectool": "shaka",
             "dublang": [
                 "JP",
                 "EN"
@@ -116,7 +114,6 @@
             "audioquality": "aac@2.0",
             "fallback": true,
             "outputformat": "mkv",
-            "dectool": "shaka",
             "dublang": [
                 "JP",
                 "EN"
@@ -130,7 +127,6 @@
             "audioquality": "aac@2.0",
             "fallback": true,
             "outputformat": "mkv",
-            "dectool": "shaka",
             "dublang": [
                 "EN"
             ],
@@ -143,7 +139,6 @@
             "audioquality": "aac@2.0",
             "fallback": true,
             "outputformat": "mkv",
-            "dectool": "shaka",
             "dublang": [
                 "EN"
             ],
@@ -156,13 +151,72 @@
             "audioquality": "aac@2.0",
             "fallback": true,
             "outputformat": "mkv",
-            "dectool": "shaka",
             "dublang": [
                 "EN"
             ],
             "dlsubs": [
                 "EN"
             ]
+        }
+    },
+    "extra_features": {
+        "trackforge": {
+            "services": {
+                "mdnx-crunchyroll": {
+                    "enabled": false,
+                    "workers": 1,
+                    "muxer": "auto",
+                    "profile": ""
+                },
+                "mdnx-hidive": {
+                    "enabled": false,
+                    "workers": 1,
+                    "muxer": "auto",
+                    "profile": ""
+                },
+                "mdnx-adn": {
+                    "enabled": false,
+                    "workers": 1,
+                    "muxer": "auto",
+                    "profile": ""
+                },
+                "cdl-crunchyroll": {
+                    "enabled": false,
+                    "workers": 1,
+                    "muxer": "auto",
+                    "profile": ""
+                },
+                "cdl-hidive": {
+                    "enabled": false,
+                    "workers": 1,
+                    "muxer": "auto",
+                    "profile": ""
+                },
+                "cdl-adn": {
+                    "enabled": false,
+                    "workers": 1,
+                    "muxer": "auto",
+                    "profile": ""
+                },
+                "cdl-disney": {
+                    "enabled": false,
+                    "workers": 1,
+                    "muxer": "auto",
+                    "profile": ""
+                },
+                "cdl-netflix": {
+                    "enabled": false,
+                    "workers": 1,
+                    "muxer": "auto",
+                    "profile": ""
+                },
+                "cdl-amazon": {
+                    "enabled": false,
+                    "workers": 1,
+                    "muxer": "auto",
+                    "profile": ""
+                }
+            }
         }
     }
 }

@@ -16,7 +16,7 @@ Both formats accept the exact same keys and values. Every option in this doc sho
 The config file has a few top-level sections:
 - `app`: every UPPER_CASE option in this doc lives here.
 - `destinations`: where each service saves its files. One entry per service. Each entry has a `dir` and a `folder_structure`.
-- `cr_monitor_series_id`, `hidive_monitor_series_id`, `adn_monitor_series_id`, `cdl_cr_monitor_series_id`, `cdl_hidive_monitor_series_id`, `cdl_adn_monitor_series_id`, `cdl_disney_monitor_series_id`, `cdl_netflix_monitor_series_id`, `cdl_amazon_monitor_series_id`: top-level (not under `app`). These hold the series IDs you want to watch per service.
+- `mdnx_cr_monitor_series_id`, `mdnx_hidive_monitor_series_id`, `mdnx_adn_monitor_series_id`, `cdl_cr_monitor_series_id`, `cdl_hidive_monitor_series_id`, `cdl_adn_monitor_series_id`, `cdl_disney_monitor_series_id`, `cdl_netflix_monitor_series_id`, `cdl_amazon_monitor_series_id`: top-level (not under `app`). These hold the series IDs you want to watch per service.
 - `mdnx`: passthrough config for [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx). Anything valid in `cli-defaults.yml` is valid here, as long as the option's `cli-default Entry` in [multi-downloader-nx's documentation](https://github.com/anidl/multi-downloader-nx/blob/master/docs/DOCUMENTATION.md) is not `NaN`.
 - `cardinaldl`: per-service config for the CardinalDL downloader. Has subsections `crunchyroll`, `hidive`, `adn`, `disney`, `netflix`, and `amazon`.
 
@@ -43,22 +43,22 @@ Standard YAML formatting still applies:
 - [Downloaders](#downloaders)
     - [multi-downloader-nx](#multi-downloader-nx)
         - [Crunchyroll](#crunchyroll)
-            - [`CR_ENABLED`](#CR_ENABLED)
-            - [`CR_USERNAME`](#CR_USERNAME)
-            - [`CR_PASSWORD`](#CR_PASSWORD)
-            - [`CR_FORCE_REAUTH`](#CR_FORCE_REAUTH)
-            - [`CR_SKIP_API_TEST`](#CR_SKIP_API_TEST)
+            - [`MDNX_CR_ENABLED`](#MDNX_CR_ENABLED)
+            - [`MDNX_CR_USERNAME`](#MDNX_CR_USERNAME)
+            - [`MDNX_CR_PASSWORD`](#MDNX_CR_PASSWORD)
+            - [`MDNX_CR_FORCE_REAUTH`](#MDNX_CR_FORCE_REAUTH)
+            - [`MDNX_CR_SKIP_API_TEST`](#MDNX_CR_SKIP_API_TEST)
         - [HiDive](#hidive)
-            - [`HIDIVE_ENABLED`](#HIDIVE_ENABLED)
-            - [`HIDIVE_USERNAME`](#HIDIVE_USERNAME)
-            - [`HIDIVE_PASSWORD`](#HIDIVE_PASSWORD)
-            - [`HIDIVE_FORCE_REAUTH`](#HIDIVE_FORCE_REAUTH)
-            - [`HIDIVE_SKIP_API_TEST`](#HIDIVE_SKIP_API_TEST)
+            - [`MDNX_HIDIVE_ENABLED`](#MDNX_HIDIVE_ENABLED)
+            - [`MDNX_HIDIVE_USERNAME`](#MDNX_HIDIVE_USERNAME)
+            - [`MDNX_HIDIVE_PASSWORD`](#MDNX_HIDIVE_PASSWORD)
+            - [`MDNX_HIDIVE_FORCE_REAUTH`](#MDNX_HIDIVE_FORCE_REAUTH)
+            - [`MDNX_HIDIVE_SKIP_API_TEST`](#MDNX_HIDIVE_SKIP_API_TEST)
         - [ADN](#adn)
-            - [`ADN_ENABLED`](#ADN_ENABLED)
-            - [`ADN_USERNAME`](#ADN_USERNAME)
-            - [`ADN_PASSWORD`](#ADN_PASSWORD)
-            - [`ADN_FORCE_REAUTH`](#ADN_FORCE_REAUTH)
+            - [`MDNX_ADN_ENABLED`](#MDNX_ADN_ENABLED)
+            - [`MDNX_ADN_USERNAME`](#MDNX_ADN_USERNAME)
+            - [`MDNX_ADN_PASSWORD`](#MDNX_ADN_PASSWORD)
+            - [`MDNX_ADN_FORCE_REAUTH`](#MDNX_ADN_FORCE_REAUTH)
         - [multi-downloader-nx options](#multi-downloader-nx-options)
             - [`bin-path`](#mdnx-bin-path)
             - [`dir-path`](#mdnx-dir-path)
@@ -77,7 +77,6 @@ Standard YAML formatting still applies:
             - [`fallback`](#cdl-fallback)
             - [`hybrid`](#cdl-hybrid)
             - [`outputformat`](#cdl-outputformat)
-            - [`dectool`](#cdl-dectool)
             - [`dublang`](#cdl-dublang)
             - [`dlsubs`](#cdl-dlsubs)
             - [`forcesubformat`](#cdl-forcesubformat)
@@ -88,9 +87,9 @@ Standard YAML formatting still applies:
             - [`temppath`](#cdl-temppath)
             - [`configpath`](#cdl-configpath)
 - [Series to monitor](#series-to-monitor)
-    - [`cr_monitor_series_id`](#cr_monitor_series_id)
-    - [`hidive_monitor_series_id`](#hidive_monitor_series_id)
-    - [`adn_monitor_series_id`](#adn_monitor_series_id)
+    - [`mdnx_cr_monitor_series_id`](#mdnx_cr_monitor_series_id)
+    - [`mdnx_hidive_monitor_series_id`](#mdnx_hidive_monitor_series_id)
+    - [`mdnx_adn_monitor_series_id`](#mdnx_adn_monitor_series_id)
     - [`cdl_cr_monitor_series_id`](#cdl_cr_monitor_series_id)
     - [`cdl_hidive_monitor_series_id`](#cdl_hidive_monitor_series_id)
     - [`cdl_adn_monitor_series_id`](#cdl_adn_monitor_series_id)
@@ -178,25 +177,25 @@ The services that download through the aniDL binary. Log in to each one you want
 
 #### Crunchyroll
 
-##### <a id="CR_ENABLED"></a>CR_ENABLED
+##### <a id="MDNX_CR_ENABLED"></a>MDNX_CR_ENABLED
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `false` | boolean | When `true`, enable auth with the Crunchyroll multi-downloader-nx API and monitor any series IDs in `cr_monitor_series_id`. |
+| `false` | boolean | When `true`, enable auth with the Crunchyroll multi-downloader-nx API and monitor any series IDs in `mdnx_cr_monitor_series_id`. |
 
 JSON:
 ```json
 "app": {
-    "CR_ENABLED": true
+    "MDNX_CR_ENABLED": true
 }
 ```
 YAML:
 ```yaml
 app:
-    CR_ENABLED: true
+    MDNX_CR_ENABLED: true
 ```
 
-##### <a id="CR_USERNAME"></a>CR_USERNAME
+##### <a id="MDNX_CR_USERNAME"></a>MDNX_CR_USERNAME
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -205,16 +204,16 @@ app:
 JSON:
 ```json
 "app": {
-    "CR_USERNAME": "itsamemario@myemailprovider.com"
+    "MDNX_CR_USERNAME": "itsamemario@myemailprovider.com"
 }
 ```
 YAML:
 ```yaml
 app:
-    CR_USERNAME: "itsamemario@myemailprovider.com"
+    MDNX_CR_USERNAME: "itsamemario@myemailprovider.com"
 ```
 
-##### <a id="CR_PASSWORD"></a>CR_PASSWORD
+##### <a id="MDNX_CR_PASSWORD"></a>MDNX_CR_PASSWORD
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -223,16 +222,16 @@ app:
 JSON:
 ```json
 "app": {
-    "CR_PASSWORD": "thisismypassword123"
+    "MDNX_CR_PASSWORD": "thisismypassword123"
 }
 ```
 YAML:
 ```yaml
 app:
-    CR_PASSWORD: "thisismypassword123"
+    MDNX_CR_PASSWORD: "thisismypassword123"
 ```
 
-##### <a id="CR_FORCE_REAUTH"></a>CR_FORCE_REAUTH
+##### <a id="MDNX_CR_FORCE_REAUTH"></a>MDNX_CR_FORCE_REAUTH
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -241,16 +240,16 @@ app:
 JSON:
 ```json
 "app": {
-    "CR_FORCE_REAUTH": true
+    "MDNX_CR_FORCE_REAUTH": true
 }
 ```
 YAML:
 ```yaml
 app:
-    CR_FORCE_REAUTH: true
+    MDNX_CR_FORCE_REAUTH: true
 ```
 
-##### <a id="CR_SKIP_API_TEST"></a>CR_SKIP_API_TEST
+##### <a id="MDNX_CR_SKIP_API_TEST"></a>MDNX_CR_SKIP_API_TEST
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -259,36 +258,36 @@ app:
 JSON:
 ```json
 "app": {
-    "CR_SKIP_API_TEST": true
+    "MDNX_CR_SKIP_API_TEST": true
 }
 ```
 YAML:
 ```yaml
 app:
-    CR_SKIP_API_TEST: true
+    MDNX_CR_SKIP_API_TEST: true
 ```
 
 #### HiDive
 
-##### <a id="HIDIVE_ENABLED"></a>HIDIVE_ENABLED
+##### <a id="MDNX_HIDIVE_ENABLED"></a>MDNX_HIDIVE_ENABLED
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `false` | boolean | When `true`, enable auth with the HiDive multi-downloader-nx API and monitor any series IDs in `hidive_monitor_series_id`. |
+| `false` | boolean | When `true`, enable auth with the HiDive multi-downloader-nx API and monitor any series IDs in `mdnx_hidive_monitor_series_id`. |
 
 JSON:
 ```json
 "app": {
-    "HIDIVE_ENABLED": true
+    "MDNX_HIDIVE_ENABLED": true
 }
 ```
 YAML:
 ```yaml
 app:
-    HIDIVE_ENABLED: true
+    MDNX_HIDIVE_ENABLED: true
 ```
 
-##### <a id="HIDIVE_USERNAME"></a>HIDIVE_USERNAME
+##### <a id="MDNX_HIDIVE_USERNAME"></a>MDNX_HIDIVE_USERNAME
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -297,16 +296,16 @@ app:
 JSON:
 ```json
 "app": {
-    "HIDIVE_USERNAME": "itsamemario@myemailprovider.com"
+    "MDNX_HIDIVE_USERNAME": "itsamemario@myemailprovider.com"
 }
 ```
 YAML:
 ```yaml
 app:
-    HIDIVE_USERNAME: "itsamemario@myemailprovider.com"
+    MDNX_HIDIVE_USERNAME: "itsamemario@myemailprovider.com"
 ```
 
-##### <a id="HIDIVE_PASSWORD"></a>HIDIVE_PASSWORD
+##### <a id="MDNX_HIDIVE_PASSWORD"></a>MDNX_HIDIVE_PASSWORD
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -315,16 +314,16 @@ app:
 JSON:
 ```json
 "app": {
-    "HIDIVE_PASSWORD": "thisismypassword123"
+    "MDNX_HIDIVE_PASSWORD": "thisismypassword123"
 }
 ```
 YAML:
 ```yaml
 app:
-    HIDIVE_PASSWORD: "thisismypassword123"
+    MDNX_HIDIVE_PASSWORD: "thisismypassword123"
 ```
 
-##### <a id="HIDIVE_FORCE_REAUTH"></a>HIDIVE_FORCE_REAUTH
+##### <a id="MDNX_HIDIVE_FORCE_REAUTH"></a>MDNX_HIDIVE_FORCE_REAUTH
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -333,16 +332,16 @@ app:
 JSON:
 ```json
 "app": {
-    "HIDIVE_FORCE_REAUTH": true
+    "MDNX_HIDIVE_FORCE_REAUTH": true
 }
 ```
 YAML:
 ```yaml
 app:
-    HIDIVE_FORCE_REAUTH: true
+    MDNX_HIDIVE_FORCE_REAUTH: true
 ```
 
-##### <a id="HIDIVE_SKIP_API_TEST"></a>HIDIVE_SKIP_API_TEST
+##### <a id="MDNX_HIDIVE_SKIP_API_TEST"></a>MDNX_HIDIVE_SKIP_API_TEST
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -351,36 +350,36 @@ app:
 JSON:
 ```json
 "app": {
-    "HIDIVE_SKIP_API_TEST": true
+    "MDNX_HIDIVE_SKIP_API_TEST": true
 }
 ```
 YAML:
 ```yaml
 app:
-    HIDIVE_SKIP_API_TEST: true
+    MDNX_HIDIVE_SKIP_API_TEST: true
 ```
 
 #### ADN
 
-##### <a id="ADN_ENABLED"></a>ADN_ENABLED
+##### <a id="MDNX_ADN_ENABLED"></a>MDNX_ADN_ENABLED
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `false` | boolean | When `true`, enable auth with the ADN (Animation Digital Network) multi-downloader-nx API and monitor any series IDs in `adn_monitor_series_id`. |
+| `false` | boolean | When `true`, enable auth with the ADN (Animation Digital Network) multi-downloader-nx API and monitor any series IDs in `mdnx_adn_monitor_series_id`. |
 
 JSON:
 ```json
 "app": {
-    "ADN_ENABLED": true
+    "MDNX_ADN_ENABLED": true
 }
 ```
 YAML:
 ```yaml
 app:
-    ADN_ENABLED: true
+    MDNX_ADN_ENABLED: true
 ```
 
-##### <a id="ADN_USERNAME"></a>ADN_USERNAME
+##### <a id="MDNX_ADN_USERNAME"></a>MDNX_ADN_USERNAME
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -389,16 +388,16 @@ app:
 JSON:
 ```json
 "app": {
-    "ADN_USERNAME": "itsamemario@myemailprovider.com"
+    "MDNX_ADN_USERNAME": "itsamemario@myemailprovider.com"
 }
 ```
 YAML:
 ```yaml
 app:
-    ADN_USERNAME: "itsamemario@myemailprovider.com"
+    MDNX_ADN_USERNAME: "itsamemario@myemailprovider.com"
 ```
 
-##### <a id="ADN_PASSWORD"></a>ADN_PASSWORD
+##### <a id="MDNX_ADN_PASSWORD"></a>MDNX_ADN_PASSWORD
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -407,16 +406,16 @@ app:
 JSON:
 ```json
 "app": {
-    "ADN_PASSWORD": "thisismypassword123"
+    "MDNX_ADN_PASSWORD": "thisismypassword123"
 }
 ```
 YAML:
 ```yaml
 app:
-    ADN_PASSWORD: "thisismypassword123"
+    MDNX_ADN_PASSWORD: "thisismypassword123"
 ```
 
-##### <a id="ADN_FORCE_REAUTH"></a>ADN_FORCE_REAUTH
+##### <a id="MDNX_ADN_FORCE_REAUTH"></a>MDNX_ADN_FORCE_REAUTH
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
@@ -425,13 +424,13 @@ app:
 JSON:
 ```json
 "app": {
-    "ADN_FORCE_REAUTH": true
+    "MDNX_ADN_FORCE_REAUTH": true
 }
 ```
 YAML:
 ```yaml
 app:
-    ADN_FORCE_REAUTH: true
+    MDNX_ADN_FORCE_REAUTH: true
 ```
 
 #### multi-downloader-nx options
@@ -780,27 +779,6 @@ cardinaldl:
         outputformat: "mkv"
 ```
 
-##### cdl-dectool
-
-| Default | Type | Description |
-| :--- | :--- | :--- |
-| `shaka` | string | Which decryption tool CardinalDL uses (passed as `--dectool`). One of `shaka` or `mp4decrypt`. |
-
-JSON:
-```json
-"cardinaldl": {
-    "crunchyroll": {
-        "dectool": "shaka"
-    }
-}
-```
-YAML:
-```yaml
-cardinaldl:
-    crunchyroll:
-        dectool: "shaka"
-```
-
 ##### cdl-dublang
 
 | Default | Type | Description |
@@ -1011,63 +989,63 @@ cardinaldl:
 These keys live at the **top level** of the config file, not inside `app`. They map series IDs to per-season blacklist and override settings.  
 See [Blacklists & per-season overrides](guides/series-overrides.md) for the full format.
 
-### <a id="cr_monitor_series_id"></a>cr_monitor_series_id
+### <a id="mdnx_cr_monitor_series_id"></a>mdnx_cr_monitor_series_id
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `{}` | object | Crunchyroll (AniDL) series IDs to monitor. Used when [`CR_ENABLED`](#CR_ENABLED) is `true`. |
+| `{}` | object | Crunchyroll (AniDL) series IDs to monitor. Used when [`MDNX_CR_ENABLED`](#MDNX_CR_ENABLED) is `true`. |
 
 JSON:
 ```json
 {
-    "cr_monitor_series_id": {
+    "mdnx_cr_monitor_series_id": {
         "GG5H5XQ7D": {}
     }
 }
 ```
 YAML:
 ```yaml
-cr_monitor_series_id:
+mdnx_cr_monitor_series_id:
     GG5H5XQ7D: {}
 ```
 
-### <a id="hidive_monitor_series_id"></a>hidive_monitor_series_id
+### <a id="mdnx_hidive_monitor_series_id"></a>mdnx_hidive_monitor_series_id
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `{}` | object | HiDive (AniDL) series IDs to monitor. Used when [`HIDIVE_ENABLED`](#HIDIVE_ENABLED) is `true`. |
+| `{}` | object | HiDive (AniDL) series IDs to monitor. Used when [`MDNX_HIDIVE_ENABLED`](#MDNX_HIDIVE_ENABLED) is `true`. |
 
 JSON:
 ```json
 {
-    "hidive_monitor_series_id": {
+    "mdnx_hidive_monitor_series_id": {
         "1050": {}
     }
 }
 ```
 YAML:
 ```yaml
-hidive_monitor_series_id:
+mdnx_hidive_monitor_series_id:
     "1050": {}
 ```
 
-### <a id="adn_monitor_series_id"></a>adn_monitor_series_id
+### <a id="mdnx_adn_monitor_series_id"></a>mdnx_adn_monitor_series_id
 
 | Default | Type | Description |
 | :--- | :--- | :--- |
-| `{}` | object | ADN (AniDL) series IDs to monitor. Used when [`ADN_ENABLED`](#ADN_ENABLED) is `true`. |
+| `{}` | object | ADN (AniDL) series IDs to monitor. Used when [`MDNX_ADN_ENABLED`](#MDNX_ADN_ENABLED) is `true`. |
 
 JSON:
 ```json
 {
-    "adn_monitor_series_id": {
+    "mdnx_adn_monitor_series_id": {
         "442": {}
     }
 }
 ```
 YAML:
 ```yaml
-adn_monitor_series_id:
+mdnx_adn_monitor_series_id:
     "442": {}
 ```
 
@@ -1209,20 +1187,20 @@ Each entry has two keys:
 - `folder_structure`: the layout for series, seasons, and episodes under `dir`.  
  See [Options for `folder_structure`](#options-for-folder_structure) for the variables you can use.
 
-Valid keys are: `crunchyroll`, `hidive`, `adn`, `cdl-crunchyroll`, `cdl-hidive`, `cdl-adn`, `cdl-disney`, `cdl-netflix`, `cdl-amazon`.
+Valid keys are: `mdnx-crunchyroll`, `mdnx-hidive`, `mdnx-adn`, `cdl-crunchyroll`, `cdl-hidive`, `cdl-adn`, `cdl-disney`, `cdl-netflix`, `cdl-amazon`.
 
 JSON:
 ```json
 "destinations": {
-    "crunchyroll": {
+    "mdnx-crunchyroll": {
         "dir": "/data/Anime",
         "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
     },
-    "hidive": {
+    "mdnx-hidive": {
         "dir": "/data/Anime",
         "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
     },
-    "adn": {
+    "mdnx-adn": {
         "dir": "/data/Anime",
         "folder_structure": "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
     },
@@ -1256,13 +1234,13 @@ JSON:
 YAML:
 ```yaml
 destinations:
-    crunchyroll:
+    mdnx-crunchyroll:
         dir: "/data/Anime"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
-    hidive:
+    mdnx-hidive:
         dir: "/data/Anime"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
-    adn:
+    mdnx-adn:
         dir: "/data/Anime"
         folder_structure: "${seriesTitle}/S${season}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
     cdl-crunchyroll:
@@ -1297,6 +1275,7 @@ You only need entries for services you enable. You can drop the rest.
 | `${episode}`       | `1`                          | Episode number, no leading zeros. |
 | `${episodePadded}` | `01`                         | Episode number padded to two digits. |
 | `${episodeName}`   | `The Man Who Became a Kaiju` | Sanitized episode title. |
+| `${year}`          | `2023`                       | Series release year, taken from the CardinalDL listing. CardinalDL services only. It is the series-level year, so every season and episode of a series share it. |
 | `${serviceLong}`   | `Crunchyroll`                | Long, human-readable name of the source service. Values: `Crunchyroll`, `HiDive`, `ADN`, `Disney`, `Netflix`, `Amazon`. Same for the AniDL and CardinalDL variants of a service. Disney, Netflix and Amazon are CardinalDL-only. |
 | `${serviceShort}`  | `CR`                         | Short code for the source service. Values: `CR` (Crunchyroll), `HD` (HiDive), `ADN` (ADN), `DSNP` (Disney), `NF` (Netflix), `AMZN` (Amazon). Disney, Netflix and Amazon are CardinalDL-only. |
 

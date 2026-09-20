@@ -5,6 +5,7 @@ import signal
 from appdata.modules.MainLoop import MainLoop
 from appdata.modules.Globals import file_manager, log_manager, queue_manager
 from appdata.modules.MediaServerManager import mediaserver_auth, mediaserver_scan_library
+from appdata.modules.ExtraFeatures.TrackForge import TRACKFORGE_BIN_PATH
 from appdata.modules.API.MDNX._shared import (
     MDNX_SERVICE_BIN_PATH,
     MDNX_SERVICE_CR_TOKEN_PATH, MDNX_SERVICE_HIDIVE_TOKEN_PATH, MDNX_SERVICE_ADN_TOKEN_PATH,
@@ -16,7 +17,7 @@ from appdata.modules.API.CardinalDL._shared import (
 )
 from appdata.modules.Vars import (
     config,
-    APP_VERSION, JELLY_CONFIGURED, MDNX_ENABLED, PLEX_CONFIGURED, SERVICES, CDL_ENABLED,
+    APP_VERSION, JELLY_CONFIGURED, MDNX_ENABLED, PLEX_CONFIGURED, SERVICES, CDL_ENABLED, TRACKFORGE_ENABLED,
     get_running_user, handle_exception, output_effective_config, update_app_config, validate_cdm, validate_destinations
 )
 
@@ -82,6 +83,12 @@ def app():
             load_defaults(storage_path)
 
         log_manager.info("CardinalDL checks completed. All good!")
+
+    if TRACKFORGE_ENABLED:
+        if not os.path.isfile(TRACKFORGE_BIN_PATH):
+            log_manager.critical(f"TrackForge is enabled for a service, but the TrackForge binary was not found at: {TRACKFORGE_BIN_PATH}\nPlease rebuild the image so the binary gets bundled and restart the application.")
+            sys.exit(1)
+        log_manager.info("TrackForge is enabled and the binary was found. All good!")
 
     if PLEX_CONFIGURED is True or JELLY_CONFIGURED is True:
         if PLEX_CONFIGURED is True:
@@ -174,54 +181,54 @@ def app():
             continue
 
         match mdnx_service.service_name:
-            case "crunchyroll":
+            case "mdnx-crunchyroll":
                 log_manager.info("Starting CR_MDNX_API...")
                 from appdata.modules.API.MDNX.crunchy import CR_MDNX_API
                 mdnx_service.api = CR_MDNX_API()
 
                 # authenticate with MDNX crunchyroll service if needed or force auth if user wants to
                 log_manager.info("Checking to see if user is authenticated with MDNX service (cr_token.yml exists?)...")
-                if not os.path.exists(MDNX_SERVICE_CR_TOKEN_PATH) or config.app.cr_force_reauth == True:
+                if not os.path.exists(MDNX_SERVICE_CR_TOKEN_PATH) or config.app.mdnx_cr_force_reauth == True:
                     log_manager.info("cr_token.yml not found or re-authentication forced. Starting authentication process...")
                     mdnx_service.api.auth()
 
-                    # Update the "CR_FORCE_REAUTH" config to False if needed
-                    if config.app.cr_force_reauth == True:
-                        update_app_config("CR_FORCE_REAUTH", False)
+                    # Update the "MDNX_CR_FORCE_REAUTH" config to False if needed
+                    if config.app.mdnx_cr_force_reauth == True:
+                        update_app_config("MDNX_CR_FORCE_REAUTH", False)
                 else:
                     log_manager.info("cr_token.yml exists. Assuming user is already authenticated with CR MDNX service.")
 
-            case "hidive":
+            case "mdnx-hidive":
                 log_manager.info("Starting HIDIVE_MDNX_API...")
                 from appdata.modules.API.MDNX.hidive import HIDIVE_MDNX_API
                 mdnx_service.api = HIDIVE_MDNX_API()
 
                 # authenticate with MDNX hidive service if needed or force auth if user wants to
                 log_manager.info("Checking to see if user is authenticated with MDNX service (hd_new_token.yml exists?)...")
-                if not os.path.exists(MDNX_SERVICE_HIDIVE_TOKEN_PATH) or config.app.hidive_force_reauth == True:
+                if not os.path.exists(MDNX_SERVICE_HIDIVE_TOKEN_PATH) or config.app.mdnx_hidive_force_reauth == True:
                     log_manager.info("hd_new_token.yml not found or re-authentication forced. Starting authentication process...")
                     mdnx_service.api.auth()
 
-                    # Update the "HIDIVE_FORCE_REAUTH" config to False if needed
-                    if config.app.hidive_force_reauth == True:
-                        update_app_config("HIDIVE_FORCE_REAUTH", False)
+                    # Update the "MDNX_HIDIVE_FORCE_REAUTH" config to False if needed
+                    if config.app.mdnx_hidive_force_reauth == True:
+                        update_app_config("MDNX_HIDIVE_FORCE_REAUTH", False)
                 else:
                     log_manager.info("hd_new_token.yml exists. Assuming user is already authenticated with HiDive MDNX service.")
 
-            case "adn":
+            case "mdnx-adn":
                 log_manager.info("Starting ADN_MDNX_API...")
                 from appdata.modules.API.MDNX.adn import ADN_MDNX_API
                 mdnx_service.api = ADN_MDNX_API()
 
                 # authenticate with MDNX adn service if needed or force auth if user wants to
                 log_manager.info("Checking to see if user is authenticated with MDNX service (adn_token.yml exists?)...")
-                if not os.path.exists(MDNX_SERVICE_ADN_TOKEN_PATH) or config.app.adn_force_reauth == True:
+                if not os.path.exists(MDNX_SERVICE_ADN_TOKEN_PATH) or config.app.mdnx_adn_force_reauth == True:
                     log_manager.info("adn_token.yml not found or re-authentication forced. Starting authentication process...")
                     mdnx_service.api.auth()
 
-                    # Update the "ADN_FORCE_REAUTH" config to False if needed
-                    if config.app.adn_force_reauth == True:
-                        update_app_config("ADN_FORCE_REAUTH", False)
+                    # Update the "MDNX_ADN_FORCE_REAUTH" config to False if needed
+                    if config.app.mdnx_adn_force_reauth == True:
+                        update_app_config("MDNX_ADN_FORCE_REAUTH", False)
                 else:
                     log_manager.info("adn_token.yml exists. Assuming user is already authenticated with ADN MDNX service.")
 

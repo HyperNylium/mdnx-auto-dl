@@ -122,6 +122,32 @@ RUN case "${TARGETARCH}" in \
     rm -rf /tmp/hdr10plus
 
 
+FROM debian:trixie-slim AS trackforge
+
+ARG TARGETARCH
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates curl unzip && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN case "${TARGETARCH}" in \
+        amd64) ARCH="x64" ;; \
+        arm64) ARCH="arm64" ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac && \
+    TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' \
+        "https://github.com/HyperNylium/TrackForge/releases/latest" | sed 's#.*/tag/##')" && \
+    mkdir -p /tmp/trackforge && \
+    curl -fL --retry 5 --retry-all-errors --connect-timeout 10 \
+        -o /tmp/trackforge.zip \
+        "https://github.com/HyperNylium/TrackForge/releases/download/${TAG}/trackforge-linux-${ARCH}.zip" && \
+    unzip -q /tmp/trackforge.zip -d /tmp/trackforge && \
+    TRACKFORGE_BIN="$(find /tmp/trackforge -type f -name trackforge | head -n1)" && \
+    mv "$TRACKFORGE_BIN" /usr/local/bin/trackforge && \
+    chmod +x /usr/local/bin/trackforge && \
+    rm -rf /tmp/trackforge /tmp/trackforge.zip
+
+
 FROM python:3.13-slim
 
 ENV PYTHONUNBUFFERED=1
@@ -156,6 +182,7 @@ COPY --from=bento4 /usr/local/bin/mp4decrypt /app/appdata/bin/bento4/mp4decrypt
 COPY --from=shaka /usr/local/bin/shaka /app/appdata/bin/shaka_packager/shaka
 COPY --from=dovi_tool /usr/local/bin/dovi_tool /app/appdata/bin/dovi_tool/dovi_tool
 COPY --from=hdr10plus_tool /usr/local/bin/hdr10plus_tool /app/appdata/bin/hdr10plus_tool/hdr10plus_tool
+COPY --from=trackforge /usr/local/bin/trackforge /app/appdata/bin/trackforge/trackforge
 
 ENV PATH="/app/.venv/bin:$PATH"
 
