@@ -189,7 +189,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 COPY app/ .
 COPY pyproject.toml ./
 
-RUN find /app -type f \( -name "*.sh" -o -name "*.py" \) -exec sed -i 's/\r$//' {} + && \
-    find /app -type f -name "*.sh" -exec chmod +x {} +
+RUN find /app -type f \( -name "*.sh" -o -name "*.py" \) -not -path "/app/.venv/*" -exec sed -i 's/\r$//' {} + && \
+    find /app -type f -name "*.sh" -not -path "/app/.venv/*" -exec chmod +x {} +
 
 ENTRYPOINT ["/app/entrypoint.sh"]
