@@ -138,7 +138,6 @@ chown -R "$USER_ID:$GROUP_ID" /app
 chmod -R 775 /app
 
 # Make required symlinks for CardinalDL support
-ln -sfn "/app/appdata/bin/bento4/mp4decrypt" "/app/appdata/bin/cardinaldl/static/bento4/mp4decrypt"
 ln -sfn "/app/appdata/bin/shaka_packager/shaka" "/app/appdata/bin/cardinaldl/static/shaka_packager/shaka"
 ln -sfn "/app/appdata/bin/dovi_tool/dovi_tool" "/app/appdata/bin/cardinaldl/static/dovi_tool/dovi_tool"
 ln -sfn "/app/appdata/bin/hdr10plus_tool/hdr10plus_tool" "/app/appdata/bin/cardinaldl/static/hdr10plus_tool/hdr10plus_tool"

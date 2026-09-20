@@ -186,10 +186,6 @@ class ADN_CDL_API:
             tmp_cmd += ["--outputformat", self.service_config.outputformat]
             log_manager.info(f"Using outputformat override: {self.service_config.outputformat}")
 
-        if self.service_config.dectool:
-            tmp_cmd += ["--dectool", self.service_config.dectool]
-            log_manager.info(f"Using dectool override: {self.service_config.dectool}")
-
         if dub_override:
             joined_dubs = ",".join(dub_override)
             tmp_cmd += ["--dublang", joined_dubs]
