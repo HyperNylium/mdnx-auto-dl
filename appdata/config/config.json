@@ -88,7 +88,6 @@
             "audioquality": "aac@2.0",
             "fallback": true,
             "outputformat": "mkv",
-            "dectool": "shaka",
             "dublang": [
                 "JP",
                 "EN"
@@ -102,7 +101,6 @@
             "audioquality": "aac@2.0",
             "fallback": true,
             "outputformat": "mkv",
-            "dectool": "shaka",
             "dublang": [
                 "JP",
                 "EN"
@@ -116,7 +114,6 @@
             "audioquality": "aac@2.0",
             "fallback": true,
             "outputformat": "mkv",
-            "dectool": "shaka",
             "dublang": [
                 "JP",
                 "EN"
@@ -130,7 +127,6 @@
             "audioquality": "aac@2.0",
             "fallback": true,
             "outputformat": "mkv",
-            "dectool": "shaka",
             "dublang": [
                 "EN"
             ],
@@ -143,7 +139,6 @@
             "audioquality": "aac@2.0",
             "fallback": true,
             "outputformat": "mkv",
-            "dectool": "shaka",
             "dublang": [
                 "EN"
             ],
@@ -156,7 +151,6 @@
             "audioquality": "aac@2.0",
             "fallback": true,
             "outputformat": "mkv",
-            "dectool": "shaka",
             "dublang": [
                 "EN"
             ],

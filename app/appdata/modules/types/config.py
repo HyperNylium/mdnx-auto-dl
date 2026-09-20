@@ -161,7 +161,6 @@ class CdlServiceConfig(BaseModel):
     # keep hybrid as None so that if the user ticked the box to enable it in the GUI, it will be True, but if they didnt, it will be None and the default behavior will be used without us having to pass --hybrid to the CLI
     hybrid: bool | None = None
     outputformat: str = Field("mkv", pattern=r"^(?:mkv|mp4)?$")
-    dectool: str = Field("shaka", pattern=r"^(?:mp4decrypt|shaka)?$")
     dublang: list[str] = ["JP", "EN"]
     dlsubs: list[SubToken] = ["EN"]
     forcesubformat: str = Field("", pattern="^(srt|ass|vtt|auto|raw|original)?$")

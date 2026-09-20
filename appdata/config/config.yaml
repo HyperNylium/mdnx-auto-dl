@@ -75,7 +75,6 @@ cardinaldl:
         audioquality: "aac@2.0"
         fallback: true
         outputformat: "mkv"
-        dectool: "shaka"
         dublang:
             - "JP"
             - "EN"
@@ -87,7 +86,6 @@ cardinaldl:
         audioquality: "aac@2.0"
         fallback: true
         outputformat: "mkv"
-        dectool: "shaka"
         dublang:
             - "JP"
             - "EN"
@@ -99,7 +97,6 @@ cardinaldl:
         audioquality: "aac@2.0"
         fallback: true
         outputformat: "mkv"
-        dectool: "shaka"
         dublang:
             - "JP"
             - "EN"
@@ -111,7 +108,6 @@ cardinaldl:
         audioquality: "aac@2.0"
         fallback: true
         outputformat: "mkv"
-        dectool: "shaka"
         dublang:
             - "JP"
             - "EN"
@@ -123,7 +119,6 @@ cardinaldl:
         audioquality: "aac@2.0"
         fallback: true
         outputformat: "mkv"
-        dectool: "shaka"
         dublang:
             - "JP"
             - "EN"
@@ -135,7 +130,6 @@ cardinaldl:
         audioquality: "aac@2.0"
         fallback: true
         outputformat: "mkv"
-        dectool: "shaka"
         dublang:
             - "JP"
             - "EN"

@@ -77,7 +77,6 @@ Standard YAML formatting still applies:
             - [`fallback`](#cdl-fallback)
             - [`hybrid`](#cdl-hybrid)
             - [`outputformat`](#cdl-outputformat)
-            - [`dectool`](#cdl-dectool)
             - [`dublang`](#cdl-dublang)
             - [`dlsubs`](#cdl-dlsubs)
             - [`forcesubformat`](#cdl-forcesubformat)
@@ -778,27 +777,6 @@ YAML:
 cardinaldl:
     crunchyroll:
         outputformat: "mkv"
-```
-
-##### cdl-dectool
-
-| Default | Type | Description |
-| :--- | :--- | :--- |
-| `shaka` | string | Which decryption tool CardinalDL uses (passed as `--dectool`). One of `shaka` or `mp4decrypt`. |
-
-JSON:
-```json
-"cardinaldl": {
-    "crunchyroll": {
-        "dectool": "shaka"
-    }
-}
-```
-YAML:
-```yaml
-cardinaldl:
-    crunchyroll:
-        dectool: "shaka"
 ```
 
 ##### cdl-dublang
