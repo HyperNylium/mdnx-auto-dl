@@ -134,8 +134,8 @@ purge_folder "$BIN_DIR/mdnx/logs" "latest\.log" "[0-9]+\.[0-9]+\.log"
 purge_folder "$BIN_DIR/cardinaldl/config/logs" "combined\.log" "error\.log"
 
 echo "[entrypoint] Applying ownership and permissions to /app. This can take a moment..."
-chown -R "$USER_ID:$GROUP_ID" /app
-chmod -R 775 /app
+find /app -path /app/.venv -prune -o -exec chown "$USER_ID:$GROUP_ID" {} +
+find /app -path /app/.venv -prune -o -exec chmod 775 {} +
 
 # Make required symlinks for CardinalDL support
 ln -sfn "/app/appdata/bin/shaka_packager/shaka" "/app/appdata/bin/cardinaldl/static/shaka_packager/shaka"
