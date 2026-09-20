@@ -10,5 +10,6 @@ New here? Start with [get-started.md](../get-started.md) to pick your downloader
 | [Blacklists & per-season overrides](series-overrides.md) | Skip seasons/episodes and override the season number, dubs, or subs per season. |
 | [Configure downloading with CardinalDL (cardinaldl)](cardinaldl.md) | Enable each CardinalDL service and set its quality, dubs, and subtitles. |
 | [Configure downloading with MDNX (aniDL)](mdnx.md) | Set aniDL download options like quality, dubs, and subtitles through the `mdnx` passthrough. |
+| [Re-encode audio with TrackForge](trackforge.md) | Run TrackForge on finished files per service to keep, re-encode, downmix, or dialogue-boost audio tracks. |
 
 Looking for a single specific option? The [full option reference](../config-options.md) lists every configurable key.

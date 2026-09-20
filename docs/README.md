@@ -37,5 +37,7 @@ CardinalDL
 
 [hdr10plus_tool](https://github.com/quietvoid/hdr10plus_tool)
 
+[TrackForge](https://github.com/HyperNylium/TrackForge)
+
 # License
 This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.

@@ -19,6 +19,7 @@ The config file has a few top-level sections:
 - `mdnx_cr_monitor_series_id`, `mdnx_hidive_monitor_series_id`, `mdnx_adn_monitor_series_id`, `cdl_cr_monitor_series_id`, `cdl_hidive_monitor_series_id`, `cdl_adn_monitor_series_id`, `cdl_disney_monitor_series_id`, `cdl_netflix_monitor_series_id`, `cdl_amazon_monitor_series_id`: top-level (not under `app`). These hold the series IDs you want to watch per service.
 - `mdnx`: passthrough config for [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx). Anything valid in `cli-defaults.yml` is valid here, as long as the option's `cli-default Entry` in [multi-downloader-nx's documentation](https://github.com/anidl/multi-downloader-nx/blob/master/docs/DOCUMENTATION.md) is not `NaN`.
 - `cardinaldl`: per-service config for the CardinalDL downloader. Has subsections `crunchyroll`, `hidive`, `adn`, `disney`, `netflix`, and `amazon`.
+- `extra_features`: opt-in post-processing that runs on top of downloads. Currently holds `trackforge` (see [Extra features](#extra-features)), which runs [TrackForge](https://github.com/HyperNylium/TrackForge) on finished files per service.
 
 If you leave an option out of your config file, mdnx-auto-dl will use the default value listed in this doc.  
 The only config that doesnt have defaults is the `destinations` section. Every service you enable needs an entry in `destinations` or the container will exit with an error on startup. This is intentional to not make assumptions about where/how you want to save files.
@@ -141,6 +142,12 @@ Standard YAML formatting still applies:
     - [Discord webhook](#notifications-discord)
         - [`DISCORD_ENABLED`](#DISCORD_ENABLED)
         - [`DISCORD_WEBHOOK_URL`](#DISCORD_WEBHOOK_URL)
+- [Extra features](#extra-features)
+    - [TrackForge](#trackforge)
+        - [`enabled`](#trackforge-enabled)
+        - [`workers`](#trackforge-workers)
+        - [`muxer`](#trackforge-muxer)
+        - [`profile`](#trackforge-profile)
 - [App and runtime](#app-and-runtime)
     - [Queue and lifecycle](#queue-and-lifecycle)
         - [`ONLY_CREATE_QUEUE`](#ONLY_CREATE_QUEUE)
@@ -1939,6 +1946,141 @@ YAML:
 ```yaml
 app:
     DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/123456789/your-webhook-token"
+```
+
+---
+
+## Extra features
+
+Opt-in post-processing that runs on top of the normal download flow. Everything here lives under the top-level `extra_features` key, and every feature stays off until you turn it on.
+
+### <a id="trackforge"></a>TrackForge
+
+> How-to: [Re-encode audio with TrackForge](guides/trackforge.md)
+
+[TrackForge](https://github.com/HyperNylium/TrackForge) rebuilds the audio tracks of a finished episode from a profile you choose. It can keep the original track, re-encode to another codec, downmix to a channel layout, or run an Even-Out-Sound dialogue-forward pass. The TrackForge binary ships inside the container image, so you only need to be on a recent image and enable it per service.
+
+When a service has TrackForge turned on with a non-empty profile, mdnx-auto-dl runs TrackForge on the freshly downloaded file in the temp directory, in place, before the file is moved into your library. If TrackForge fails on a file, the file is left where it is and the episode is retried on the next loop. If a service is enabled but the TrackForge binary is missing from the image, the container stops on startup and asks you to pull or rebuild a newer image.
+
+Config lives under `extra_features.trackforge.services`, keyed by service name. Valid keys are the same as [`destinations`](#destinations): `mdnx-crunchyroll`, `mdnx-hidive`, `mdnx-adn`, `cdl-crunchyroll`, `cdl-hidive`, `cdl-adn`, `cdl-disney`, `cdl-netflix`, `cdl-amazon`. Any service without an entry, or with `enabled` set to `false`, is left untouched. To change the profile for a single season, use the per-season [`trackforge_profile`](guides/series-overrides.md#override-the-trackforge-profile-per-season) override.
+
+Each service entry takes the four keys below.
+
+#### <a id="trackforge-enabled"></a>enabled
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `false` | boolean | When `true`, run TrackForge on every finished file for this service. It also needs a non-empty [`profile`](#trackforge-profile) (or a per-season [`trackforge_profile`](guides/series-overrides.md#override-the-trackforge-profile-per-season)) before it does anything. |
+
+JSON:
+```json
+"extra_features": {
+    "trackforge": {
+        "services": {
+            "cdl-crunchyroll": {
+                "enabled": true
+            }
+        }
+    }
+}
+```
+YAML:
+```yaml
+extra_features:
+    trackforge:
+        services:
+            cdl-crunchyroll:
+                enabled: true
+```
+
+#### <a id="trackforge-workers"></a>workers
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `1` | number | How many audio tracks TrackForge encodes at the same time within a single file (passed as `--workers`). Must be `1` or higher. |
+
+JSON:
+```json
+"extra_features": {
+    "trackforge": {
+        "services": {
+            "cdl-crunchyroll": {
+                "workers": 2
+            }
+        }
+    }
+}
+```
+YAML:
+```yaml
+extra_features:
+    trackforge:
+        services:
+            cdl-crunchyroll:
+                workers: 2
+```
+
+#### <a id="trackforge-muxer"></a>muxer
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `auto` | string | Which muxer TrackForge uses to write the output (passed as `--muxer`). One of `auto`, `ffmpeg`, or `mkvmerge`. `auto` picks mkvmerge for mkv output when it is available and ffmpeg otherwise. |
+
+JSON:
+```json
+"extra_features": {
+    "trackforge": {
+        "services": {
+            "cdl-crunchyroll": {
+                "muxer": "auto"
+            }
+        }
+    }
+}
+```
+YAML:
+```yaml
+extra_features:
+    trackforge:
+        services:
+            cdl-crunchyroll:
+                muxer: "auto"
+```
+
+#### <a id="trackforge-profile"></a>profile
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `""` | string | The TrackForge profile applied to each source audio track. An empty string means TrackForge does nothing for this service, even when [`enabled`](#trackforge-enabled) is `true`. The profile is checked when your config loads, so a malformed profile stops the container on startup. |
+
+A profile is a comma-separated list of items. Each item turns every source audio track into one output track, in the order you list them. An item is a token with an optional channel layout after a colon:
+
+- `ORIG`: copy the source track unchanged, with no re-encoding.
+- A codec: one of `AAC`, `AC3`, `EAC3`, `DTS`, `OPUS`, `FLAC`, or `WAV` (`PCM` is accepted as an alias for `WAV`). Re-encodes the track to that codec.
+- `EOS` or `EOS+`: run TrackForge's Even-Out-Sound dialogue-forward downmix, then encode with the default codec (`AC3`). Write it as `EOS-<codec>`, for example `EOS-EAC3`, to force a specific codec instead of the default.
+- Channel layout (optional): add `:1.0`, `:2.0`, `:5.1`, or `:7.1` to set the output layout. Leave it off to keep the source layout.
+
+Examples: `ORIG` keeps the original track as-is. `AAC:2.0` replaces it with a single stereo AAC track. `ORIG, EOS:2.0` keeps the original and adds a stereo Even-Out-Sound track. See the [TrackForge project](https://github.com/HyperNylium/TrackForge) for the full profile reference.
+
+JSON:
+```json
+"extra_features": {
+    "trackforge": {
+        "services": {
+            "cdl-crunchyroll": {
+                "profile": "ORIG, EOS:2.0"
+            }
+        }
+    }
+}
+```
+YAML:
+```yaml
+extra_features:
+    trackforge:
+        services:
+            cdl-crunchyroll:
+                profile: "ORIG, EOS:2.0"
 ```
 
 ---

@@ -1,6 +1,6 @@
 # How-to: Blacklists & per-season overrides
 
-Inside each monitor map you can attach settings to a specific season of a series: skip episodes you do not want, renumber a season, change which dubs/subs are downloaded for just that season, or send that season to a different folder with a different folder structure.
+Inside each monitor map you can attach settings to a specific season of a series: skip episodes you do not want, renumber a season, change which dubs/subs are downloaded for just that season, send that season to a different folder with a different folder structure, or run a different TrackForge profile on that season.
 
 The examples below use [`mdnx_cr_monitor_series_id`](../config-options.md#mdnx_cr_monitor_series_id), but the same rules apply to every monitor map: [`mdnx_hidive_monitor_series_id`](../config-options.md#mdnx_hidive_monitor_series_id), [`mdnx_adn_monitor_series_id`](../config-options.md#mdnx_adn_monitor_series_id), [`cdl_cr_monitor_series_id`](../config-options.md#cdl_cr_monitor_series_id), [`cdl_hidive_monitor_series_id`](../config-options.md#cdl_hidive_monitor_series_id), [`cdl_adn_monitor_series_id`](../config-options.md#cdl_adn_monitor_series_id), [`cdl_disney_monitor_series_id`](../config-options.md#cdl_disney_monitor_series_id), [`cdl_netflix_monitor_series_id`](../config-options.md#cdl_netflix_monitor_series_id), and [`cdl_amazon_monitor_series_id`](../config-options.md#cdl_amazon_monitor_series_id).
 
@@ -23,7 +23,8 @@ These maps are **top-level** keys, not under `app`.
             "dub_overrides": ["eng", "zho"],
             "sub_overrides": ["en", "de"],
             "dir_override": "/data/special-shows",
-            "folder_structure_override": "${seriesTitle}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+            "folder_structure_override": "${seriesTitle}/${seriesTitle} - S${seasonPadded}E${episodePadded}",
+            "trackforge_profile": "ORIG, EOS:2.0"
         }
     }
 }
@@ -47,6 +48,7 @@ mdnx_cr_monitor_series_id:
                 - "de"
             dir_override: "/data/special-shows"
             folder_structure_override: "${seriesTitle}/${seriesTitle} - S${seasonPadded}E${episodePadded}"
+            trackforge_profile: "ORIG, EOS:2.0"
 ```
 
 Everything under a season is optional. A season with an empty `{}` is just monitored normally.
@@ -56,6 +58,7 @@ Everything under a season is optional. A season with an empty `{}` is just monit
 - **`dub_overrides`** / **`sub_overrides`**: replace the per-service dub and subtitle languages (aniDL `dubLang` / CardinalDL `dublang`, and `dlsubs`) for that one season.
 - **`dir_override`**: save this season under a different base folder instead of the service `dir` from `destinations`. When it is not set, the global `dir` is used. This lets you send one series somewhere else without changing the global destination.
 - **`folder_structure_override`**: use a different folder and file name template for this season instead of the service `folder_structure` from `destinations`. When it is not set, the global `folder_structure` is used. It uses the same variables as `folder_structure` (see [organizing files](organizing-files.md)). `dir_override` and `folder_structure_override` are independent, so you can set just one.
+- **`trackforge_profile`**: run a different TrackForge [`profile`](../config-options.md#trackforge-profile) on this season instead of the service profile. Only has an effect when [TrackForge](../config-options.md#trackforge) is enabled for the service. When it is not set, the service-level profile is used. Uses the same profile format as the service option.
 
 ---
 
@@ -218,3 +221,28 @@ mdnx_cr_monitor_series_id:
 ```
 
 Use the same language code format as the service's own dub/subtitle settings: ISO 639-3 like `jpn`/`eng` for aniDL services (`dubLang` / `dlsubs`), and CardinalDL's two-letter codes like `JP`/`EN` for CardinalDL services (`dublang` / `dlsubs`). For CardinalDL, `sub_overrides` entries can also carry a subtitle variant tag like `EN:cc`, `EN:full`, or `EN:both`.
+
+## Override the TrackForge profile per season
+
+`trackforge_profile` runs a different [TrackForge](../config-options.md#trackforge) profile on one season instead of the service profile. It only does anything when TrackForge is enabled for that service. When it is not set, the season uses the service-level profile.  
+The example below keeps the original tracks for this one season instead of whatever the service profile does:
+```json
+{
+    "cdl_cr_monitor_series_id": {
+        "GQWH0M1J3": {
+            "GYE5CQNJ2": {
+                "trackforge_profile": "ORIG"
+            }
+        }
+    }
+}
+```
+YAML:
+```yaml
+cdl_cr_monitor_series_id:
+    GQWH0M1J3:
+        GYE5CQNJ2:
+            trackforge_profile: "ORIG"
+```
+
+The profile uses the exact same format as the service [`profile`](../config-options.md#trackforge-profile) option, so `ORIG`, `AAC:2.0`, and `ORIG, EOS:2.0` all work here too.
