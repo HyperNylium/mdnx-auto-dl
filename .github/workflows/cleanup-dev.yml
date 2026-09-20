@@ -1,0 +1,139 @@
+name: Delete dev images
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete dev and dev-* images
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          OWNER="${GITHUB_REPOSITORY_OWNER}"
+          PKG_NAME="${GITHUB_REPOSITORY#*/}"
+          PKG="${PKG_NAME,,}"
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+
+          echo "Owner:   ${OWNER}"
+          echo "Package: ${PKG}"
+          echo "Image:   ${IMAGE}"
+          echo
+
+          API_BASE=""
+          if gh api -H "Accept: application/vnd.github+json" "/orgs/${OWNER}/packages/container/${PKG}" >/dev/null 2>&1; then
+            API_BASE="/orgs/${OWNER}/packages/container/${PKG}"
+          elif gh api -H "Accept: application/vnd.github+json" "/users/${OWNER}/packages/container/${PKG}" >/dev/null 2>&1; then
+            API_BASE="/users/${OWNER}/packages/container/${PKG}"
+          else
+            echo "Could not find container package '${PKG}' under org or user '${OWNER}'."
+            exit 1
+          fi
+          echo "Using API base: ${API_BASE}"
+
+          ALL_VERSIONS="$(gh api --paginate -H "Accept: application/vnd.github+json" \
+            "${API_BASE}/versions?per_page=100" \
+            --jq '.[] | {id: .id, digest: .name, tags: (.metadata.container.tags // [])}' | jq -s '.')"
+
+          TOTAL="$(jq 'length' <<<"${ALL_VERSIONS}")"
+          echo "Found ${TOTAL} total version(s)."
+
+          PARENTS="$(jq '[.[] | select(any(.tags[]?; . == "dev" or startswith("dev-")))]' <<<"${ALL_VERSIONS}")"
+          PARENT_COUNT="$(jq 'length' <<<"${PARENTS}")"
+
+          if [[ "${PARENT_COUNT}" -eq 0 ]]; then
+            echo "No dev or dev-* images found. Nothing to do."
+            exit 0
+          fi
+
+          echo
+          echo "Dev manifest images to delete (${PARENT_COUNT}):"
+          jq -r '.[] | "  version \(.id)  \(.digest)  tags=[\(.tags | join(", "))]"' <<<"${PARENTS}"
+
+          CHILD_DIGESTS=()
+          while IFS= read -r PARENT_DIGEST; do
+            [[ -z "${PARENT_DIGEST}" ]] && continue
+            echo
+            echo "Inspecting ${IMAGE}@${PARENT_DIGEST}"
+            RAW="$(docker buildx imagetools inspect "${IMAGE}@${PARENT_DIGEST}" --raw 2>/dev/null || true)"
+            if [[ -z "${RAW}" ]]; then
+              echo "  Could not read manifest (already gone?). Skipping child discovery."
+              continue
+            fi
+            MEDIA="$(jq -r '.mediaType // ""' <<<"${RAW}")"
+            CHILDREN="$(jq -r '.manifests[]?.digest // empty' <<<"${RAW}")"
+            if [[ -z "${CHILDREN}" ]]; then
+              echo "  Not a multi-arch manifest (mediaType=${MEDIA}); no child images."
+            else
+              while IFS= read -r C; do
+                [[ -z "${C}" ]] && continue
+                echo "  child: ${C}"
+                CHILD_DIGESTS+=("${C}")
+              done <<<"${CHILDREN}"
+            fi
+          done < <(jq -r '.[].digest' <<<"${PARENTS}")
+
+          CHILD_SET="$(printf '%s\n' "${CHILD_DIGESTS[@]:-}" | sed '/^$/d' | sort -u)"
+
+          CHILDREN_JSON="$(jq -n --arg set "${CHILD_SET}" --argjson all "${ALL_VERSIONS}" '
+            ($set | split("\n") | map(select(length > 0))) as $digests
+            | [ $all[]
+                | select((.tags | length) == 0)
+                | select(.digest as $d | $digests | index($d)) ]
+          ')"
+          CHILD_COUNT="$(jq 'length' <<<"${CHILDREN_JSON}")"
+
+          echo
+          echo "Orphaned per-arch child images to delete (${CHILD_COUNT}):"
+          jq -r '.[] | "  version \(.id)  \(.digest)"' <<<"${CHILDREN_JSON}"
+
+          delete_version() {
+            local id="$1"
+            if gh api --method DELETE -H "Accept: application/vnd.github+json" "${API_BASE}/versions/${id}" >/dev/null 2>&1; then
+              echo "  deleted version ${id}"
+            else
+              echo "  FAILED to delete version ${id}" >&2
+              return 1
+            fi
+          }
+
+          FAILED=0
+
+          echo
+          echo "Deleting dev manifest images..."
+          while IFS= read -r ID; do
+            [[ -z "${ID}" ]] && continue
+            delete_version "${ID}" || FAILED=1
+          done < <(jq -r '.[].id' <<<"${PARENTS}")
+
+          echo
+          echo "Deleting orphaned per-arch child images..."
+          while IFS= read -r ID; do
+            [[ -z "${ID}" ]] && continue
+            delete_version "${ID}" || FAILED=1
+          done < <(jq -r '.[].id' <<<"${CHILDREN_JSON}")
+
+          echo
+          if [[ "${FAILED}" -ne 0 ]]; then
+            echo "Completed with some failures. See the log above."
+            exit 1
+          fi
+          echo "Done. Deleted ${PARENT_COUNT} dev manifest image(s) and ${CHILD_COUNT} child image(s)."
