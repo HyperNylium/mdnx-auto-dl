@@ -158,5 +158,65 @@
                 "EN"
             ]
         }
+    },
+    "extra_features": {
+        "trackforge": {
+            "services": {
+                "mdnx-crunchyroll": {
+                    "enabled": false,
+                    "workers": 1,
+                    "muxer": "auto",
+                    "profile": ""
+                },
+                "mdnx-hidive": {
+                    "enabled": false,
+                    "workers": 1,
+                    "muxer": "auto",
+                    "profile": ""
+                },
+                "mdnx-adn": {
+                    "enabled": false,
+                    "workers": 1,
+                    "muxer": "auto",
+                    "profile": ""
+                },
+                "cdl-crunchyroll": {
+                    "enabled": false,
+                    "workers": 1,
+                    "muxer": "auto",
+                    "profile": ""
+                },
+                "cdl-hidive": {
+                    "enabled": false,
+                    "workers": 1,
+                    "muxer": "auto",
+                    "profile": ""
+                },
+                "cdl-adn": {
+                    "enabled": false,
+                    "workers": 1,
+                    "muxer": "auto",
+                    "profile": ""
+                },
+                "cdl-disney": {
+                    "enabled": false,
+                    "workers": 1,
+                    "muxer": "auto",
+                    "profile": ""
+                },
+                "cdl-netflix": {
+                    "enabled": false,
+                    "workers": 1,
+                    "muxer": "auto",
+                    "profile": ""
+                },
+                "cdl-amazon": {
+                    "enabled": false,
+                    "workers": 1,
+                    "muxer": "auto",
+                    "profile": ""
+                }
+            }
+        }
     }
 }
