@@ -47,7 +47,8 @@ appdata/cardinaldl/config/storage/*
 appdata/cardinaldl/cardinaldl
 
 # cardinaldl edge-transport binary
-app/appdata/bin/cardinaldl/runtime/edge-transport
+app/appdata/bin/cardinaldl/runtime/edge-transport/edge-transport
+!app/appdata/bin/cardinaldl/runtime/edge-transport/.gitkeep
 
 # mdnx-auto-dl runtime SQLite queue
 appdata/config/queue.db

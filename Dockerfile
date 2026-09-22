@@ -158,6 +158,20 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} \
     go build -mod=readonly -trimpath -buildvcs=false -ldflags="-s -w" -o /out/edge-transport .
 
 
+FROM debian:trixie-slim AS mediainfo_wasm
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates curl jq && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /out && \
+    tarball_url="$(curl -fsSL https://registry.npmjs.org/mediainfo.js/latest | jq -r '.dist.tarball')" && \
+    curl -fL --retry 5 --retry-all-errors --connect-timeout 10 "$tarball_url" -o /tmp/mediainfo.tgz && \
+    tar -xzf /tmp/mediainfo.tgz -C /out --strip-components=2 package/dist/MediaInfoModule.wasm && \
+    test -f /out/MediaInfoModule.wasm && \
+    rm -f /tmp/mediainfo.tgz
+
+
 FROM python:3.13-slim
 
 ENV PYTHONUNBUFFERED=1
@@ -194,6 +208,7 @@ COPY --from=dovi_tool /usr/local/bin/dovi_tool /app/appdata/bin/dovi_tool/dovi_t
 COPY --from=hdr10plus_tool /usr/local/bin/hdr10plus_tool /app/appdata/bin/hdr10plus_tool/hdr10plus_tool
 COPY --from=trackforge /usr/local/bin/trackforge /app/appdata/bin/trackforge/trackforge
 COPY --from=edge_transport /out/edge-transport /app/appdata/bin/cardinaldl/runtime/edge-transport/edge-transport
+COPY --from=mediainfo_wasm /out/MediaInfoModule.wasm /app/appdata/bin/cardinaldl/runtime/MediaInfoModule.wasm
 
 ENV PATH="/app/.venv/bin:$PATH"
 
