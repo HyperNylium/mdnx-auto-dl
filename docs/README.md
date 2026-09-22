@@ -25,11 +25,11 @@ You can track progress of things [here](https://github.com/users/HyperNylium/pro
 
 CardinalDL
 
-[FFmpeg](https://ffmpeg.org/)
+[FFmpeg](https://github.com/BtbN/FFmpeg-Builds)
 
-[MKVToolNix](https://mkvtoolnix.download/)
+[MKVToolNix](https://mkvtoolnix.download/downloads.html#debian)
 
-[Bento4-SDK](https://www.bento4.com/)
+[Bento4-SDK](https://github.com/HyperNylium/Bento4-SDK)
 
 [Shaka Packager](https://github.com/stratumadev/shaka-packager)
 
