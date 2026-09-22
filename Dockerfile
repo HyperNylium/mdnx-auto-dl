@@ -193,7 +193,7 @@ COPY --from=shaka /usr/local/bin/shaka /app/appdata/bin/shaka_packager/shaka
 COPY --from=dovi_tool /usr/local/bin/dovi_tool /app/appdata/bin/dovi_tool/dovi_tool
 COPY --from=hdr10plus_tool /usr/local/bin/hdr10plus_tool /app/appdata/bin/hdr10plus_tool/hdr10plus_tool
 COPY --from=trackforge /usr/local/bin/trackforge /app/appdata/bin/trackforge/trackforge
-COPY --from=edge_transport /out/edge-transport /app/appdata/bin/cardinaldl/runtime/edge-transport
+COPY --from=edge_transport /out/edge-transport /app/appdata/bin/cardinaldl/runtime/edge-transport/edge-transport
 
 ENV PATH="/app/.venv/bin:$PATH"
 
