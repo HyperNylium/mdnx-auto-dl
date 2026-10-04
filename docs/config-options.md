@@ -83,6 +83,7 @@ Standard YAML formatting still applies:
             - [`forcesubformat`](#cdl-forcesubformat)
             - [`backup_dubs`](#cdl-backup_dubs)
             - [`full_listing`](#cdl-full_listing)
+            - [`save_to_history`](#cdl-save_to_history)
             - [`workers`](#cdl-workers)
             - [`dlpath`](#cdl-dlpath)
             - [`temppath`](#cdl-temppath)
@@ -903,6 +904,27 @@ YAML:
 cardinaldl:
     crunchyroll:
         full_listing: true
+```
+
+##### cdl-save_to_history
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `false` | boolean | Whether each successfully downloaded item is recorded to CardinalDL's completed downloads history. When `true`, mdnx-auto-dl appends `--save-to-history` to the download command so CardinalDL logs the download in its history. When `false` (the default), the flag is left off and nothing is written to the history. |
+
+JSON:
+```json
+"cardinaldl": {
+    "crunchyroll": {
+        "save_to_history": true
+    }
+}
+```
+YAML:
+```yaml
+cardinaldl:
+    crunchyroll:
+        save_to_history: true
 ```
 
 ##### cdl-workers

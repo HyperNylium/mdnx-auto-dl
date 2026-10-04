@@ -166,6 +166,7 @@ class CdlServiceConfig(BaseModel):
     forcesubformat: str = Field("", pattern="^(srt|ass|vtt|auto|raw|original)?$")
     backup_dubs: list[str] = Field(default_factory=list)
     full_listing: bool = True
+    save_to_history: bool = False
     workers: int | None = Field(None, ge=1)
     dlpath: str = "/app/appdata/temp"
     temppath: str = "/tmp"

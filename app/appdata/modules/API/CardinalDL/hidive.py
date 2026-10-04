@@ -212,6 +212,10 @@ class HIDIVE_CDL_API:
         tmp_cmd += ["--temppath", self.service_config.temppath]
         tmp_cmd += ["--configpath", self.service_config.configpath]
 
+        if self.service_config.save_to_history:
+            tmp_cmd += ["--save-to-history"]
+            log_manager.info("Using save-to-history flag.")
+
         if self.stdbuf_exists:
             cmd = ["stdbuf", "-oL", "-eL", *tmp_cmd]
         else:
