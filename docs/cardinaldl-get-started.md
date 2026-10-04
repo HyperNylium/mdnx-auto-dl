@@ -36,11 +36,23 @@ CardinalDL is a paid tool, and you have to obtain the Linux CLI binary yourself 
 - Join the [CardinalDL Discord server](https://discord.gg/AfMfWw7kHe).
 - Contact the user named "CDL" to get details on how to pay and updates to the program.
 
+Once you have the binary, you can update it in place later by running `./cardinaldl --self-update` against it, instead of downloading a fresh copy each time.
+
 If you have issues getting the binary, feel free to reach out to me either through a github issue or on my [Discord server](https://discord.gg/XAAfYJ5ABk).
 
 ### 4) Mount the cardinaldl binary and config folder
 Place your CardinalDL binary at `./appdata/cardinaldl/cardinaldl` (`cardinaldl` being the binary name) and your already-signed-in CardinalDL `.cardinaldl` config folder content at `./appdata/cardinaldl/config`. The `.cardinaldl` folder usually containes a `logs` and `storage` folder. Make sure both of them are in that `./appdata/cardinaldl/config` folder.  
 The `.cardinaldl` folder is created by the CardinalDL GUI and can be found at `C:\Users\<your username>\.cardinaldl` on Windows, or `~/.cardinaldl` on Linux. It must contain `storage/storage.db`, which is where CardinalDL keeps your sign-in.
+
+Instead of copying the `.cardinaldl` folder over by hand, you can pull your config down onto the server with your CardinalDL sync key. Make a backup from the CardinalDL **GUI** first, that backup is what the sync downloads, then run the binary with your sync key:
+```bash
+./cardinaldl --sync-download --sync-key your_sync_key
+```
+If CardinalDL tells you to sign in first, log in on the CLI against the same config folder and run the sync again:
+```bash
+./cardinaldl --login --username "your_provided_CDL_username" --password "your_provided_CDL_password"
+```
+Either way, the goal is the same: a signed-in `.cardinaldl` whose `logs` and `storage` folders (including `storage/storage.db`) end up in `./appdata/cardinaldl/config`.
 
 Then uncomment the **CardinalDL config** bind-mounts in `docker-compose.yaml`:
 ```yaml

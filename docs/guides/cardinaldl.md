@@ -69,6 +69,7 @@ cardinaldl:
 - [`videoquality`](../config-options.md#cdl-videoquality): video quality string, format `"{resolution}@{codec}@{range}"` (for example, `1080p@@sdr`, `720p@hevc`, `2160p@hevc@dv`). Use `highest` for the resolution to take the best available.
 - [`audioquality`](../config-options.md#cdl-audioquality): audio codec and channel layout, format `"{codec}@{channels}"` (for example, `aac@2.0`, `eac3@5.1`). Prefix a language like `EN:eac3@5.1` and comma-separate to list more than one.
 - [`fallback`](../config-options.md#cdl-fallback): when `true`, fall back to the next-best quality if the requested one is missing.
+- [`hybrid`](../config-options.md#cdl-hybrid): when `true`, ask CardinalDL to build a hybrid video track (`--hybrid`). Off by default, so leave it out of your config unless you want it. That is why it is not in the example above.
 - [`outputformat`](../config-options.md#cdl-outputformat): container for the finished file, `mkv` or `mp4`.
 - [`dublang`](../config-options.md#cdl-dublang): dub language codes you want, using CardinalDL's own two-letter codes (`JP`, `EN`, `DE`, `FR`, `ES`, ...).
 - [`dlsubs`](../config-options.md#cdl-dlsubs): subtitle language codes, same codes as `dublang`. Add a variant tag like `EN:cc`, `EN:full`, or `EN:both` to pick a specific subtitle track. The tag also controls what mdnx-auto-dl treats as complete when it checks for missing subs. A bare `EN` accepts any variant. See the [`dlsubs` reference](../config-options.md#cdl-dlsubs) for the full breakdown.
@@ -103,6 +104,29 @@ cardinaldl:
 
 - [`full_listing`](../config-options.md#cdl-full_listing): Crunchyroll only. `true` (default) lists with `--full` for CC subtitle support. `false` uses the faster normal listing. Since other services need `--full` to work, they do not honor this config option.
 - [`workers`](../config-options.md#cdl-workers): how many listing workers CardinalDL uses (`--workers`). Leave it unset for the built-in default (`3` for Crunchyroll and HiDive, `1` for the rest). On Crunchyroll it only applies while `full_listing` is `true`.
+
+---
+
+## Record downloads to CardinalDL history
+
+By default, mdnx-auto-dl leaves CardinalDL's own completed-downloads history untouched. If you want each successful download to show up there, turn on `save_to_history` for that service. When it is on, mdnx-auto-dl appends `--save-to-history` to the download command so CardinalDL logs the download in its history.
+
+JSON:
+```json
+"cardinaldl": {
+    "crunchyroll": {
+        "save_to_history": true
+    }
+}
+```
+YAML:
+```yaml
+cardinaldl:
+    crunchyroll:
+        save_to_history: true
+```
+
+- [`save_to_history`](../config-options.md#cdl-save_to_history): `false` by default. Set it to `true` to record each successfully downloaded item in CardinalDL's completed-downloads history.
 
 ---
 
