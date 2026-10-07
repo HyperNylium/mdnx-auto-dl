@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 # a subtitle token is a language code with an optional variant like EN or EN:cc
 SubToken = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"(?i)^[A-Za-z][A-Za-z0-9-]*(:(full|cc|sdh|caption|both))?$")]
@@ -112,9 +112,36 @@ class SeasonMonitorConfig(BaseModel):
     season_override: str | None = None
     dub_overrides: list[str] | None = None
     sub_overrides: list[SubToken] | None = None
+    episode_offset: int = 0
     dir_override: str | None = None
     folder_structure_override: str | None = None
     trackforge_profile: TrackForgeProfile | None = None
+
+
+class SeriesMonitorConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    series_name: str | None = None
+    year: str | None = None
+    seasons: dict[str, SeasonMonitorConfig] = Field(default_factory=dict)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _group_seasons(cls, data):
+        if not isinstance(data, dict):
+            return data
+
+        override_keys = set(cls.model_fields) - {"seasons"}
+        result = {}
+        seasons = {}
+        for key, value in data.items():
+            if key in override_keys:
+                result[key] = value
+                continue
+            seasons[key] = value
+
+        result["seasons"] = seasons
+        return result
 
 
 class MdnxBinPath(BaseModel):
@@ -208,16 +235,16 @@ class ExtraFeaturesConfig(BaseModel):
 class Config(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    mdnx_cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    mdnx_hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    mdnx_adn_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    mdnx_cr_monitor_series_id: dict[str, SeriesMonitorConfig] = Field(default_factory=dict)
+    mdnx_hidive_monitor_series_id: dict[str, SeriesMonitorConfig] = Field(default_factory=dict)
+    mdnx_adn_monitor_series_id: dict[str, SeriesMonitorConfig] = Field(default_factory=dict)
 
-    cdl_cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    cdl_hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    cdl_adn_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    cdl_disney_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    cdl_netflix_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    cdl_amazon_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    cdl_cr_monitor_series_id: dict[str, SeriesMonitorConfig] = Field(default_factory=dict)
+    cdl_hidive_monitor_series_id: dict[str, SeriesMonitorConfig] = Field(default_factory=dict)
+    cdl_adn_monitor_series_id: dict[str, SeriesMonitorConfig] = Field(default_factory=dict)
+    cdl_disney_monitor_series_id: dict[str, SeriesMonitorConfig] = Field(default_factory=dict)
+    cdl_netflix_monitor_series_id: dict[str, SeriesMonitorConfig] = Field(default_factory=dict)
+    cdl_amazon_monitor_series_id: dict[str, SeriesMonitorConfig] = Field(default_factory=dict)
 
     destinations: dict[str, DestinationConfig] = Field(default_factory=dict)
 

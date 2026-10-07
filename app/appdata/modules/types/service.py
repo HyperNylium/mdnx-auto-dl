@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 
-from .config import MdnxConfig, SeasonMonitorConfig, CdlServiceConfig
+from .config import MdnxConfig, SeriesMonitorConfig, CdlServiceConfig
 
 
 class Service(BaseModel):
@@ -33,8 +33,8 @@ class Service(BaseModel):
     # CardinalDL services point at their own CdlServiceConfig slice.
     config: MdnxConfig | CdlServiceConfig
 
-    # live monitor dict slice for this service (series_id -> season map)
-    monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]]
+    # live monitor dict slice for this service (series_id -> series config)
+    monitor_series_id: dict[str, SeriesMonitorConfig]
 
     # the attribute name on Config that holds monitor_series_id.
     monitor_config_key: str

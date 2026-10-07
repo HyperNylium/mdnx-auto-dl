@@ -247,7 +247,7 @@ def get_wanted_dubs_and_subs(service: Service, series_id: str, season_id: str | 
     if season_id is not None:
         series_config = service.monitor_series_id.get(series_id)
         if series_config is not None:
-            season_monitor = series_config.get(season_id)
+            season_monitor = series_config.seasons.get(season_id)
 
     if season_monitor is not None and season_monitor.dub_overrides is not None:
         dub_source = season_monitor.dub_overrides

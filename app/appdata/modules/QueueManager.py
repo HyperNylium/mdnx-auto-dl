@@ -5,7 +5,7 @@ from .Globals import log_manager
 from .Vars import (
     config,
     SERVICES,
-    update_app_config
+    update_app_config, get_season_monitor_config, get_series_overrides, sanitize
 )
 from .db.connection import open_connection
 from .db.queue_repo import (
@@ -48,16 +48,46 @@ class QueueManager:
             bucket = self.queue.buckets.setdefault(bucket_name, ServiceBucket())
 
             for series_id, new_series in new_data.items():
+                self._apply_episode_offsets(service, series_id, new_series)
+
+                # Check for user overrides for series name and release year and apply them if present
+                override_series_name = None
+                override_release_year = None
+                series_overrides = get_series_overrides(service, series_id)
+                if series_overrides is not None:
+                    if series_overrides.series_name:
+                        override_series_name = sanitize(series_overrides.series_name)
+                    if series_overrides.year:
+                        override_release_year = series_overrides.year
+
                 existing_series = bucket.series.get(series_id)
 
                 if existing_series is None:
+                    if override_series_name is not None:
+                        new_series.series.series_name = override_series_name
+                    if override_release_year is not None:
+                        new_series.series.release_year = override_release_year
+
                     bucket.series[series_id] = new_series
                     log_manager.debug(f"Added series '{series_id}' to '{bucket_name}'.")
                     upsert_series(self.conn, bucket_name, series_id, new_series)
                     continue
 
                 # update only the SeriesInfo blob, leave existing seasons alone for merge
+                # use the user override if set otherwise keep the first name and year
+                existing_series_name = existing_series.series.series_name
+                existing_release_year = existing_series.series.release_year
                 existing_series.series = new_series.series
+
+                if override_series_name is not None:
+                    existing_series.series.series_name = override_series_name
+                else:
+                    existing_series.series.series_name = existing_series_name
+
+                if override_release_year is not None:
+                    existing_series.series.release_year = override_release_year
+                else:
+                    existing_series.series.release_year = existing_release_year
 
                 # only for multi-downloader-nx ADN to handle their no season ID BS
                 preserved_by_episode_id: dict[str, tuple[bool, bool, list[str] | None, list[str] | None]] = {}
@@ -311,3 +341,27 @@ class QueueManager:
 
         for service in SERVICES.all():
             self.queue.buckets.setdefault(service.queue_bucket, ServiceBucket())
+
+    def _apply_episode_offsets(self, service: str, series_id: str, new_series: Series) -> None:
+        """Shift episode numbers for any season that set an episode_offset in its config."""
+
+        for new_season in new_series.seasons.values():
+            season_config = get_season_monitor_config(service, series_id, new_season.season_id)
+            if season_config is None or not season_config.episode_offset:
+                continue
+
+            for episode_key, episode in new_season.episodes.items():
+                # skip specials since they are not part of the normal episode numbering
+                if episode_key.startswith("S"):
+                    continue
+
+                try:
+                    shifted_number = float(episode.episode_number)
+                except (TypeError, ValueError):
+                    continue
+
+                shifted_number += season_config.episode_offset
+                if shifted_number.is_integer():
+                    episode.episode_number = str(int(shifted_number))
+                else:
+                    episode.episode_number = str(shifted_number)
