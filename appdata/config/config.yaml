@@ -74,7 +74,6 @@ cardinaldl:
         videoquality: "1080p@@sdr"
         audioquality: "aac@2.0"
         fallback: true
-        outputformat: "mkv"
         dublang:
             - "JP"
             - "EN"
@@ -85,7 +84,6 @@ cardinaldl:
         videoquality: "1080p@@sdr"
         audioquality: "aac@2.0"
         fallback: true
-        outputformat: "mkv"
         dublang:
             - "JP"
             - "EN"
@@ -96,7 +94,6 @@ cardinaldl:
         videoquality: "1080p@@sdr"
         audioquality: "aac@2.0"
         fallback: true
-        outputformat: "mkv"
         dublang:
             - "JP"
             - "EN"
@@ -107,7 +104,6 @@ cardinaldl:
         videoquality: "1080p@@sdr"
         audioquality: "aac@2.0"
         fallback: true
-        outputformat: "mkv"
         dublang:
             - "EN"
         dlsubs:
@@ -117,7 +113,6 @@ cardinaldl:
         videoquality: "1080p@@sdr"
         audioquality: "aac@2.0"
         fallback: true
-        outputformat: "mkv"
         dublang:
             - "EN"
         dlsubs:
@@ -127,65 +122,99 @@ cardinaldl:
         videoquality: "1080p@@sdr"
         audioquality: "aac@2.0"
         fallback: true
-        outputformat: "mkv"
         dublang:
             - "EN"
         dlsubs:
             - "EN"
 
 extra_features:
-    trackforge:
-        services:
-            mdnx-crunchyroll:
+    services:
+        mdnx-crunchyroll:
+            trackforge:
                 enabled: false
                 workers: 1
                 muxer: "auto"
                 profile: ""
+            transcoding:
+                enabled: false
+                ffmpeg_command: ""
 
-            mdnx-hidive:
+        mdnx-hidive:
+            trackforge:
                 enabled: false
                 workers: 1
                 muxer: "auto"
                 profile: ""
+            transcoding:
+                enabled: false
+                ffmpeg_command: ""
 
-            mdnx-adn:
+        mdnx-adn:
+            trackforge:
                 enabled: false
                 workers: 1
                 muxer: "auto"
                 profile: ""
+            transcoding:
+                enabled: false
+                ffmpeg_command: ""
 
-            cdl-crunchyroll:
+        cdl-crunchyroll:
+            trackforge:
                 enabled: false
                 workers: 1
                 muxer: "auto"
                 profile: ""
+            transcoding:
+                enabled: false
+                ffmpeg_command: ""
 
-            cdl-hidive:
+        cdl-hidive:
+            trackforge:
                 enabled: false
                 workers: 1
                 muxer: "auto"
                 profile: ""
+            transcoding:
+                enabled: false
+                ffmpeg_command: ""
 
-            cdl-adn:
+        cdl-adn:
+            trackforge:
                 enabled: false
                 workers: 1
                 muxer: "auto"
                 profile: ""
+            transcoding:
+                enabled: false
+                ffmpeg_command: ""
 
-            cdl-disney:
+        cdl-disney:
+            trackforge:
                 enabled: false
                 workers: 1
                 muxer: "auto"
                 profile: ""
+            transcoding:
+                enabled: false
+                ffmpeg_command: ""
 
-            cdl-netflix:
+        cdl-netflix:
+            trackforge:
                 enabled: false
                 workers: 1
                 muxer: "auto"
                 profile: ""
+            transcoding:
+                enabled: false
+                ffmpeg_command: ""
 
-            cdl-amazon:
+        cdl-amazon:
+            trackforge:
                 enabled: false
                 workers: 1
                 muxer: "auto"
                 profile: ""
+            transcoding:
+                enabled: false
+                ffmpeg_command: ""

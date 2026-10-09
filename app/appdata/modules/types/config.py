@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
 
 # a subtitle token is a language code with an optional variant like EN or EN:cc
 SubToken = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"(?i)^[A-Za-z][A-Za-z0-9-]*(:(full|cc|sdh|caption|both))?$")]
@@ -13,6 +13,22 @@ AudioQuality = Annotated[str, StringConstraints(pattern=r"^(?:(?:[A-Za-z][A-Za-z
 
 # a trackforge profile is a comma list of items like AAC:2.0, EOS:2.0 or ORIG
 TrackForgeProfile = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"(?i)^\s*(?:(?:AAC|AC3|EAC3|DTS|OPUS|FLAC|WAV|PCM|ORIG|EOS\+?(?:-(?:AAC|AC3|EAC3|DTS|OPUS|FLAC|WAV|PCM))?)(?::(?:1\.0|2\.0|5\.1|7\.1))?(?:\s*,\s*(?:AAC|AC3|EAC3|DTS|OPUS|FLAC|WAV|PCM|ORIG|EOS\+?(?:-(?:AAC|AC3|EAC3|DTS|OPUS|FLAC|WAV|PCM))?)(?::(?:1\.0|2\.0|5\.1|7\.1))?)*)?\s*$")]
+
+
+def validate_ffmpeg_command(value: str):
+    """Make sure a transcode command has both placeholders so we know the input and output files."""
+
+    if value is None:
+        return value
+
+    # an empty command means transcoding is off so there is nothing to check
+    if value.strip() == "":
+        return value
+
+    if "{input}" not in value or "{output}" not in value:
+        raise ValueError("ffmpeg command must contain both {input} and {output} placeholders")
+
+    return value
 
 
 class DestinationConfig(BaseModel):
@@ -116,6 +132,12 @@ class SeasonMonitorConfig(BaseModel):
     dir_override: str | None = None
     folder_structure_override: str | None = None
     trackforge_profile: TrackForgeProfile | None = None
+    ffmpeg_command: str | None = None
+
+    @field_validator("ffmpeg_command")
+    @classmethod
+    def _check_ffmpeg_command(cls, value):
+        return validate_ffmpeg_command(value)
 
 
 class SeriesMonitorConfig(BaseModel):
@@ -219,16 +241,29 @@ class TrackForgeServiceConfig(BaseModel):
     profile: TrackForgeProfile = ""
 
 
-class TrackForgeConfig(BaseModel):
+class TranscodingServiceConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
-    services: dict[str, TrackForgeServiceConfig] = Field(default_factory=dict)
+    enabled: bool = False
+    ffmpeg_command: str = ""
+
+    @field_validator("ffmpeg_command")
+    @classmethod
+    def _check_ffmpeg_command(cls, value):
+        return validate_ffmpeg_command(value)
+
+
+class ExtraFeaturesServiceConfig(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    trackforge: TrackForgeServiceConfig = Field(default_factory=TrackForgeServiceConfig)
+    transcoding: TranscodingServiceConfig = Field(default_factory=TranscodingServiceConfig)
 
 
 class ExtraFeaturesConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
-    trackforge: TrackForgeConfig = Field(default_factory=TrackForgeConfig)
+    services: dict[str, ExtraFeaturesServiceConfig] = Field(default_factory=dict)
 
 
 class Config(BaseModel):

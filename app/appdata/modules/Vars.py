@@ -318,8 +318,8 @@ for cdl_service in SERVICES.cardinaldl.all():
 
 # Whether any services have TrackForge enabled
 TRACKFORGE_ENABLED = False
-for trackforge_service in config.extra_features.trackforge.services.values():
-    if trackforge_service.enabled:
+for service_features in config.extra_features.services.values():
+    if service_features.trackforge.enabled:
         TRACKFORGE_ENABLED = True
         break
 
