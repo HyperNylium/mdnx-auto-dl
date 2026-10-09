@@ -23,7 +23,7 @@ You can track progress of things [here](https://github.com/users/HyperNylium/pro
 
 [Multi-downloader-nx](https://github.com/anidl/multi-downloader-nx)
 
-CardinalDL
+[CardinalDL](https://www.cardinaldl.com/)
 
 [FFmpeg](https://github.com/BtbN/FFmpeg-Builds)
 
