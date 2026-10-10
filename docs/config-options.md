@@ -77,7 +77,6 @@ Standard YAML formatting still applies:
             - [`audioquality`](#cdl-audioquality)
             - [`fallback`](#cdl-fallback)
             - [`hybrid`](#cdl-hybrid)
-            - [`outputformat`](#cdl-outputformat)
             - [`dublang`](#cdl-dublang)
             - [`dlsubs`](#cdl-dlsubs)
             - [`forcesubformat`](#cdl-forcesubformat)
@@ -149,6 +148,9 @@ Standard YAML formatting still applies:
         - [`workers`](#trackforge-workers)
         - [`muxer`](#trackforge-muxer)
         - [`profile`](#trackforge-profile)
+    - [Transcoding](#transcoding)
+        - [`enabled`](#transcoding-enabled)
+        - [`ffmpeg_command`](#transcoding-ffmpeg_command)
 - [App and runtime](#app-and-runtime)
     - [Queue and lifecycle](#queue-and-lifecycle)
         - [`ONLY_CREATE_QUEUE`](#ONLY_CREATE_QUEUE)
@@ -458,7 +460,8 @@ Paths to the helper binaries that multi-downloader-nx calls. The defaults below 
 | `ffmpeg` | `ffmpeg` | string | Path to the `ffmpeg` binary. |
 | `ffprobe` | `ffprobe` | string | Path to the `ffprobe` binary. |
 | `mkvmerge` | `mkvmerge` | string | Path to the `mkvmerge` binary. |
-| `mp4decrypt` | `/app/appdata/bin/bento4/mp4decrypt` | string | Path to the `mp4decrypt` binary (from Bento4). |
+| `mp4decrypt` | `/app/appdata/bin/bento4/mp4decrypt` | string | Path to the `mp4decrypt` binary (from Bento4). Set this to an empty string `""` to force aniDL to decrypt with Shaka Packager instead. |
+| `shaka` | `/app/appdata/bin/shaka_packager/shaka` | string | Path to the `shaka` (Shaka Packager) binary. Set this to an empty string `""` to force aniDL to decrypt with `mp4decrypt` instead. |
 
 JSON:
 ```json
@@ -467,7 +470,8 @@ JSON:
         "ffmpeg": "ffmpeg",
         "ffprobe": "ffprobe",
         "mkvmerge": "mkvmerge",
-        "mp4decrypt": "/app/appdata/bin/bento4/mp4decrypt"
+        "mp4decrypt": "/app/appdata/bin/bento4/mp4decrypt",
+        "shaka": "/app/appdata/bin/shaka_packager/shaka"
     }
 }
 ```
@@ -479,7 +483,11 @@ mdnx:
         ffprobe: "ffprobe"
         mkvmerge: "mkvmerge"
         mp4decrypt: "/app/appdata/bin/bento4/mp4decrypt"
+        shaka: "/app/appdata/bin/shaka_packager/shaka"
 ```
+
+> [!NOTE]
+> aniDL decrypts with one of two tools: `mp4decrypt` (Bento4) or `shaka` (Shaka Packager). Both paths are set by default. Blank out one of them (set it to `""`) to force aniDL to use the other, for example `"shaka": ""` to pin it to `mp4decrypt`, or `"mp4decrypt": ""` to pin it to Shaka Packager.
 
 ##### mdnx-dir-path
 
@@ -766,27 +774,6 @@ cardinaldl:
         hybrid: true
 ```
 
-##### cdl-outputformat
-
-| Default | Type | Description |
-| :--- | :--- | :--- |
-| `mkv` | string | Container format for the finished file (passed as `--outputformat`). One of `mkv` or `mp4`. |
-
-JSON:
-```json
-"cardinaldl": {
-    "crunchyroll": {
-        "outputformat": "mkv"
-    }
-}
-```
-YAML:
-```yaml
-cardinaldl:
-    crunchyroll:
-        outputformat: "mkv"
-```
-
 ##### cdl-dublang
 
 | Default | Type | Description |
@@ -1015,7 +1002,7 @@ cardinaldl:
 
 ## Series to monitor
 
-These keys live at the **top level** of the config file, not inside `app`. They map series IDs to per-season blacklist and override settings.  
+These keys live at the **top level** of the config file, not inside `app`. They map series IDs to per-season settings (blacklists, season renumbering, episode offsets, dub/sub overrides, folder overrides, and per-season TrackForge/transcode overrides) and to series-level overrides (`series_name` and `year`).  
 See [Blacklists & per-season overrides](guides/series-overrides.md) for the full format.
 
 ### <a id="mdnx_cr_monitor_series_id"></a>mdnx_cr_monitor_series_id
@@ -1307,6 +1294,9 @@ You only need entries for services you enable. You can drop the rest.
 | `${year}`          | `2023`                       | Series release year, taken from the CardinalDL listing. CardinalDL services only. It is the series-level year, so every season and episode of a series share it. |
 | `${serviceLong}`   | `Crunchyroll`                | Long, human-readable name of the source service. Values: `Crunchyroll`, `HiDive`, `ADN`, `Disney`, `Netflix`, `Amazon`. Same for the AniDL and CardinalDL variants of a service. Disney, Netflix and Amazon are CardinalDL-only. |
 | `${serviceShort}`  | `CR`                         | Short code for the source service. Values: `CR` (Crunchyroll), `HD` (HiDive), `ADN` (ADN), `DSNP` (Disney), `NF` (Netflix), `AMZN` (Amazon). Disney, Netflix and Amazon are CardinalDL-only. |
+
+> [!NOTE]
+> Several of these values can be overridden in the monitor maps: `${seriesTitle}` with a per-series [`series_name`](guides/series-overrides.md#overriding-the-series-name-and-year), `${year}` with a per-series [`year`](guides/series-overrides.md#overriding-the-series-name-and-year), `${season}` / `${seasonPadded}` with a per-season [`season_override`](guides/series-overrides.md#overriding-the-season-number), and `${episode}` / `${episodePadded}` with a per-season [`episode_offset`](guides/series-overrides.md#offsetting-episode-numbers).
 
 Example of `folder_structure` using the variables above:
 ```txt
@@ -1976,6 +1966,8 @@ app:
 
 Opt-in post-processing that runs on top of the normal download flow. Everything here lives under the top-level `extra_features` key, and every feature stays off until you turn it on.
 
+Each feature is configured per service, under `extra_features.services.<service>`, where `<service>` is one of the names from [`destinations`](#destinations): `mdnx-crunchyroll`, `mdnx-hidive`, `mdnx-adn`, `cdl-crunchyroll`, `cdl-hidive`, `cdl-adn`, `cdl-disney`, `cdl-netflix`, `cdl-amazon`. A single service entry can hold a `trackforge` block, a `transcoding` block, or both. When both are set, TrackForge runs first and the transcode runs on its output.
+
 ### <a id="trackforge"></a>TrackForge
 
 > How-to: [Re-encode audio with TrackForge](guides/trackforge.md)
@@ -1984,7 +1976,7 @@ Opt-in post-processing that runs on top of the normal download flow. Everything 
 
 When a service has TrackForge turned on with a non-empty profile, mdnx-auto-dl runs TrackForge on the freshly downloaded file in the temp directory, in place, before the file is moved into your library. If TrackForge fails on a file, the file is left where it is and the episode is retried on the next loop. If a service is enabled but the TrackForge binary is missing from the image, the container stops on startup and asks you to pull or rebuild a newer image.
 
-Config lives under `extra_features.trackforge.services`, keyed by service name. Valid keys are the same as [`destinations`](#destinations): `mdnx-crunchyroll`, `mdnx-hidive`, `mdnx-adn`, `cdl-crunchyroll`, `cdl-hidive`, `cdl-adn`, `cdl-disney`, `cdl-netflix`, `cdl-amazon`. Any service without an entry, or with `enabled` set to `false`, is left untouched. To change the profile for a single season, use the per-season [`trackforge_profile`](guides/series-overrides.md#override-the-trackforge-profile-per-season) override.
+TrackForge config for a service lives in that service's `trackforge` block, under `extra_features.services.<service>.trackforge`. Any service without a `trackforge` block, or with `enabled` set to `false`, is left untouched. To change the profile for a single season, use the per-season [`trackforge_profile`](guides/series-overrides.md#override-the-trackforge-profile-per-season) override.
 
 Each service entry takes the four keys below.
 
@@ -1997,9 +1989,9 @@ Each service entry takes the four keys below.
 JSON:
 ```json
 "extra_features": {
-    "trackforge": {
-        "services": {
-            "cdl-crunchyroll": {
+    "services": {
+        "cdl-crunchyroll": {
+            "trackforge": {
                 "enabled": true
             }
         }
@@ -2009,9 +2001,9 @@ JSON:
 YAML:
 ```yaml
 extra_features:
-    trackforge:
-        services:
-            cdl-crunchyroll:
+    services:
+        cdl-crunchyroll:
+            trackforge:
                 enabled: true
 ```
 
@@ -2024,9 +2016,9 @@ extra_features:
 JSON:
 ```json
 "extra_features": {
-    "trackforge": {
-        "services": {
-            "cdl-crunchyroll": {
+    "services": {
+        "cdl-crunchyroll": {
+            "trackforge": {
                 "workers": 2
             }
         }
@@ -2036,9 +2028,9 @@ JSON:
 YAML:
 ```yaml
 extra_features:
-    trackforge:
-        services:
-            cdl-crunchyroll:
+    services:
+        cdl-crunchyroll:
+            trackforge:
                 workers: 2
 ```
 
@@ -2051,9 +2043,9 @@ extra_features:
 JSON:
 ```json
 "extra_features": {
-    "trackforge": {
-        "services": {
-            "cdl-crunchyroll": {
+    "services": {
+        "cdl-crunchyroll": {
+            "trackforge": {
                 "muxer": "auto"
             }
         }
@@ -2063,9 +2055,9 @@ JSON:
 YAML:
 ```yaml
 extra_features:
-    trackforge:
-        services:
-            cdl-crunchyroll:
+    services:
+        cdl-crunchyroll:
+            trackforge:
                 muxer: "auto"
 ```
 
@@ -2087,9 +2079,9 @@ Examples: `ORIG` keeps the original track as-is. `AAC:2.0` replaces it with a si
 JSON:
 ```json
 "extra_features": {
-    "trackforge": {
-        "services": {
-            "cdl-crunchyroll": {
+    "services": {
+        "cdl-crunchyroll": {
+            "trackforge": {
                 "profile": "ORIG, EOS:2.0"
             }
         }
@@ -2099,10 +2091,80 @@ JSON:
 YAML:
 ```yaml
 extra_features:
-    trackforge:
-        services:
-            cdl-crunchyroll:
+    services:
+        cdl-crunchyroll:
+            trackforge:
                 profile: "ORIG, EOS:2.0"
+```
+
+---
+
+### <a id="transcoding"></a>Transcoding
+
+> How-to: [Transcode finished files with ffmpeg](guides/transcoding.md)
+
+Transcoding runs your own `ffmpeg` command on a finished episode: re-encode the video, drop tracks, burn in subtitles, or anything else a single ffmpeg command can do. `ffmpeg` and `ffprobe` ship inside the container image, so there is nothing extra to install.
+
+When a service has transcoding turned on with a non-empty command, mdnx-auto-dl runs the command on the freshly downloaded file in the temp directory, in place, before the file is moved into your library. If you also use TrackForge, the transcode runs after TrackForge, on its output. If the ffmpeg command fails, the file is left where it is and the episode is retried on the next loop. The temp file is always an `.mkv` and the result replaces it in place, so keep your output as mkv.
+
+Transcoding config for a service lives in that service's `transcoding` block, under `extra_features.services.<service>.transcoding`. Any service without a `transcoding` block, or with `enabled` set to `false`, is left untouched. To run a different command for a single season, use the per-season [`ffmpeg_command`](guides/series-overrides.md#transcode-one-season-differently) override.
+
+Each service entry takes the two keys below.
+
+#### <a id="transcoding-enabled"></a>enabled
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `false` | boolean | When `true`, run the [`ffmpeg_command`](#transcoding-ffmpeg_command) on every finished file for this service. It also needs a non-empty command (or a per-season [`ffmpeg_command`](guides/series-overrides.md#transcode-one-season-differently)) before it does anything. |
+
+JSON:
+```json
+"extra_features": {
+    "services": {
+        "cdl-crunchyroll": {
+            "transcoding": {
+                "enabled": true
+            }
+        }
+    }
+}
+```
+YAML:
+```yaml
+extra_features:
+    services:
+        cdl-crunchyroll:
+            transcoding:
+                enabled: true
+```
+
+#### <a id="transcoding-ffmpeg_command"></a>ffmpeg_command
+
+| Default | Type | Description |
+| :--- | :--- | :--- |
+| `""` | string | The full `ffmpeg` command to run, starting with `ffmpeg`. It must contain the `{input}` and `{output}` placeholders, which mdnx-auto-dl fills in with the real paths at run time. |
+
+`{input}` is the downloaded file and `{output}` is where ffmpeg writes the result. mdnx-auto-dl runs the command and then swaps the output file in for the input, so the transfer step uses the processed file. Because the result replaces the original mkv, keep the container as mkv. See the [transcoding guide](guides/transcoding.md) for more examples.
+
+JSON:
+```json
+"extra_features": {
+    "services": {
+        "cdl-crunchyroll": {
+            "transcoding": {
+                "ffmpeg_command": "ffmpeg -i {input} -c:v libx265 -crf 24 -c:a copy -c:s copy {output}"
+            }
+        }
+    }
+}
+```
+YAML:
+```yaml
+extra_features:
+    services:
+        cdl-crunchyroll:
+            transcoding:
+                ffmpeg_command: "ffmpeg -i {input} -c:v libx265 -crf 24 -c:a copy -c:s copy {output}"
 ```
 
 ---

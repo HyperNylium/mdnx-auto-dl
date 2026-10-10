@@ -18,6 +18,7 @@ Want to set up a specific feature? The [how-to guides](guides/README.md) walk yo
 - [Organize your files](guides/organizing-files.md) with `folder_structure`
 - [Blacklists & per-season overrides](guides/series-overrides.md) to skip or retag seasons
 - [Configure CardinalDL downloads](guides/cardinaldl.md) and [multi-downloader-nx](guides/mdnx.md)
+- [Re-encode audio with TrackForge](guides/trackforge.md) or [transcode files with ffmpeg](guides/transcoding.md) after download
 
 For a full list of every option, see the [option reference](config-options.md).
 

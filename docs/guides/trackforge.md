@@ -2,7 +2,7 @@
 
 [TrackForge](https://github.com/HyperNylium/TrackForge) rebuilds the audio tracks of a finished episode from a profile you choose. Use it to keep the original track, re-encode to another codec, downmix to a channel layout, or run an Even-Out-Sound dialogue-forward pass so quiet dialogue is easier to hear.
 
-TrackForge runs after a download finishes and before the file is moved into your library. It works on the file in the temp directory, in place, so the copy that lands in your library is the processed one. If TrackForge fails on a file, mdnx-auto-dl leaves the file where it is and retries the episode on the next loop.
+TrackForge runs after a download finishes and before the file is moved into your library. It works on the file in the temp directory so the copy that lands in your library is the processed one. If TrackForge fails on a file, mdnx-auto-dl leaves the file where it is and retries the episode on the next loop.
 
 The TrackForge binary ships inside the container image, so there is nothing extra to install. Make sure you are on a recent image. If you enable TrackForge for a service but the image does not have the binary, the container stops on startup and asks you to pull or rebuild a newer image.
 
@@ -10,16 +10,16 @@ The TrackForge binary ships inside the container image, so there is nothing extr
 
 ## Turn it on for a service
 
-TrackForge config lives under the top-level `extra_features` key, in `extra_features.trackforge.services`. Each entry is keyed by service name, using the same names as [`destinations`](../config-options.md#destinations): `mdnx-crunchyroll`, `mdnx-hidive`, `mdnx-adn`, `cdl-crunchyroll`, `cdl-hidive`, `cdl-adn`, `cdl-disney`, `cdl-netflix`, `cdl-amazon`.
+TrackForge config lives under the top-level `extra_features` key, in a service's `trackforge` block at `extra_features.services.<service>.trackforge`. Each service is keyed by name, using the same names as [`destinations`](../config-options.md#destinations): `mdnx-crunchyroll`, `mdnx-hidive`, `mdnx-adn`, `cdl-crunchyroll`, `cdl-hidive`, `cdl-adn`, `cdl-disney`, `cdl-netflix`, `cdl-amazon`. The same service entry can also hold a [`transcoding`](transcoding.md) block.
 
 A service does nothing until you set `enabled` to `true` and give it a non-empty `profile`. Services with no entry, or with `enabled: false`, are left untouched.
 
 JSON:
 ```json
 "extra_features": {
-    "trackforge": {
-        "services": {
-            "cdl-crunchyroll": {
+    "services": {
+        "cdl-crunchyroll": {
+            "trackforge": {
                 "enabled": true,
                 "profile": "ORIG, EOS:2.0",
                 "workers": 1,
@@ -32,9 +32,9 @@ JSON:
 YAML:
 ```yaml
 extra_features:
-    trackforge:
-        services:
-            cdl-crunchyroll:
+    services:
+        cdl-crunchyroll:
+            trackforge:
                 enabled: true
                 profile: "ORIG, EOS:2.0"
                 workers: 1

@@ -7,9 +7,10 @@ New here? Start with [get-started.md](../get-started.md) to pick your downloader
 | [Set up notifications](notifications.md) | SMTP, ntfy, Gotify, and Discord notifications. |
 | [Refresh Plex and Jellyfin](media-servers.md) | Tell your media server to rescan after a download, including single-library refreshes. |
 | [Organize your files](organizing-files.md) | `destinations` and `folder_structure`: where files land and how folders and names are built. |
-| [Blacklists & per-season overrides](series-overrides.md) | Skip seasons/episodes and override the season number, dubs, or subs per season. |
+| [Blacklists & per-season overrides](series-overrides.md) | Skip seasons/episodes, shift episode numbers, and override the season number, series name/year, dubs, or subs per season. |
 | [Configure downloading with CardinalDL (cardinaldl)](cardinaldl.md) | Enable each CardinalDL service and set its quality, dubs, and subtitles. |
 | [Configure downloading with MDNX (aniDL)](mdnx.md) | Set aniDL download options like quality, dubs, and subtitles through the `mdnx` passthrough. |
 | [Re-encode audio with TrackForge](trackforge.md) | Run TrackForge on finished files per service to keep, re-encode, downmix, or dialogue-boost audio tracks. |
+| [Transcode finished files with ffmpeg](transcoding.md) | Run your own ffmpeg command on finished files per service to re-encode video, drop tracks, or burn in subtitles. |
 
 Looking for a single specific option? The [full option reference](../config-options.md) lists every configurable key.

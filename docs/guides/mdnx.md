@@ -70,4 +70,6 @@ See the full defaults and the paths subsections in the [multi-downloader-nx opti
 
 ## Binary and directory paths (advanced)
 
-The [`bin-path`](../config-options.md#mdnx-bin-path) and [`dir-path`](../config-options.md#mdnx-dir-path) subsections point aniDL at its helper binaries (`ffmpeg`, `ffprobe`, `mkvmerge`, `mp4decrypt`) and working directories. The defaults match what the container ships with, so you only need to change these if you mount your own binaries or move the working directories.
+The [`bin-path`](../config-options.md#mdnx-bin-path) and [`dir-path`](../config-options.md#mdnx-dir-path) subsections point aniDL at its helper binaries (`ffmpeg`, `ffprobe`, `mkvmerge`, `mp4decrypt`, `shaka`) and working directories. The defaults match what the container ships with, so you only need to change these if you mount your own binaries or move the working directories.
+
+aniDL can decrypt with either `mp4decrypt` (Bento4) or `shaka` (Shaka Packager), and both paths are set by default. Blank out one of them (set it to `""`) to force aniDL to use the other: `shaka: ""` pins it to `mp4decrypt`, and `mp4decrypt: ""` pins it to Shaka Packager.

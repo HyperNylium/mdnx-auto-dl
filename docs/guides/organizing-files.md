@@ -44,6 +44,9 @@ You can use any of these variables in a `folder_structure` template. See the [fu
 
 `${serviceLong}` and `${serviceShort}` are the same for the aniDL and CardinalDL variant of a service (both Crunchyroll destinations resolve to `Crunchyroll` / `CR`). Disney, Netflix and Amazon are CardinalDL-only and have no aniDL variant.
 
+> [!NOTE]
+> Several of these values can be overridden in the monitor maps: `${seriesTitle}` with a per-series [`series_name`](series-overrides.md#overriding-the-series-name-and-year), `${year}` with a per-series [`year`](series-overrides.md#overriding-the-series-name-and-year), `${season}` / `${seasonPadded}` with a per-season [`season_override`](series-overrides.md#overriding-the-season-number), and `${episode}` / `${episodePadded}` with a per-season [`episode_offset`](series-overrides.md#offsetting-episode-numbers).
+
 ---
 
 ## Recipes
