@@ -318,8 +318,8 @@ for cdl_service in SERVICES.cardinaldl.all():
 
 # Whether any services have TrackForge enabled
 TRACKFORGE_ENABLED = False
-for trackforge_service in config.extra_features.trackforge.services.values():
-    if trackforge_service.enabled:
+for service_features in config.extra_features.services.values():
+    if service_features.trackforge.enabled:
         TRACKFORGE_ENABLED = True
         break
 
@@ -708,10 +708,23 @@ def get_season_monitor_config(service: str, series_id: str, season_id: str | Non
     service_monitor_config = service_obj.monitor_series_id
 
     series_config = service_monitor_config.get(series_id)
-    if not series_config:
+    if series_config is None:
         return None
 
-    return series_config.get(season_id)
+    return series_config.seasons.get(season_id)
+
+
+def get_series_overrides(service: str, series_id: str):
+    """Get the series level name and year overrides for a series, or None."""
+
+    normalized_service = service.strip().lower()
+
+    service_obj = SERVICES.get(normalized_service)
+    if service_obj is None:
+        _log(f"Unknown service '{service}' when reading series overrides.", level="error")
+        return None
+
+    return service_obj.monitor_series_id.get(series_id)
 
 
 def apply_series_blacklist(tmp_dict: dict[str, Series], service: str) -> dict[str, Series]:

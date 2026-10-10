@@ -87,7 +87,6 @@
             "videoquality": "1080p@@sdr",
             "audioquality": "aac@2.0",
             "fallback": true,
-            "outputformat": "mkv",
             "dublang": [
                 "JP",
                 "EN"
@@ -100,7 +99,6 @@
             "videoquality": "1080p@@sdr",
             "audioquality": "aac@2.0",
             "fallback": true,
-            "outputformat": "mkv",
             "dublang": [
                 "JP",
                 "EN"
@@ -113,7 +111,6 @@
             "videoquality": "1080p@@sdr",
             "audioquality": "aac@2.0",
             "fallback": true,
-            "outputformat": "mkv",
             "dublang": [
                 "JP",
                 "EN"
@@ -126,7 +123,6 @@
             "videoquality": "1080p@@sdr",
             "audioquality": "aac@2.0",
             "fallback": true,
-            "outputformat": "mkv",
             "dublang": [
                 "EN"
             ],
@@ -138,7 +134,6 @@
             "videoquality": "1080p@@sdr",
             "audioquality": "aac@2.0",
             "fallback": true,
-            "outputformat": "mkv",
             "dublang": [
                 "EN"
             ],
@@ -150,7 +145,6 @@
             "videoquality": "1080p@@sdr",
             "audioquality": "aac@2.0",
             "fallback": true,
-            "outputformat": "mkv",
             "dublang": [
                 "EN"
             ],
@@ -160,61 +154,113 @@
         }
     },
     "extra_features": {
-        "trackforge": {
-            "services": {
-                "mdnx-crunchyroll": {
+        "services": {
+            "mdnx-crunchyroll": {
+                "trackforge": {
                     "enabled": false,
                     "workers": 1,
                     "muxer": "auto",
                     "profile": ""
                 },
-                "mdnx-hidive": {
+                "transcoding": {
+                    "enabled": false,
+                    "ffmpeg_command": ""
+                }
+            },
+            "mdnx-hidive": {
+                "trackforge": {
                     "enabled": false,
                     "workers": 1,
                     "muxer": "auto",
                     "profile": ""
                 },
-                "mdnx-adn": {
+                "transcoding": {
+                    "enabled": false,
+                    "ffmpeg_command": ""
+                }
+            },
+            "mdnx-adn": {
+                "trackforge": {
                     "enabled": false,
                     "workers": 1,
                     "muxer": "auto",
                     "profile": ""
                 },
-                "cdl-crunchyroll": {
+                "transcoding": {
+                    "enabled": false,
+                    "ffmpeg_command": ""
+                }
+            },
+            "cdl-crunchyroll": {
+                "trackforge": {
                     "enabled": false,
                     "workers": 1,
                     "muxer": "auto",
                     "profile": ""
                 },
-                "cdl-hidive": {
+                "transcoding": {
+                    "enabled": false,
+                    "ffmpeg_command": ""
+                }
+            },
+            "cdl-hidive": {
+                "trackforge": {
                     "enabled": false,
                     "workers": 1,
                     "muxer": "auto",
                     "profile": ""
                 },
-                "cdl-adn": {
+                "transcoding": {
+                    "enabled": false,
+                    "ffmpeg_command": ""
+                }
+            },
+            "cdl-adn": {
+                "trackforge": {
                     "enabled": false,
                     "workers": 1,
                     "muxer": "auto",
                     "profile": ""
                 },
-                "cdl-disney": {
+                "transcoding": {
+                    "enabled": false,
+                    "ffmpeg_command": ""
+                }
+            },
+            "cdl-disney": {
+                "trackforge": {
                     "enabled": false,
                     "workers": 1,
                     "muxer": "auto",
                     "profile": ""
                 },
-                "cdl-netflix": {
+                "transcoding": {
+                    "enabled": false,
+                    "ffmpeg_command": ""
+                }
+            },
+            "cdl-netflix": {
+                "trackforge": {
                     "enabled": false,
                     "workers": 1,
                     "muxer": "auto",
                     "profile": ""
                 },
-                "cdl-amazon": {
+                "transcoding": {
+                    "enabled": false,
+                    "ffmpeg_command": ""
+                }
+            },
+            "cdl-amazon": {
+                "trackforge": {
                     "enabled": false,
                     "workers": 1,
                     "muxer": "auto",
                     "profile": ""
+                },
+                "transcoding": {
+                    "enabled": false,
+                    "ffmpeg_command": ""
                 }
             }
         }

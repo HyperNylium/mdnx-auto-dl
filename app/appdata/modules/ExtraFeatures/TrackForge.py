@@ -11,9 +11,11 @@ TRACKFORGE_BIN_PATH = os.path.join(BIN_DIR, "trackforge", "trackforge")
 def trackforge_resolve(service: str, series_id: str, season_id: str):
     """Work out the trackforge run for one episode. Returns (profile, workers, muxer) or None to skip."""
 
-    service_config = config.extra_features.trackforge.services.get(service)
-    if service_config is None or not service_config.enabled:
+    service_features = config.extra_features.services.get(service)
+    if service_features is None or not service_features.trackforge.enabled:
         return None
+
+    service_config = service_features.trackforge
 
     # per-season trackforge profile overrides the service profile if set
     profile = service_config.profile

@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
 
 # a subtitle token is a language code with an optional variant like EN or EN:cc
 SubToken = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"(?i)^[A-Za-z][A-Za-z0-9-]*(:(full|cc|sdh|caption|both))?$")]
@@ -13,6 +13,22 @@ AudioQuality = Annotated[str, StringConstraints(pattern=r"^(?:(?:[A-Za-z][A-Za-z
 
 # a trackforge profile is a comma list of items like AAC:2.0, EOS:2.0 or ORIG
 TrackForgeProfile = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"(?i)^\s*(?:(?:AAC|AC3|EAC3|DTS|OPUS|FLAC|WAV|PCM|ORIG|EOS\+?(?:-(?:AAC|AC3|EAC3|DTS|OPUS|FLAC|WAV|PCM))?)(?::(?:1\.0|2\.0|5\.1|7\.1))?(?:\s*,\s*(?:AAC|AC3|EAC3|DTS|OPUS|FLAC|WAV|PCM|ORIG|EOS\+?(?:-(?:AAC|AC3|EAC3|DTS|OPUS|FLAC|WAV|PCM))?)(?::(?:1\.0|2\.0|5\.1|7\.1))?)*)?\s*$")]
+
+
+def validate_ffmpeg_command(value: str):
+    """Make sure a transcode command has both placeholders so we know the input and output files."""
+
+    if value is None:
+        return value
+
+    # an empty command means transcoding is off so there is nothing to check
+    if value.strip() == "":
+        return value
+
+    if "{input}" not in value or "{output}" not in value:
+        raise ValueError("ffmpeg command must contain both {input} and {output} placeholders")
+
+    return value
 
 
 class DestinationConfig(BaseModel):
@@ -112,9 +128,42 @@ class SeasonMonitorConfig(BaseModel):
     season_override: str | None = None
     dub_overrides: list[str] | None = None
     sub_overrides: list[SubToken] | None = None
+    episode_offset: int = 0
     dir_override: str | None = None
     folder_structure_override: str | None = None
     trackforge_profile: TrackForgeProfile | None = None
+    ffmpeg_command: str | None = None
+
+    @field_validator("ffmpeg_command")
+    @classmethod
+    def _check_ffmpeg_command(cls, value):
+        return validate_ffmpeg_command(value)
+
+
+class SeriesMonitorConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    series_name: str | None = None
+    year: str | None = None
+    seasons: dict[str, SeasonMonitorConfig] = Field(default_factory=dict)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _group_seasons(cls, data):
+        if not isinstance(data, dict):
+            return data
+
+        override_keys = set(cls.model_fields) - {"seasons"}
+        result = {}
+        seasons = {}
+        for key, value in data.items():
+            if key in override_keys:
+                result[key] = value
+                continue
+            seasons[key] = value
+
+        result["seasons"] = seasons
+        return result
 
 
 class MdnxBinPath(BaseModel):
@@ -160,7 +209,6 @@ class CdlServiceConfig(BaseModel):
     fallback: bool = True
     # keep hybrid as None so that if the user ticked the box to enable it in the GUI, it will be True, but if they didnt, it will be None and the default behavior will be used without us having to pass --hybrid to the CLI
     hybrid: bool | None = None
-    outputformat: str = Field("mkv", pattern=r"^(?:mkv|mp4)?$")
     dublang: list[str] = ["JP", "EN"]
     dlsubs: list[SubToken] = ["EN"]
     forcesubformat: str = Field("", pattern="^(srt|ass|vtt|auto|raw|original)?$")
@@ -193,31 +241,44 @@ class TrackForgeServiceConfig(BaseModel):
     profile: TrackForgeProfile = ""
 
 
-class TrackForgeConfig(BaseModel):
+class TranscodingServiceConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
-    services: dict[str, TrackForgeServiceConfig] = Field(default_factory=dict)
+    enabled: bool = False
+    ffmpeg_command: str = ""
+
+    @field_validator("ffmpeg_command")
+    @classmethod
+    def _check_ffmpeg_command(cls, value):
+        return validate_ffmpeg_command(value)
+
+
+class ExtraFeaturesServiceConfig(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    trackforge: TrackForgeServiceConfig = Field(default_factory=TrackForgeServiceConfig)
+    transcoding: TranscodingServiceConfig = Field(default_factory=TranscodingServiceConfig)
 
 
 class ExtraFeaturesConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
-    trackforge: TrackForgeConfig = Field(default_factory=TrackForgeConfig)
+    services: dict[str, ExtraFeaturesServiceConfig] = Field(default_factory=dict)
 
 
 class Config(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    mdnx_cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    mdnx_hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    mdnx_adn_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    mdnx_cr_monitor_series_id: dict[str, SeriesMonitorConfig] = Field(default_factory=dict)
+    mdnx_hidive_monitor_series_id: dict[str, SeriesMonitorConfig] = Field(default_factory=dict)
+    mdnx_adn_monitor_series_id: dict[str, SeriesMonitorConfig] = Field(default_factory=dict)
 
-    cdl_cr_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    cdl_hidive_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    cdl_adn_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    cdl_disney_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    cdl_netflix_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
-    cdl_amazon_monitor_series_id: dict[str, dict[str, SeasonMonitorConfig]] = Field(default_factory=dict)
+    cdl_cr_monitor_series_id: dict[str, SeriesMonitorConfig] = Field(default_factory=dict)
+    cdl_hidive_monitor_series_id: dict[str, SeriesMonitorConfig] = Field(default_factory=dict)
+    cdl_adn_monitor_series_id: dict[str, SeriesMonitorConfig] = Field(default_factory=dict)
+    cdl_disney_monitor_series_id: dict[str, SeriesMonitorConfig] = Field(default_factory=dict)
+    cdl_netflix_monitor_series_id: dict[str, SeriesMonitorConfig] = Field(default_factory=dict)
+    cdl_amazon_monitor_series_id: dict[str, SeriesMonitorConfig] = Field(default_factory=dict)
 
     destinations: dict[str, DestinationConfig] = Field(default_factory=dict)
 

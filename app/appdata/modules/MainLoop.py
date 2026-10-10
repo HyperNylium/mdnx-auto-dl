@@ -13,6 +13,7 @@ from .Vars import (
 )
 from .types.queue import Episode, ServiceBucket
 from .ExtraFeatures.TrackForge import trackforge_resolve, trackforge_run
+from .ExtraFeatures.Transcoding import transcode_resolve, transcode_run
 
 
 class MainLoop:
@@ -418,8 +419,18 @@ class MainLoop:
                 if trackforge_job is not None:
                     trackforge_ok = trackforge_run(temp_path, *trackforge_job)
 
+                # if configured run the ffmpeg transcode after TrackForge and before we move it to storage
+                transcode_job = transcode_resolve(service, series_id, season.season_id)
+                transcode_ok = True
+                if trackforge_ok and transcode_job is not None:
+                    transcode_ok = transcode_run(temp_path, transcode_job)
+
                 if not trackforge_ok:
                     log_manager.error(f"[{service_label}] TrackForge failed. Skipping transfer and will retry next loop.")
+                    queue_manager.update_episode_status(series_id, season_key, episode_key, False, service)
+
+                elif not transcode_ok:
+                    log_manager.error(f"[{service_label}] Transcode failed. Skipping transfer and will retry next loop.")
                     queue_manager.update_episode_status(series_id, season_key, episode_key, False, service)
 
                 elif file_manager.transfer(temp_path, file_path):
@@ -584,8 +595,17 @@ class MainLoop:
                 if trackforge_job is not None:
                     trackforge_ok = trackforge_run(temp_path, *trackforge_job)
 
+                # run the ffmpeg transcode after trackforge and before we move it to storage
+                transcode_job = transcode_resolve(service, series_id, season.season_id)
+                transcode_ok = True
+                if trackforge_ok and transcode_job is not None:
+                    transcode_ok = transcode_run(temp_path, transcode_job)
+
                 if not trackforge_ok:
                     log_manager.error(f"[{service_label}] TrackForge failed. Keeping existing file and will retry next loop.")
+
+                elif not transcode_ok:
+                    log_manager.error(f"[{service_label}] Transcode failed. Keeping existing file and will retry next loop.")
 
                 elif file_manager.transfer(temp_path, file_path, overwrite=True):
                     log_manager.info(f"[{service_label}] Transfer complete.")

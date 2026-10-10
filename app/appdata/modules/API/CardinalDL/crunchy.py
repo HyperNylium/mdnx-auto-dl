@@ -190,10 +190,6 @@ class CR_CDL_API:
             tmp_cmd += ["--hybrid", hybrid_value]
             log_manager.info(f"Using hybrid override: {hybrid_value}")
 
-        if self.service_config.outputformat:
-            tmp_cmd += ["--outputformat", self.service_config.outputformat]
-            log_manager.info(f"Using outputformat override: {self.service_config.outputformat}")
-
         if dub_override:
             joined_dubs = ",".join(dub_override)
             tmp_cmd += ["--dublang", joined_dubs]
@@ -210,6 +206,7 @@ class CR_CDL_API:
             tmp_cmd += ["--forcesubformat", self.service_config.forcesubformat]
             log_manager.info(f"Using forcesubformat override: {self.service_config.forcesubformat}")
 
+        tmp_cmd += ["--outputformat", "mkv"]
         tmp_cmd += ["--filename", "output"]
         tmp_cmd += ["--dlpath", self.service_config.dlpath]
         tmp_cmd += ["--temppath", self.service_config.temppath]
