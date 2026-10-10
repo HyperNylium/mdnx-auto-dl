@@ -23,6 +23,7 @@ type requestMessage struct {
 	Redirect       string      `json:"redirect"`
 	TimeoutMs      int         `json:"timeoutMs"`
 	DoHURL         string      `json:"dohUrl"`
+	ProxyURL       string      `json:"proxyUrl"`
 	BinaryResponse bool        `json:"binaryResponse"`
 }
 

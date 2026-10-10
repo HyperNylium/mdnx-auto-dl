@@ -39,7 +39,7 @@ func (e *engine) close() {
 	}
 }
 
-func (e *engine) transport(doh string) (*http.Transport, error) {
+func (e *engine) transport(doh, proxyURL string) (*http.Transport, error) {
 	if doh == "" {
 		doh = os.Getenv("ZLO_EDGE_DOH_URL")
 	}
@@ -47,12 +47,17 @@ func (e *engine) transport(doh string) (*http.Transport, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	if transport := e.transports[doh]; transport != nil {
+	key := doh + "\x00" + proxyURL
+	if transport := e.transports[key]; transport != nil {
 		return transport, nil
 	}
 
-	if len(e.transports) >= 8 {
-		return nil, errors.New("Too many transport configurations")
+	if len(e.transports) >= 64 {
+		for oldKey, oldTransport := range e.transports {
+			oldTransport.CloseIdleConnections()
+			delete(e.transports, oldKey)
+			break
+		}
 	}
 
 	resolver, err := newECHResolver(doh)
@@ -60,12 +65,12 @@ func (e *engine) transport(doh string) (*http.Transport, error) {
 		return nil, err
 	}
 
-	transport, err := newTransport(resolver)
+	transport, err := newTransport(resolver, proxyURL)
 	if err != nil {
 		return nil, err
 	}
 
-	e.transports[doh] = transport
+	e.transports[key] = transport
 
 	return transport, nil
 }
@@ -165,7 +170,7 @@ func (e *engine) execute(ctx context.Context, message requestMessage) responseMe
 		request.Header[http.HeaderOrderKey] = append(request.Header[http.HeaderOrderKey], name)
 	}
 
-	transport, err := e.transport(message.DoHURL)
+	transport, err := e.transport(message.DoHURL, message.ProxyURL)
 	if err != nil {
 		return fail("INVALID_CONFIGURATION", "Invalid transport or DNS configuration")
 	}
