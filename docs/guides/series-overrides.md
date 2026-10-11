@@ -14,14 +14,14 @@ These maps are **top-level** keys, not under `app`.
 "mdnx_cr_monitor_series_id": {
     "series_id": {
         "series_name": "My Show",
-        "year": "2021",
+        "year": 2021,
         "season_id": {
             "blacklists": [
                 "*",
                 "episode_num",
                 "episode_num_start-episode_num_end"
             ],
-            "season_override": "2",
+            "season_override": 2,
             "episode_offset": 0,
             "dub_overrides": ["eng", "zho"],
             "sub_overrides": ["en", "de"],
@@ -39,13 +39,13 @@ YAML:
 mdnx_cr_monitor_series_id:
     series_id:
         series_name: "My Show"
-        year: "2021"
+        year: 2021
         season_id:
             blacklists:
                 - "*"
                 - "episode_num"
                 - "episode_num_start-episode_num_end"
-            season_override: "2"
+            season_override: 2
             episode_offset: 0
             dub_overrides:
                 - "eng"
@@ -195,7 +195,7 @@ The example below files the season's episodes as season 1 regardless of what the
     "mdnx_cr_monitor_series_id": {
         "GT00362335": {
             "GS00362336JAJP": {
-                "season_override": "1"
+                "season_override": 1
             }
         }
     }
@@ -206,7 +206,7 @@ YAML:
 mdnx_cr_monitor_series_id:
     GT00362335:
         GS00362336JAJP:
-            season_override: "1"
+            season_override: 1
 ```
 
 ## Offsetting episode numbers
@@ -220,11 +220,11 @@ This is handy when a service splits one continuous run across more than one seas
         "82116553": {
             "series_name": "JoJo's Bizarre Adventure",
             "81595018": {
-                "season_override": "6"
+                "season_override": 6
             },
             "82181513": {
                 "episode_offset": 1,
-                "season_override": "6"
+                "season_override": 6
             }
         }
     }
@@ -236,10 +236,10 @@ cdl_netflix_monitor_series_id:
     "82116553":
         series_name: "JoJo's Bizarre Adventure"
         "81595018":
-            season_override: "6"
+            season_override: 6
         "82181513":
             episode_offset: 1
-            season_override: "6"
+            season_override: 6
 ```
 
 Here Netflix season `81595018` keeps its single episode 1, and season `82181513` starts at episode 2, so season 6 reads as episodes 1, 2, 3, and so on.
@@ -255,7 +255,7 @@ Here Netflix season `81595018` keeps its single episode 1, and season `82181513`
     "mdnx_cr_monitor_series_id": {
         "GQWH0M1J3": {
             "series_name": "My Show",
-            "year": "2021",
+            "year": 2021,
             "GYE5CQNJ2": {}
         }
     }
@@ -266,7 +266,7 @@ YAML:
 mdnx_cr_monitor_series_id:
     GQWH0M1J3:
         series_name: "My Show"
-        year: "2021"
+        year: 2021
         GYE5CQNJ2: {}
 ```
 

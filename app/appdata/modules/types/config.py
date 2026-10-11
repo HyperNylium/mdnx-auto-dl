@@ -125,7 +125,7 @@ class SeasonMonitorConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     blacklists: list[str] | None = None
-    season_override: str | None = None
+    season_override: int | None = None
     dub_overrides: list[str] | None = None
     sub_overrides: list[SubToken] | None = None
     episode_offset: int = 0
@@ -144,7 +144,7 @@ class SeriesMonitorConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     series_name: str | None = None
-    year: str | None = None
+    year: int | None = None
     seasons: dict[str, SeasonMonitorConfig] = Field(default_factory=dict)
 
     @model_validator(mode="before")

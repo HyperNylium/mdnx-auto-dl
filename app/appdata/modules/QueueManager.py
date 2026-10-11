@@ -58,7 +58,7 @@ class QueueManager:
                     if series_overrides.series_name:
                         override_series_name = sanitize(series_overrides.series_name)
                     if series_overrides.year:
-                        override_release_year = series_overrides.year
+                        override_release_year = str(series_overrides.year)
 
                 existing_series = bucket.series.get(series_id)
 
