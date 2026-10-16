@@ -145,7 +145,18 @@ class SeriesMonitorConfig(BaseModel):
 
     series_name: str | None = None
     year: int | None = None
+    dub_overrides: list[str] | None = None
+    sub_overrides: list[SubToken] | None = None
+    dir_override: str | None = None
+    folder_structure_override: str | None = None
+    trackforge_profile: TrackForgeProfile | None = None
+    ffmpeg_command: str | None = None
     seasons: dict[str, SeasonMonitorConfig] = Field(default_factory=dict)
+
+    @field_validator("ffmpeg_command")
+    @classmethod
+    def _check_ffmpeg_command(cls, value):
+        return validate_ffmpeg_command(value)
 
     @model_validator(mode="before")
     @classmethod
@@ -164,6 +175,39 @@ class SeriesMonitorConfig(BaseModel):
 
         result["seasons"] = seasons
         return result
+
+    def resolve_season(self, season_id: str):
+        """Build the effective config for one season by laying its own overrides on top of the series ones."""
+
+        season = self.seasons.get(season_id)
+
+        # when the series sets no shared overrides and the season has no entry there is nothing to return
+        series_has_shared_overrides = any(value is not None for value in (self.dub_overrides, self.sub_overrides, self.dir_override, self.folder_structure_override, self.trackforge_profile, self.ffmpeg_command))
+        if season is None and not series_has_shared_overrides:
+            return None
+
+        effective = season.model_copy() if season is not None else SeasonMonitorConfig()
+
+        # override season-level setting with series-level settings if they are not set at the season level
+        if effective.dub_overrides is None:
+            effective.dub_overrides = self.dub_overrides
+
+        if effective.sub_overrides is None:
+            effective.sub_overrides = self.sub_overrides
+
+        if effective.dir_override is None:
+            effective.dir_override = self.dir_override
+
+        if effective.folder_structure_override is None:
+            effective.folder_structure_override = self.folder_structure_override
+
+        if effective.trackforge_profile is None:
+            effective.trackforge_profile = self.trackforge_profile
+
+        if effective.ffmpeg_command is None:
+            effective.ffmpeg_command = self.ffmpeg_command
+
+        return effective
 
 
 class MdnxBinPath(BaseModel):

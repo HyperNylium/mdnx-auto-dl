@@ -1,6 +1,6 @@
 # How-to: Blacklists & per-season overrides
 
-Inside each monitor map you can attach settings to a specific season of a series: skip episodes you do not want, renumber a season, shift the episode numbers, change which dubs/subs are downloaded for just that season, send that season to a different folder with a different folder structure, run a different TrackForge profile, or run a different ffmpeg transcode on that season. You can also set a couple of overrides at the series level, above the seasons: a `series_name` and a release `year`.
+Inside each monitor map you can attach settings to a specific season of a series: skip episodes you do not want, renumber a season, shift the episode numbers, change which dubs/subs are downloaded for just that season, send that season to a different folder with a different folder structure, run a different TrackForge profile, or run a different ffmpeg transcode on that season. You can also set overrides at the series level, above the seasons: a `series_name` and a release `year`, plus the dub/sub, folder, TrackForge, and transcode overrides when you want them to apply to every season of the series at once.
 
 The examples below use `mdnx_cr_monitor_series_id`, but the same rules apply to every monitor map: the aniDL maps `mdnx_*` <sup>[1](../config-options.md#mdnx_cr_monitor_series_id "mdnx_cr_monitor_series_id") [2](../config-options.md#mdnx_hidive_monitor_series_id "mdnx_hidive_monitor_series_id") [3](../config-options.md#mdnx_adn_monitor_series_id "mdnx_adn_monitor_series_id")</sup> and the CardinalDL maps `cdl_*` <sup>[1](../config-options.md#cdl_cr_monitor_series_id "cdl_cr_monitor_series_id") [2](../config-options.md#cdl_hidive_monitor_series_id "cdl_hidive_monitor_series_id") [3](../config-options.md#cdl_adn_monitor_series_id "cdl_adn_monitor_series_id") [4](../config-options.md#cdl_disney_monitor_series_id "cdl_disney_monitor_series_id") [5](../config-options.md#cdl_netflix_monitor_series_id "cdl_netflix_monitor_series_id") [6](../config-options.md#cdl_amazon_monitor_series_id "cdl_amazon_monitor_series_id")</sup>.
 
@@ -59,12 +59,13 @@ mdnx_cr_monitor_series_id:
             ffmpeg_command: "ffmpeg -i {input} -c:v libx265 -crf 24 -c:a copy -c:s copy {output}"
 ```
 
-A series maps to one or more seasons. `series_name` and `year` are optional keys that sit at the series level, next to the seasons, and apply to the whole series. Every other key under a series is treated as a season ID. Everything inside a season is optional too, and a season with an empty `{}` is just monitored normally.
+A series maps to one or more seasons. The series-level keys below are optional and sit next to the seasons. `series_name` and `year` apply to the whole series. The dub/sub, folder, TrackForge, and transcode keys also work at the series level, where they set a default for every season, and a season that sets the same key wins over that default. Every other key under a series is treated as a season ID. Everything inside a season is optional too, and a season with an empty `{}` is just monitored normally and still picks up any series-level overrides.
 
 Series-level overrides:
 
 - **`series_name`**: set this series to a different name instead of the name the service reports.
 - **`year`**: override the release year used when filing the series. Handy when the service has the wrong year or leaves it blank.
+- **`dub_overrides`** / **`sub_overrides`** / **`dir_override`** / **`folder_structure_override`** / **`trackforge_profile`** / **`ffmpeg_command`**: the same overrides described below under per-season, but set once for the whole series. Each one applies to every season unless that season sets the same key, which then wins for that season. `season_override`, `episode_offset`, and `blacklists` cannot be set at the series level because they target one specific season.
 
 Per-season overrides:
 
@@ -270,7 +271,40 @@ mdnx_cr_monitor_series_id:
         GYE5CQNJ2: {}
 ```
 
-Here `GYE5CQNJ2` is still a season of the series. `series_name` and `year` are the only keys read as series-level settings; every other key under the series ID is read as a season.
+Here `GYE5CQNJ2` is still a season of the series. The keys read as series-level settings are `series_name`, `year`, `dub_overrides`, `sub_overrides`, `dir_override`, `folder_structure_override`, `trackforge_profile`, and `ffmpeg_command`. Every other key under the series ID is read as a season.
+
+## Set an override for the whole series
+
+The dub/sub, folder, TrackForge, and transcode overrides can sit at the series level, next to the seasons, instead of inside each season. When set there they apply to every season of the series, including seasons you did not list. A season that sets the same key wins over the series-level value for that one key.  
+This example sends the whole series to one folder and asks for an English dub everywhere, while one season keeps the Japanese dub instead:
+```json
+{
+    "mdnx_cr_monitor_series_id": {
+        "GQWH0M1J3": {
+            "dir_override": "/data/special-shows",
+            "dub_overrides": ["eng"],
+            "GYE5CQNJ2": {
+                "dub_overrides": ["jpn"]
+            },
+            "GN7G3X52M": {}
+        }
+    }
+}
+```
+YAML:
+```yaml
+mdnx_cr_monitor_series_id:
+    GQWH0M1J3:
+        dir_override: "/data/special-shows"
+        dub_overrides:
+            - "eng"
+        GYE5CQNJ2:
+            dub_overrides:
+                - "jpn"
+        GN7G3X52M: {}
+```
+
+Both seasons land under `/data/special-shows`. Season `GYE5CQNJ2` downloads the Japanese dub because its own `dub_overrides` wins, and season `GN7G3X52M` downloads the English dub from the series level. A list override replaces the series list as a whole, so the two are not merged.
 
 ## Overriding dubs and subs per season
 

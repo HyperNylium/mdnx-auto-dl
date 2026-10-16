@@ -1002,7 +1002,7 @@ cardinaldl:
 
 ## Series to monitor
 
-These keys live at the **top level** of the config file, not inside `app`. They map series IDs to per-season settings (blacklists, season renumbering, episode offsets, dub/sub overrides, folder overrides, and per-season TrackForge/transcode overrides) and to series-level overrides (`series_name` and `year`).  
+These keys live at the **top level** of the config file, not inside `app`. They map series IDs to per-season settings (blacklists, season renumbering, episode offsets, dub/sub overrides, folder overrides, and per-season TrackForge/transcode overrides) and to series-level overrides (`series_name` and `year`). The dub/sub, folder, TrackForge, and transcode overrides can also be set once at the series level, where they apply to every season unless a season sets its own.  
 See [Blacklists & per-season overrides](guides/series-overrides.md) for the full format.
 
 ### <a id="mdnx_cr_monitor_series_id"></a>mdnx_cr_monitor_series_id

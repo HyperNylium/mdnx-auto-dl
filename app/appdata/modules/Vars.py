@@ -711,7 +711,7 @@ def get_season_monitor_config(service: str, series_id: str, season_id: str | Non
     if series_config is None:
         return None
 
-    return series_config.seasons.get(season_id)
+    return series_config.resolve_season(season_id)
 
 
 def get_series_overrides(service: str, series_id: str):
