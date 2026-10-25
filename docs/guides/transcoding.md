@@ -68,7 +68,7 @@ Because the result replaces the original mkv, keep the container as mkv. Point `
 
 ## Use a different command for one season
 
-To run a different command on a single season, set `ffmpeg_command` on that season in the service's monitor map. It only has an effect when transcoding is enabled for the service. See [Blacklists & per-season overrides](series-overrides.md#transcode-one-season-differently).
+To run a different command on a single season, set `ffmpeg_command` on that season in the service's monitor map. It only has an effect when transcoding is enabled for the service. See [Blacklists & per-season overrides](series-overrides.md#transcode-one-season-differently). You can also set `ffmpeg_command` once at the series level to transcode every season of the series, where a season that sets its own command wins, as shown in [Set an override for the whole series](series-overrides.md#set-an-override-for-the-whole-series).
 
 ---
 

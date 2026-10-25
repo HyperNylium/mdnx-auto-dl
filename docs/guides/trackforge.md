@@ -72,7 +72,7 @@ The profile is checked when your config loads, so a malformed profile stops the 
 
 ## Use a different profile for one season
 
-To run a different profile on a single season, set `trackforge_profile` on that season in the service's monitor map. It uses the exact same profile format and only has an effect when TrackForge is enabled for the service. See [Blacklists & per-season overrides](series-overrides.md#override-the-trackforge-profile-per-season).
+To run a different profile on a single season, set `trackforge_profile` on that season in the service's monitor map. It uses the exact same profile format and only has an effect when TrackForge is enabled for the service. See [Blacklists & per-season overrides](series-overrides.md#override-the-trackforge-profile-per-season). You can also set `trackforge_profile` once at the series level to apply it to every season of the series, where a season that sets its own profile wins, as shown in [Set an override for the whole series](series-overrides.md#set-an-override-for-the-whole-series).
 
 ---
 
